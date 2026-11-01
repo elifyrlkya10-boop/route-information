@@ -179,6 +179,176 @@ function watchErrors(page, errors) {
     await ctx.close();
   }
 
+  // --- conditional item: rain gear ---
+  const RAIN_TEXT = { tr: "Yağmurluk / yağmur kıyafeti", en: "Rain jacket / rain gear", el: "Αδιάβροχο / ρούχα βροχής",
+                      es: "Chubasquero / traje de lluvia", pt: "Capa de chuva / roupa de chuva" };
+  const ids = page => page.$$eval("#list .item", bs => bs.map(b => b.dataset.id));
+  {
+    const ctx = await browser.newContext({ locale: "tr-TR" });
+    // Capture what gets read aloud (speechSynthesis stub) so spoken text can be checked.
+    await ctx.addInitScript(() => {
+      window.__spoken = [];
+      window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+      Object.defineProperty(window, "speechSynthesis", { configurable: true, value: {
+        cancel() {}, speak(u) { window.__spoken.push(u.text); setTimeout(() => u.onend && u.onend(), 0); } } });
+    });
+    const page = await ctx.newPage();
+    const errors = [];
+    watchErrors(page, errors);
+
+    await page.goto(URL);
+    await step("koşullu madde varsayılan olarak listede yok", async () => {
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 0);
+      assert.deepStrictEqual(await page.evaluate(() => window.gearChecklist.conditionals()), []);
+    });
+
+    await step("?ek=yagmur ile eklenir, motor kontrolünden hemen önce", async () => {
+      await page.goto(URL + "?ek=yagmur");
+      const list = await ids(page);
+      assert.strictEqual(list.length, N_ITEMS + 1);
+      assert.deepStrictEqual(list.slice(-2), ["rain", "bike"]);
+      assert.strictEqual(await page.textContent('#list .item[data-id="rain"]'), RAIN_TEXT.tr);
+    });
+
+    await step("koşullu madde metni 5 dilde", async () => {
+      for (const l of ["en", "el", "es", "pt", "tr"]) {
+        await page.selectOption("#lang", l);
+        assert.strictEqual(await page.textContent('#list .item[data-id="rain"]'), RAIN_TEXT[l]);
+      }
+    });
+
+    await step("API ile eklenen madde yenilemede korunur (URL parametresi olmadan)", async () => {
+      await page.evaluate(k => localStorage.removeItem(k), KEY);
+      await page.goto(URL);
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 0);
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.addConditional("rain")), true);
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.addConditional("rain")), false, "ikinci ekleme");
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.addConditional("kar")), false, "bilinmeyen anahtar");
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["rain", "bike"]);
+      await page.reload();
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS + 1);
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["rain", "bike"]);
+    });
+
+    await step("sesli okuma koşullu madde için spokenText kullanır, akış sona kadar ilerler", async () => {
+      await page.evaluate(() => { window.__spoken = []; });
+      for (let i = 0; i < N_ITEMS; i++) await page.click("#start"); // 1st click asks item 0; 6th asks rain (index 5)
+      assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "rain");
+      assert.strictEqual(await page.textContent("#status"), RAIN_TEXT.tr);
+      const spoken = await page.evaluate(() => window.__spoken);
+      assert.strictEqual(spoken[spoken.length - 1], "Yağmur bekleniyor. Yağmurluğunu ya da yağmur kıyafetini aldın mı?");
+      await page.click("#start"); // rain -> bike
+      assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "bike");
+      await page.click("#start"); // finish
+      assert.strictEqual(await page.locator("#list .item.done").count(), N_ITEMS + 1);
+      assert.strictEqual(await page.textContent("#status"), "Her şey hazır. İyi yolculuklar!");
+    });
+
+    await step("sesli okuma metni EN/EL/ES/PT", async () => {
+      const want = { en: /Rain is expected/, el: /Αναμένεται βροχή/, es: /Se espera lluvia/, pt: /previsão de chuva/ };
+      for (const l of Object.keys(want)) {
+        await page.click("#reset");
+        await page.selectOption("#lang", l);
+        for (let i = 0; i < N_ITEMS; i++) await page.click("#start");
+        const spoken = await page.evaluate(() => window.__spoken);
+        assert.match(spoken[spoken.length - 1], want[l]);
+      }
+      await page.selectOption("#lang", "tr");
+    });
+
+    await step("tamamlanmış listeye madde eklenirse liste yeniden tamamlanmamış olur", async () => {
+      await page.click("#reset");
+      await page.evaluate(() => window.gearChecklist.removeConditional("rain"));
+      for (let i = 0; i < N_ITEMS + 1; i++) await page.click("#start");
+      assert.strictEqual(await page.textContent("#status"), "Her şey hazır. İyi yolculuklar!");
+      await page.evaluate(() => window.gearChecklist.addConditional("rain"));
+      assert.strictEqual(await page.locator("#list .item.done").count(), N_ITEMS);
+      assert.strictEqual(await page.textContent("#status"), "");
+      await page.click("#start");
+      assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "rain");
+    });
+
+    await step("Sıfırla ilerlemeyi siler ama koşullu maddeyi korur", async () => {
+      await page.click("#reset");
+      assert.strictEqual(await page.locator("#list .item.done").count(), 0);
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 1);
+      const st = JSON.parse(await page.evaluate(k => localStorage.getItem(k), KEY));
+      assert.deepStrictEqual(st.extras, ["rain"]);
+      assert.strictEqual(st.done, undefined);
+      await page.reload();
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 1);
+      assert.strictEqual(await page.locator("#list .item.done").count(), 0);
+    });
+
+    await step("removeConditional maddeyi kaldırır; Sıfırla sonra kaydı tamamen siler", async () => {
+      await page.click("#start"); await page.click("#start");
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.removeConditional("rain")), true);
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      assert.strictEqual(await page.locator("#list .item.done").count(), 1);
+      await page.click("#reset");
+      assert.strictEqual(await page.evaluate(k => localStorage.getItem(k), KEY), null);
+    });
+
+    await step("eski (v1, indeksli) kayıt bozulmaz ve yağmur eklenince kaymaz", async () => {
+      // v1 save: items 0..4 done, current = 5 (motor kontrolü), English.
+      await page.evaluate(k => localStorage.setItem(k, JSON.stringify({ done: [0, 1, 2, 3, 4], current: 5, finished: false, lang: "en" })), KEY);
+      await page.goto(URL + "?ek=yagmur");
+      assert.strictEqual(await page.inputValue("#lang"), "en");
+      assert.strictEqual(await page.locator("#list .item.done").count(), 5);
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"].done').count(), 0);
+      assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "bike");
+      const st = JSON.parse(await page.evaluate(k => localStorage.getItem(k), KEY));
+      assert.strictEqual(st.v, 2);
+      assert.deepStrictEqual(st.done, ["intercom", "boots", "jacket", "helmet", "guards"]);
+      assert.deepStrictEqual(st.extras, ["rain"], "URL ile eklenen madde kayda yazılır");
+      await page.goto(URL); // parametresiz açılışta da korunur
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["rain", "bike"]);
+      assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "bike");
+    });
+
+    await step("eski tamamlanmış v1 kaydı geçerli; bozuk kayıt sayfayı kırmaz", async () => {
+      await page.evaluate(k => localStorage.setItem(k, JSON.stringify({ done: [0, 1, 2, 3, 4, 5], current: -1, finished: true, lang: "tr" })), KEY);
+      await page.goto(URL);
+      assert.strictEqual(await page.locator("#list .item.done").count(), N_ITEMS);
+      assert.strictEqual(await page.textContent("#status"), "Her şey hazır. İyi yolculuklar!");
+      await page.evaluate(k => localStorage.setItem(k, JSON.stringify({ done: [99, "x", null], current: "nope", extras: ["kar", 3] })), KEY);
+      await page.goto(URL);
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      assert.strictEqual(await page.locator("#list .item.done").count(), 0);
+      await page.evaluate(k => localStorage.removeItem(k), KEY);
+    });
+
+    await step("koşullu madde testlerinde konsol hatası yok", async () => {
+      assert.deepStrictEqual(errors, []);
+    });
+    await ctx.close();
+  }
+
+  // --- conditional item without speech APIs and without storage ---
+  {
+    const ctx = await browser.newContext({ locale: "tr-TR" });
+    await ctx.addInitScript(() => {
+      for (const k of ["speechSynthesis", "SpeechSynthesisUtterance", "SpeechRecognition", "webkitSpeechRecognition"]) {
+        try { delete window[k]; } catch (_) {}
+        try { Object.defineProperty(window, k, { value: undefined, configurable: true }); } catch (_) {}
+      }
+      Object.defineProperty(window, "localStorage", { get: () => { throw new Error("SecurityError"); }, configurable: true });
+    });
+    const page = await ctx.newPage();
+    const errors = [];
+    watchErrors(page, errors);
+    await page.goto(URL + "?ek=yagmur");
+    await step("ses ve kayıt yokken koşullu maddeli liste butonla tamamlanır", async () => {
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS + 1);
+      for (let i = 0; i < N_ITEMS + 2; i++) await page.click("#start");
+      assert.strictEqual(await page.locator("#list .item.done").count(), N_ITEMS + 1);
+      assert.strictEqual(await page.textContent("#status"), "Her şey hazır. İyi yolculuklar!");
+      assert.deepStrictEqual(errors, []);
+    });
+    await ctx.close();
+  }
+
   await browser.close();
   for (const [s, n] of results) console.log(`${s}  ${n}`);
   const failed = results.filter(r => r[0] === "FAIL").length;

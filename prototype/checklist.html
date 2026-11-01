@@ -52,14 +52,49 @@
   <p id="status" aria-live="polite"></p>
 </main>
 <script>
-const ITEMS = [
-  { tr: "Telsiz (interkom)", en: "Radio / intercom", el: "Ενδοεπικοινωνία", es: "Intercomunicador", pt: "Intercomunicador" },
-  { tr: "Bot", en: "Boots", el: "Μπότες", es: "Botas", pt: "Botas" },
-  { tr: "Ceket", en: "Jacket", el: "Μπουφάν", es: "Chaqueta", pt: "Jaqueta" },
-  { tr: "Kask", en: "Helmet", el: "Κράνος", es: "Casco", pt: "Capacete" },
-  { tr: "Dizlikler ve kolluklar", en: "Knee and elbow guards", el: "Επιγονατίδες και επιαγκωνίδες", es: "Rodilleras y coderas", pt: "Joelheiras e cotoveleiras" },
-  { tr: "Motor kontrolü: fren, gaz, aynalar", en: "Bike check: brakes, throttle, mirrors", el: "Έλεγχος μηχανής: φρένα, γκάζι, καθρέφτες", es: "Revisión de la moto: frenos, acelerador, espejos", pt: "Checagem da moto: freios, acelerador, espelhos" },
+// Base items: always on the list. `id` is stable and is what gets saved.
+const BASE_ITEMS = [
+  { id: "intercom", tr: "Telsiz (interkom)", en: "Radio / intercom", el: "Ενδοεπικοινωνία", es: "Intercomunicador", pt: "Intercomunicador" },
+  { id: "boots", tr: "Bot", en: "Boots", el: "Μπότες", es: "Botas", pt: "Botas" },
+  { id: "jacket", tr: "Ceket", en: "Jacket", el: "Μπουφάν", es: "Chaqueta", pt: "Jaqueta" },
+  { id: "helmet", tr: "Kask", en: "Helmet", el: "Κράνος", es: "Casco", pt: "Capacete" },
+  { id: "guards", tr: "Dizlikler ve kolluklar", en: "Knee and elbow guards", el: "Επιγονατίδες και επιαγκωνίδες", es: "Rodilleras y coderas", pt: "Joelheiras e cotoveleiras" },
+  { id: "bike", tr: "Motor kontrolü: fren, gaz, aynalar", en: "Bike check: brakes, throttle, mirrors", el: "Έλεγχος μηχανής: φρένα, γκάζι, καθρέφτες", es: "Revisión de la moto: frenos, acelerador, espejos", pt: "Checagem da moto: freios, acelerador, espelhos" },
 ];
+// Conditional items: off by default, added via ?ek=yagmur or window.gearChecklist.addConditional("rain").
+// `before` = id of the base item they are inserted in front of. `spoken` = text read aloud (falls back to `text`).
+const CONDITIONAL = {
+  rain: {
+    id: "rain", before: "bike",
+    text: { tr: "Yağmurluk / yağmur kıyafeti", en: "Rain jacket / rain gear", el: "Αδιάβροχο / ρούχα βροχής",
+            es: "Chubasquero / traje de lluvia", pt: "Capa de chuva / roupa de chuva" },
+    spoken: { tr: "Yağmur bekleniyor. Yağmurluğunu ya da yağmur kıyafetini aldın mı?",
+              en: "Rain is expected. Do you have your rain jacket or rain gear?",
+              el: "Αναμένεται βροχή. Έχεις μαζί το αδιάβροχο ή τα ρούχα βροχής;",
+              es: "Se espera lluvia. ¿Llevas el chubasquero o el traje de lluvia?",
+              pt: "Há previsão de chuva. Você está levando a capa ou a roupa de chuva?" },
+  },
+};
+// URL values for ?ek= (comma separated). Turkish and English keys both accepted.
+const EK_ALIASES = { yagmur: "rain", "yağmur": "rain", rain: "rain" };
+// Old saves (before conditional items) stored done/current as indices into this exact order.
+const LEGACY_ORDER = ["intercom", "boots", "jacket", "helmet", "guards", "bike"];
+
+let extras = new Set(); // active conditional ids
+let ITEMS = [];         // current list: [{ id, text{lang}, spoken{lang} }]
+function buildItems() {
+  const list = [];
+  BASE_ITEMS.forEach(b => {
+    Object.keys(CONDITIONAL).forEach(k => {
+      const c = CONDITIONAL[k];
+      if (extras.has(k) && c.before === b.id) list.push({ id: c.id, text: c.text, spoken: c.spoken });
+    });
+    const { id, ...text } = b;
+    list.push({ id, text, spoken: text });
+  });
+  ITEMS = list;
+}
+const ids = () => ITEMS.map(it => it.id);
 const UI = {
   tr: { title: "Ekipman Kontrolü", start: "🔊 Sesli başlat", begin: "▶ Başlat", next: "✓ Tamam, sonraki", again: "↻ Yeniden başlat", reset: "Sıfırla",
         done: "Her şey hazır. İyi yolculuklar!", say: "tamam", voice: "tr-TR",
@@ -108,26 +143,46 @@ function loadState() {
 }
 function saveState() {
   try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify({ done: [...done], current, finished, lang }));
+    window.localStorage.setItem(STORE_KEY, JSON.stringify({ v: 2, done: [...done], current, finished, lang, extras: [...extras] }));
   } catch (_) { storageOk = false; renderNotice(); }
 }
+// Reset clears progress and language, but keeps active conditional items (see report / reset()).
 function clearState() {
-  try { window.localStorage.removeItem(STORE_KEY); } catch (_) { storageOk = false; }
+  try {
+    if (extras.size) window.localStorage.setItem(STORE_KEY, JSON.stringify({ v: 2, extras: [...extras] }));
+    else window.localStorage.removeItem(STORE_KEY);
+  } catch (_) { storageOk = false; }
 }
 
 let lang = (navigator.language || "tr").slice(0, 2);
 if (!UI[lang]) lang = "en";
-let done = new Set(), current = -1, finished = false, recog = null;
+// done: Set of item ids; current: id of the item being asked, or null.
+let done = new Set(), current = null, finished = false, recog = null;
 
 const saved = loadState();
+let persistNow = false; // write back once on load if the URL added an item or an old save was migrated
 if (saved && typeof saved === "object") {
   if (UI[saved.lang]) lang = saved.lang;
-  if (Array.isArray(saved.done)) {
-    saved.done.forEach(i => { if (Number.isInteger(i) && i >= 0 && i < ITEMS.length) done.add(i); });
-  }
-  if (Number.isInteger(saved.current) && saved.current >= -1 && saved.current < ITEMS.length) current = saved.current;
-  finished = saved.finished === true && done.size === ITEMS.length;
+  if (Array.isArray(saved.extras)) saved.extras.forEach(k => { if (CONDITIONAL[k]) extras.add(k); });
 }
+try {
+  const ek = new URLSearchParams(window.location.search).get("ek");
+  if (ek) ek.split(",").forEach(v => {
+    const k = EK_ALIASES[v.trim().toLowerCase()];
+    if (k && !extras.has(k)) { extras.add(k); persistNow = true; }
+  });
+} catch (_) {}
+buildItems();
+if (saved && typeof saved === "object") {
+  // v1 saves used numeric indices into LEGACY_ORDER; v2 saves use ids.
+  const toId = x => Number.isInteger(x) ? LEGACY_ORDER[x] : x;
+  if (Array.isArray(saved.done)) saved.done.forEach(x => { const id = toId(x); if (ids().includes(id)) done.add(id); });
+  const cur = toId(saved.current);
+  if (ids().includes(cur)) current = cur;
+  finished = saved.finished === true && done.size === ITEMS.length;
+  if (saved.v !== 2) persistNow = true;
+}
+const itemById = id => ITEMS.find(it => it.id === id);
 
 // --- speech (all optional) ---
 function speak(text, then) {
@@ -185,39 +240,42 @@ function render() {
   document.title = t.title;
   $("title").textContent = t.title;
   $("lang").value = lang;
-  $("start").textContent = finished ? t.again : current >= 0 ? t.next : (HAS_TTS ? t.start : t.begin);
+  $("start").textContent = finished ? t.again : current !== null ? t.next : (HAS_TTS ? t.start : t.begin);
   $("reset").textContent = t.reset;
   $("list").innerHTML = "";
   ITEMS.forEach((item, i) => {
     const li = document.createElement("li");
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "item" + (done.has(i) ? " done" : "") + (i === current ? " current" : "");
-    b.setAttribute("aria-pressed", done.has(i) ? "true" : "false");
+    const id = item.id;
+    b.className = "item" + (done.has(id) ? " done" : "") + (id === current ? " current" : "");
+    b.setAttribute("aria-pressed", done.has(id) ? "true" : "false");
     b.dataset.index = i;
+    b.dataset.id = id;
     b.innerHTML = '<span class="box" aria-hidden="true"></span><span></span>';
-    b.lastChild.textContent = item[lang];
+    b.lastChild.textContent = item.text[lang];
     b.onclick = () => {
-      done.has(i) ? done.delete(i) : done.add(i);
+      done.has(id) ? done.delete(id) : done.add(id);
       if (done.size < ITEMS.length) finished = false;
       saveState(); render();
     };
     li.appendChild(b);
     $("list").appendChild(li);
   });
-  $("status").textContent = finished ? t.done : current >= 0 ? ITEMS[current][lang] : "";
+  $("status").textContent = finished ? t.done : current !== null ? itemById(current).text[lang] : "";
   renderNotice();
 }
 function askCurrent() {
   saveState();
   render();
-  speak(ITEMS[current][lang], listen);
+  speak(itemById(current).spoken[lang], listen);
 }
 function next() {
   if (finished) { reset(); }
-  if (current >= 0) done.add(current);
-  current = ITEMS.findIndex((_, i) => !done.has(i));
-  if (current === -1) {
+  if (current !== null) done.add(current);
+  const nextItem = ITEMS.find(it => !done.has(it.id));
+  current = nextItem ? nextItem.id : null;
+  if (current === null) {
     finished = true;
     stopSpeech();
     saveState();
@@ -227,12 +285,44 @@ function next() {
   }
   askCurrent();
 }
+// Reset = "start the check over". It does NOT remove conditional items: they reflect an outside
+// condition (e.g. rain forecast), not the rider's progress. Use removeConditional() for that.
 function reset() {
-  done.clear(); current = -1; finished = false;
+  done.clear(); current = null; finished = false;
   stopSpeech();
   clearState();
   render();
 }
+// --- conditional items API (used by e.g. the weather agent) ---
+function addConditional(key) {
+  if (!CONDITIONAL[key] || extras.has(key)) return false;
+  extras.add(key);
+  buildItems();
+  finished = false; // a new unchecked item means the list is no longer complete
+  saveState(); render();
+  return true;
+}
+function removeConditional(key) {
+  if (!extras.has(key)) return false;
+  extras.delete(key);
+  done.delete(key);
+  buildItems();
+  if (current === key) {
+    // The item being asked disappeared: stop listening so a late "tamam" can't tick another item;
+    // the next press of the main button asks the next unchecked item.
+    stopSpeech();
+    current = null;
+    finished = ITEMS.every(it => done.has(it.id));
+  }
+  saveState(); render();
+  return true;
+}
+window.gearChecklist = {
+  addConditional, removeConditional,
+  conditionals: () => [...extras],
+  available: () => Object.keys(CONDITIONAL),
+};
+if (persistNow) saveState();
 $("start").onclick = next;
 $("reset").onclick = reset;
 $("lang").onchange = e => { lang = e.target.value; saveState(); render(); };
