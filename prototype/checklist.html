@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ekipman Kontrol Listesi</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
+  main { max-width: 520px; margin: 0 auto; padding: 16px; }
+  header { display: flex; justify-content: space-between; align-items: center; }
+  h1 { font-size: 1.4rem; }
+  select, button { font-size: 1.1rem; border-radius: 10px; border: 0; }
+  select { padding: 8px; }
+  ul { list-style: none; padding: 0; }
+  li { display: flex; align-items: center; gap: 12px; padding: 14px; margin: 8px 0;
+       background: #222; border-radius: 12px; font-size: 1.15rem; cursor: pointer; }
+  li.done { opacity: .5; text-decoration: line-through; }
+  li.current { outline: 3px solid #f90; }
+  .box { width: 28px; height: 28px; border-radius: 6px; background: #333; display: grid; place-items: center; }
+  li.done .box::after { content: "✓"; color: #4c4; font-weight: bold; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .actions button { padding: 18px; background: #f90; color: #111; font-weight: bold; }
+  .actions button.secondary { background: #333; color: #eee; }
+  #status { min-height: 1.5em; margin-top: 12px; color: #aaa; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title"></h1>
+    <select id="lang" aria-label="Language">
+      <option value="tr">Türkçe</option>
+      <option value="en">English</option>
+      <option value="el">Ελληνικά</option>
+      <option value="es">Español</option>
+      <option value="pt">Português</option>
+    </select>
+  </header>
+  <ul id="list"></ul>
+  <div class="actions">
+    <button id="start"></button>
+    <button id="reset" class="secondary"></button>
+  </div>
+  <p id="status" aria-live="polite"></p>
+</main>
+<script>
+const ITEMS = [
+  { tr: "Telsiz (interkom)", en: "Radio / intercom", el: "Ενδοεπικοινωνία", es: "Intercomunicador", pt: "Intercomunicador" },
+  { tr: "Bot", en: "Boots", el: "Μπότες", es: "Botas", pt: "Botas" },
+  { tr: "Ceket", en: "Jacket", el: "Μπουφάν", es: "Chaqueta", pt: "Jaqueta" },
+  { tr: "Kask", en: "Helmet", el: "Κράνος", es: "Casco", pt: "Capacete" },
+  { tr: "Dizlikler ve kolluklar", en: "Knee and elbow guards", el: "Επιγονατίδες και επιαγκωνίδες", es: "Rodilleras y coderas", pt: "Joelheiras e cotoveleiras" },
+  { tr: "Motor kontrolü: fren, gaz, aynalar", en: "Bike check: brakes, throttle, mirrors", el: "Έλεγχος μηχανής: φρένα, γκάζι, καθρέφτες", es: "Revisión de la moto: frenos, acelerador, espejos", pt: "Checagem da moto: freios, acelerador, espelhos" },
+];
+const UI = {
+  tr: { title: "Ekipman Kontrolü", start: "🔊 Sesli başlat", next: "✓ Tamam, sonraki", reset: "Sıfırla", done: "Her şey hazır. İyi yolculuklar!", say: "tamam", voice: "BCP:tr-TR" },
+  en: { title: "Gear Check", start: "🔊 Start voice", next: "✓ OK, next", reset: "Reset", done: "All set. Ride safe!", say: "ok", voice: "BCP:en-US" },
+  el: { title: "Έλεγχος εξοπλισμού", start: "🔊 Έναρξη", next: "✓ Εντάξει, επόμενο", reset: "Επαναφορά", done: "Όλα έτοιμα. Καλό δρόμο!", say: "εντάξει", voice: "BCP:el-GR" },
+  es: { title: "Revisión de equipo", start: "🔊 Iniciar voz", next: "✓ Listo, siguiente", reset: "Reiniciar", done: "Todo listo. ¡Buen viaje!", say: "listo", voice: "BCP:es-ES" },
+  pt: { title: "Checagem de equipamento", start: "🔊 Iniciar voz", next: "✓ Ok, próximo", reset: "Reiniciar", done: "Tudo pronto. Boa viagem!", say: "ok", voice: "BCP:pt-BR" },
+};
+const $ = id => document.getElementById(id);
+let lang = (navigator.language || "tr").slice(0, 2);
+if (!UI[lang]) lang = "en";
+let done = new Set(), current = -1, recog = null;
+
+const bcp = () => UI[lang].voice.slice(4);
+function speak(text, then) {
+  if (!("speechSynthesis" in window)) { then && then(); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = bcp();
+  u.onend = () => then && then();
+  speechSynthesis.speak(u);
+}
+function listen() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return; // fall back to the button
+  recog && recog.abort();
+  recog = new SR();
+  recog.lang = bcp();
+  recog.onresult = e => {
+    const heard = e.results[0][0].transcript.toLowerCase();
+    if (heard.includes(UI[lang].say)) next();
+  };
+  try { recog.start(); } catch (_) {}
+}
+function render() {
+  const t = UI[lang];
+  document.documentElement.lang = lang;
+  $("title").textContent = t.title;
+  $("start").textContent = current >= 0 ? t.next : t.start;
+  $("reset").textContent = t.reset;
+  $("list").innerHTML = "";
+  ITEMS.forEach((item, i) => {
+    const li = document.createElement("li");
+    li.className = (done.has(i) ? "done " : "") + (i === current ? "current" : "");
+    li.innerHTML = '<span class="box"></span><span></span>';
+    li.lastChild.textContent = item[lang];
+    li.onclick = () => { done.has(i) ? done.delete(i) : done.add(i); render(); };
+    $("list").appendChild(li);
+  });
+}
+function askCurrent() {
+  render();
+  $("status").textContent = ITEMS[current][lang];
+  speak(ITEMS[current][lang], listen);
+}
+function next() {
+  if (current >= 0) done.add(current);
+  current = ITEMS.findIndex((_, i) => !done.has(i));
+  if (current === -1) {
+    render();
+    $("status").textContent = UI[lang].done;
+    speak(UI[lang].done);
+    return;
+  }
+  askCurrent();
+}
+$("start").onclick = next;
+$("reset").onclick = () => { done.clear(); current = -1; recog && recog.abort(); speechSynthesis.cancel(); $("status").textContent = ""; render(); };
+$("lang").value = lang;
+$("lang").onchange = e => { lang = e.target.value; render(); };
+render();
+</script>
+</body>
+</html>
