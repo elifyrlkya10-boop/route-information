@@ -30,3 +30,4 @@ Her başlığın kendi Claude Code ajanı var (`.claude/agents/`):
 | Ekipman kontrol listesi | `ekipman-asistani` |
 | Neden bu uygulama? (tehlike, yakın çevre, topluluk) | `guvenlik-ve-yakin-cevre` |
 | Fotoğraf çekilmesi gereken noktalar | `fotograf-noktalari` |
+| Hava durumu | `hava-durumu` |
