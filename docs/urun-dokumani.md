@@ -89,16 +89,28 @@ Sürücü noktaya yaklaşınca bildirim alır; güvenli durma yeri bilgisi de g�
 ```text
 Country   { code, name{lang}, languages[] }
 Region    { id, countryCode, name{lang} }
-Route     { id, regionId, name{lang}, description{lang}, lengthKm, difficulty, path[GeoJSON LineString] }
-Hazard    { id, routeId, type: gravel|roadwork|steep_grade|sharp_curve, location, note{lang}, reportedBy, reportedAt }
-Poi       { id, type: fuel|market|gear_shop, location, name }
-PhotoSpot { id, routeId, location, title{lang}, safeStop: bool }
+Route     { id, regionId, name{lang}, description{lang}, lengthKm,
+            difficulty: easy|moderate|hard, bestSeason{lang},
+            start{name, lat, lon}, end{name, lat, lon},
+            path: GeoJSON LineString ([lon,lat]),
+            verification{ status: doğrulanmalı|doğrulandı, notes } }
+Hazard    { id, routeId, type: gravel|roadwork|steep_grade|sharp_curve, location{lat, lon},
+            note{lang; en zorunlu}, reportedBy, reportedAt, isSample }
+Poi       { id: "osm:<type>/<id>", type: fuel|market|gear_shop, location{lat, lon}, name?, distanceM }
+PhotoSpot { id, routeId, location{lat, lon}, title{lang}, description{lang},
+            safeStop: bool, safeStopInfo{lang}, notifyRadiusM, verification{ status, notes } }
 ChecklistItem { id, order, text{lang}, spokenText{lang} }
 ```
+
+**Rota id kuralı:** `<ülke>-<bölge>-<nn>` (ör. `tr-karadeniz-01`, `tr-ic-anadolu-01`). Bölge adları: marmara, ege, akdeniz,
+ic-anadolu, karadeniz, dogu-anadolu, guneydogu-anadolu. Tehlike ve fotoğraf noktaları rotalara bu id ile bağlanır; id'ler değiştirilmez.
+
+**Veri dosyaları:** `data/routes.json`, `data/photo-spots.json`, `data/hazards.schema.json` (tehlike verisi henüz yok; uydurma veri eklenmez,
+örnek veri `isSample: true` ile işaretlenir). Tüm rota ve fotoğraf noktası kayıtları şu an **doğrulanmalı** durumundadır.
 
 ## Teknik notlar
 
 - Harita: OpenStreetMap tabanlı (ör. Leaflet / MapLibre) — global erişim ve lisans açısından uygun.
-- Yakındaki noktalar: OSM verisi (Overpass API: `amenity=fuel`, `shop=supermarket`, `shop=motorcycle`).
+- Yakındaki noktalar: OSM verisi (Overpass API: `amenity=fuel`, `shop=supermarket`, `shop=convenience`, `shop=motorcycle`) — `prototype/hazards.js`. Genel Overpass sunucusunun kullanım sınırı var; önbellek/seyreltme gerekir ve OSM (ODbL) atıfı gösterilmelidir.
 - Sesli asistan: tarayıcıda Web Speech API (`speechSynthesis` + `SpeechRecognition`), mobilde platform TTS/STT.
 - Çeviriler: tüm metinler `{dil: metin}` şeklinde tutulur; varsayılan dil cihaz dilinden seçilir, İngilizce yedek dildir.
