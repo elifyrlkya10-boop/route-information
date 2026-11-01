@@ -19,3 +19,14 @@ Ayrıntılar: [docs/urun-dokumani.md](docs/urun-dokumani.md)
 
 [`prototype/checklist.html`](prototype/checklist.html) — sesli ekipman kontrol listesi (TR / EN / EL / ES / PT).
 Dosyayı Chrome'da açın, **Sesli başlat**'a basın; asistan her maddeyi okur, "tamam" deyin veya butona basın.
+
+## Ajanlar / Agents
+
+Her başlığın kendi Claude Code ajanı var (`.claude/agents/`):
+
+| Başlık | Ajan |
+|--------|------|
+| Haritayla uyumlu doğru rota | `rota-uzmani` |
+| Ekipman kontrol listesi | `ekipman-asistani` |
+| Neden bu uygulama? (tehlike, yakın çevre, topluluk) | `guvenlik-ve-yakin-cevre` |
+| Fotoğraf çekilmesi gereken noktalar | `fotograf-noktalari` |
