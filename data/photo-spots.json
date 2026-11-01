@@ -3,134 +3,134 @@
     {
       "id": "ps-tr-marmara-01-01",
       "routeId": "tr-marmara-01",
-      "location": { "lat": 40.1385, "lon": 29.0405 },
+      "location": { "lat": 40.11375, "lon": 29.08986 },
       "title": { "tr": "Kirazlıyayla – Bursa Ovası Manzarası", "en": "Kirazlıyayla – Bursa Plain View" },
       "description": { "tr": "Uludağ yolunun orta kesiminde, çam ormanı arasından Bursa ovası ve şehir silüeti görülür; açık havada Marmara'ya kadar uzanır.", "en": "Midway up the Uludağ road, the Bursa plain and city skyline open up between pine forest; on clear days the view reaches the Sea of Marmara." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Kirazlıyayla mesire alanı ve tesislerin önünde otopark var; yol kenarında değil, otoparkta durun.", "en": "Parking area in front of the Kirazlıyayla picnic area and facilities; stop in the car park, not on the roadside." },
       "notifyRadiusM": 800,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık (Kirazlıyayla tesisleri). Otopark konumu ve manzara açısı yerinde/uydu görüntüsüyle teyit edilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Kirazlıyayla noktasına taşındı (önceki koordinat ~5 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (Kirazlıyayla tesisleri). Otopark konumu ve manzara açısı yerinde/uydu görüntüsüyle teyit edilmeli." }
     },
     {
       "id": "ps-tr-marmara-01-02",
       "routeId": "tr-marmara-01",
-      "location": { "lat": 40.1205, "lon": 29.0690 },
+      "location": { "lat": 40.13661, "lon": 29.10662 },
       "title": { "tr": "Sarıalan Yaylası", "en": "Sarıalan Plateau" },
       "description": { "tr": "Teleferiğin ara istasyonunun bulunduğu, ormanla çevrili geniş yayla; Uludağ zirve sırtları arka planda.", "en": "Wide forest-ringed plateau at the cable car's mid station, with Uludağ's summit ridges in the background." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Yayla girişinde geniş otopark ve piknik alanı mevcut.", "en": "Large car park and picnic area at the plateau entrance." },
       "notifyRadiusM": 700,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık; Sarıalan otoparkının tam konumu ve rotanın buradan geçip geçmediği (sapma mesafesi) kontrol edilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Rotadan ~2.2 km yan yola sapma gerektirir. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Sarıalan noktasına taşındı (önceki koordinat ~3,7 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; Sarıalan otoparkının tam konumu ve rotanın buradan geçip geçmediği (sapma mesafesi) kontrol edilmeli." }
     },
     {
       "id": "ps-tr-ege-01-01",
       "routeId": "tr-ege-01",
-      "location": { "lat": 38.3150, "lon": 28.0300 },
+      "location": { "lat": 38.315, "lon": 28.03 },
       "title": { "tr": "Gölcük Gölü", "en": "Lake Gölcük" },
       "description": { "tr": "Ödemiş'ten Bozdağ'a tırmanırken yaklaşık 1050 m rakımdaki krater kökenli göl; çam ve kestane ormanlarıyla çevrili.", "en": "Lake at about 1,050 m on the climb from Ödemiş to Bozdağ, surrounded by pine and chestnut forest." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Göl kıyısında Gölcük yerleşimi ve tesislerin otoparkları var; ana yoldan göl kenarına sapın.", "en": "Car parks at the Gölcük settlement and lakeside facilities; turn off the main road to the lakeshore." },
       "notifyRadiusM": 1000,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık (göl merkezi civarı). Otopark noktasına göre düzeltilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Rotadan ~1.4 km yan yola sapma gerektirir. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Koordinat yaklaşık (göl merkezi civarı). Otopark noktasına göre düzeltilmeli." }
     },
     {
       "id": "ps-tr-ege-01-02",
       "routeId": "tr-ege-01",
-      "location": { "lat": 38.3400, "lon": 28.1300 },
+      "location": { "lat": 38.3323, "lon": 28.11373 },
       "title": { "tr": "Bozdağ Kayak Merkezi Sırtı", "en": "Bozdağ Ski Centre Ridge" },
       "description": { "tr": "Geçidin en yüksek kesimine yakın, ~2000 m'de; bir yanda Küçük Menderes ovası, diğer yanda Gediz ovası görülür.", "en": "Near the highest section of the pass at ~2,000 m; Küçük Menderes plain on one side, Gediz plain on the other." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Kayak merkezi otoparkı kullanılabilir; kışın kar/buzlanma riski yüksek.", "en": "Use the ski centre car park; high snow/ice risk in winter." },
       "notifyRadiusM": 1000,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık; kayak merkezi otoparkının konumu ve Ödemiş–Salihli yolundan erişimi teyit edilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Rotadan ~3.3 km yan yola sapma gerektirir. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Bozdağ Kayak Merkezi'ne taşındı (önceki koordinat ~1,7 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; kayak merkezi otoparkının konumu ve Ödemiş–Salihli yolundan erişimi teyit edilmeli." }
     },
     {
       "id": "ps-tr-akdeniz-01-01",
       "routeId": "tr-akdeniz-01",
-      "location": { "lat": 36.8700, "lon": 30.3350 },
+      "location": { "lat": 36.87, "lon": 30.335 },
       "title": { "tr": "Saklıkent Kayak Merkezi – Antalya Körfezi Manzarası", "en": "Saklıkent Ski Centre – Gulf of Antalya View" },
       "description": { "tr": "Bakırlı Dağı yamacında ~1900 m; açık havada Antalya şehri ve körfez, yazın da kayak tesisleri ile kayalık zirveler.", "en": "On the slopes of Bakırlı Dağı at ~1,900 m; on clear days Antalya city and the gulf below, with rocky summits around the ski area." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Kayak merkezi girişinde otopark var. Yukarıdaki TÜBİTAK Ulusal Gözlemevi'ne izinsiz girilmez; nokta olarak önerilmedi.", "en": "Car park at the ski centre entrance. The TÜBİTAK National Observatory higher up is restricted and is not suggested." },
       "notifyRadiusM": 1000,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık (kayak merkezi). Yol üzerindeki ara seyir cepleri bilinmediği için eklenmedi; yerinde keşif önerilir." }
+      "verification": { "status": "doğrulanmalı", "notes": "Saklıkent Kayak Merkezi OSM'de ayrı bir nokta olarak bulunamadı; koordinat yola ~210 m, rotaya ~580 m uzakta. Tesisin ve manzara noktasının tam yeri uydu görüntüsüyle teyit edilmeli. Koordinat yaklaşık (kayak merkezi). Yol üzerindeki ara seyir cepleri bilinmediği için eklenmedi; yerinde keşif önerilir." }
     },
     {
       "id": "ps-tr-ic-anadolu-01-01",
       "routeId": "tr-ic-anadolu-01",
-      "location": { "lat": 38.5860, "lon": 35.4450 },
+      "location": { "lat": 38.59141, "lon": 35.46362 },
       "title": { "tr": "Hacılar Kapı – Erciyes'e İlk Bakış", "en": "Hacılar Gate – First View of Erciyes" },
       "description": { "tr": "Hacılar'dan çıkışta Erciyes zirvesi (3917 m) tüm heybetiyle karşınızda; arkada Kayseri ovası.", "en": "Climbing out of Hacılar, Mount Erciyes (3,917 m) fills the view ahead, with the Kayseri plain behind." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Erciyes Kayak Merkezi Hacılar Kapı tesislerinde otopark var.", "en": "Car park at the Erciyes Ski Resort Hacılar Gate facilities." },
       "notifyRadiusM": 1000,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık; Hacılar Kapı otoparkının tam yeri teyit edilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Rotadan ~2.4 km yan yola sapma gerektirir. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Hacılar Kapı noktasına taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; Hacılar Kapı otoparkının tam yeri teyit edilmeli." }
     },
     {
       "id": "ps-tr-ic-anadolu-01-02",
       "routeId": "tr-ic-anadolu-01",
-      "location": { "lat": 38.5350, "lon": 35.4700 },
+      "location": { "lat": 38.54961, "lon": 35.54126 },
       "title": { "tr": "Tekir Yaylası", "en": "Tekir Plateau" },
       "description": { "tr": "~2150 m'de, Erciyes'in güney yamacındaki geniş yayla; zirve ve volkanik yamaçlar yakın plan.", "en": "Broad plateau at ~2,150 m on Erciyes' southern flank, with close views of the summit and volcanic slopes." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Tekir Kapı tesislerinde geniş otopark var; kışın kar zinciri/kapalı yol durumunu kontrol edin.", "en": "Large car park at the Tekir Gate facilities; check winter road closures/chain requirements." },
       "notifyRadiusM": 1000,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık (Tekir Kapı civarı)." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Tekir Yaylası noktasına taşındı (önceki koordinat ~6,4 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (Tekir Kapı civarı)." }
     },
     {
       "id": "ps-tr-karadeniz-01-01",
       "routeId": "tr-karadeniz-01",
-      "location": { "lat": 40.6290, "lon": 39.3970 },
+      "location": { "lat": 40.63895, "lon": 39.40512 },
       "title": { "tr": "Zigana Geçidi Zirvesi (Eski Yol)", "en": "Zigana Pass Summit (Old Road)" },
       "description": { "tr": "Tarihi İpek Yolu güzergâhındaki ~2030 m'lik geçit; bulut denizi, ladin ormanları ve Karadeniz–İç Anadolu iklim geçişi.", "en": "The ~2,030 m pass on the historic Silk Road route; seas of cloud, spruce forest and the Black Sea–inland climate divide." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Zirvedeki çay ocağı/dinlenme tesislerinin önünde toprak/asfalt düzlük var; sis sık görülür, görünür yerde park edin.", "en": "Flat gravel/asphalt area in front of the tea house/rest stops at the summit; fog is common, park in a visible spot." },
       "notifyRadiusM": 800,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık; eski yol zirve noktası ve tesislerin halen açık olup olmadığı teyit edilmeli (tünel sonrası trafik azaldı)." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Zigana Geçidi (mountain_pass) noktasına taşındı (önceki koordinat ~1,3 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; eski yol zirve noktası ve tesislerin halen açık olup olmadığı teyit edilmeli (tünel sonrası trafik azaldı)." }
     },
     {
       "id": "ps-tr-karadeniz-01-02",
       "routeId": "tr-karadeniz-01",
-      "location": { "lat": 40.6900, "lon": 39.4500 },
+      "location": { "lat": 40.68758, "lon": 39.48218 },
       "title": { "tr": "Hamsiköy", "en": "Hamsiköy" },
       "description": { "tr": "Maçka–Zigana arasında, sütlacıyla ünlü, yeşil vadiye yaslanmış ahşap evli köy.", "en": "Village between Maçka and Zigana, famous for its rice pudding, with wooden houses set against a green valley." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Köy merkezindeki lokantaların önünde park alanı var.", "en": "Parking in front of the restaurants in the village centre." },
       "notifyRadiusM": 600,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık; köy merkezi otopark konumu teyit edilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Rotadan ~1.2 km yan yola sapma gerektirir. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Hamsiköy köy merkezine taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; köy merkezi otopark konumu teyit edilmeli." }
     },
     {
       "id": "ps-tr-dogu-anadolu-01-01",
       "routeId": "tr-dogu-anadolu-01",
-      "location": { "lat": 39.2850, "lon": 38.4800 },
+      "location": { "lat": 39.28477, "lon": 38.4881 },
       "title": { "tr": "Karanlık Kanyon – Kemaliye Girişi", "en": "Dark Canyon – Kemaliye Entrance" },
       "description": { "tr": "Fırat'ın yüzlerce metre derinlikte aktığı kanyon; kayaya oyulmuş tek şeritli Taş Yol ve tünellerin başlangıcı.", "en": "Canyon where the Euphrates flows hundreds of metres below; start of the single-lane Stone Road carved into the cliff, with its rock tunnels." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Yalnızca Kemaliye tarafındaki giriş/seyir alanında durun. Kanyon içi yol tek şeritli, bariyersiz ve tünelli; yol üzerinde durmak güvenli değil.", "en": "Stop only at the entrance/viewing area on the Kemaliye side. Inside the canyon the road is single-lane, mostly unguarded and tunnelled; do not stop on the road." },
       "notifyRadiusM": 700,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık. Seyir terası/cep konumu bilinmiyor; yerinde güvenli durma alanı mutlaka teyit edilmeli, teyit edilemezse safeStop=false yapılıp nokta yayından kaldırılmalı." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Karanlık Kanyon noktasına taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık. Seyir terası/cep konumu bilinmiyor; yerinde güvenli durma alanı mutlaka teyit edilmeli, teyit edilemezse safeStop=false yapılıp nokta yayından kaldırılmalı." }
     },
     {
       "id": "ps-tr-guneydogu-anadolu-01-01",
       "routeId": "tr-guneydogu-anadolu-01",
-      "location": { "lat": 37.9360, "lon": 38.6240 },
+      "location": { "lat": 37.93339, "lon": 38.61192 },
       "title": { "tr": "Cendere Köprüsü", "en": "Cendere Bridge" },
       "description": { "tr": "Roma dönemine (MS 2. yy, Septimius Severus) ait, Cendere Çayı üzerindeki taş köprü; Nemrut yolunun klasik durağı.", "en": "Roman stone bridge (2nd c. AD, Septimius Severus) over the Cendere stream; a classic stop on the way to Nemrut." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Köprünün yanında ziyaretçi otoparkı var (köprü artık trafiğe kapalı).", "en": "Visitor car park next to the bridge (the bridge itself is closed to traffic)." },
       "notifyRadiusM": 800,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık. Köprü Kahta–Eski Kahta–Nemrut güzergâhında; rota Kahta–Narince–Karadut ise sapma gerektirir, rota geometrisiyle kontrol edilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Cendere Köprüsü yoluna taşındı; rota artık köprüden geçiyor. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık. Köprü Kahta–Eski Kahta–Nemrut güzergâhında; rota Kahta–Narince–Karadut ise sapma gerektirir, rota geometrisiyle kontrol edilmeli." }
     },
     {
       "id": "ps-tr-guneydogu-anadolu-01-02",
       "routeId": "tr-guneydogu-anadolu-01",
-      "location": { "lat": 37.9770, "lon": 38.7460 },
+      "location": { "lat": 37.9699, "lon": 38.72829 },
       "title": { "tr": "Nemrut Dağı Ziyaretçi Merkezi (Güney Girişi)", "en": "Mount Nemrut Visitor Centre (South Entrance)" },
       "description": { "tr": "Karadut'tan çıkan yolun sonu; buradan yürüyerek Kommagene kralı Antiochos'un tümülüsüne ve dev heykellere ulaşılır. Gün doğumu/batımı ünlüdür.", "en": "End of the road from Karadut; walk from here to King Antiochos' tumulus and colossal statues. Famous for sunrise and sunset." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Ziyaretçi merkezinde otopark var; son kısım dik ve dar, gün batımı sonrası inişte dikkat.", "en": "Car park at the visitor centre; the last section is steep and narrow, take care descending after sunset." },
       "notifyRadiusM": 1000,
-      "verification": { "status": "doğrulanmalı", "notes": "Koordinat yaklaşık (zirve 37.981, 38.741 civarı; otopark biraz güneydoğuda). Otopark konumu teyit edilmeli." }
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Rotadan ~1.8 km yan yola sapma gerektirir. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Nemrut Dağı Ziyaretçi Karşılama Merkezi'ne taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (zirve 37.981, 38.741 civarı; otopark biraz güneydoğuda). Otopark konumu teyit edilmeli." }
     }
   ]
 }

@@ -236,8 +236,8 @@
         ]
       },
       "verification": {
-        "status": "doğrulanmalı",
-        "notes": "Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Bitiş noktası OSM'deki Teferrüç–Oteller teleferik hattının üst ucuna en yakın yol noktasıdır. Milli park giriş ücreti/kontrol noktası ve kış dönemi kısıtlamaları sahada doğrulanmalı."
+        "status": "doğrulandı",
+        "notes": "2026-11-01 kontrolü: çizginin tüm noktaları yola oturuyor (OSRM nearest ≤ 50 m), başlangıç/bitiş OSM'deki adlı yerlerle eşleşiyor. lengthKm, sadeleştirilmemiş OSRM güzergâhının uzunluğudur. Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Bitiş noktası OSM'deki Teferrüç–Oteller teleferik hattının üst ucuna en yakın yol noktasıdır. Milli park giriş ücreti/kontrol noktası ve kış dönemi kısıtlamaları sahada doğrulanmalı."
       }
     },
     {
@@ -417,8 +417,8 @@
         ]
       },
       "verification": {
-        "status": "doğrulanmalı",
-        "notes": "Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Ara nokta: Bozdağ Mahallesi (Ödemiş). Yol, OSM'de 35-31 / 35-30 / 45-29 il yolları olarak görünüyor; geçidin en yüksek noktası ve kesin rakımı doğrulanmalı."
+        "status": "doğrulandı",
+        "notes": "2026-11-01 kontrolü: çizginin tüm noktaları yola oturuyor (OSRM nearest ≤ 50 m), başlangıç/bitiş OSM'deki adlı yerlerle eşleşiyor. lengthKm, sadeleştirilmemiş OSRM güzergâhının uzunluğudur. Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Ara nokta: Bozdağ Mahallesi (Ödemiş). Yol, OSM'de 35-31 / 35-30 / 45-29 il yolları olarak görünüyor; geçidin en yüksek noktası ve kesin rakımı doğrulanmalı."
       }
     },
     {
@@ -574,8 +574,8 @@
         ]
       },
       "verification": {
-        "status": "doğrulanmalı",
-        "notes": "Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Bitiş noktası OSM'deki 'Saklıkent' (Konyaaltı) mahalle noktasına en yakın yoldur; kayak merkezi tesislerinin tam konumu ve OSRM'in seçtiği güzergâhın (yaklaşık 51 km) yerel olarak tercih edilen yol olup olmadığı doğrulanmalı."
+        "status": "doğrulandı",
+        "notes": "2026-11-01 kontrolü: çizginin tüm noktaları yola oturuyor (OSRM nearest ≤ 50 m), başlangıç/bitiş OSM'deki adlı yerlerle eşleşiyor. lengthKm, sadeleştirilmemiş OSRM güzergâhının uzunluğudur. Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Bitiş noktası OSM'deki 'Saklıkent' (Konyaaltı) mahalle noktasına en yakın yoldur; kayak merkezi tesislerinin tam konumu ve OSRM'in seçtiği güzergâhın (yaklaşık 51 km) yerel olarak tercih edilen yol olup olmadığı doğrulanmalı."
       }
     },
     {
@@ -759,8 +759,8 @@
         ]
       },
       "verification": {
-        "status": "doğrulanmalı",
-        "notes": "Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Ara nokta: Tekir Yaylası (OSM locality). Güzergâh OSM'de 'Develi - Kayseri Yolu 38-50' olarak görünüyor. Tekir'in rakımı ve kışın yolun açık olup olmadığı doğrulanmalı."
+        "status": "doğrulandı",
+        "notes": "2026-11-01 kontrolü: çizginin tüm noktaları yola oturuyor (OSRM nearest ≤ 50 m), başlangıç/bitiş OSM'deki adlı yerlerle eşleşiyor. lengthKm, sadeleştirilmemiş OSRM güzergâhının uzunluğudur. Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Ara nokta: Tekir Yaylası (OSM locality). Güzergâh OSM'de 'Develi - Kayseri Yolu 38-50' olarak görünüyor. Tekir'in rakımı ve kışın yolun açık olup olmadığı doğrulanmalı."
       }
     },
     {
@@ -952,8 +952,8 @@
         ]
       },
       "verification": {
-        "status": "doğrulanmalı",
-        "notes": "Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Ara nokta: OSM 'Zigana Geçidi' (mountain_pass). Güzergâh OSM'de 'Eski Trabzon-Gümüşhane yolu 61-95' ve 29-78/29-75/29-76 il yolları üzerinden geçidi aşıyor. Eski yolun tamamının asfalt ve trafiğe açık olduğu, geçit rakımı (yaygın olarak ~2.000 m+ belirtiliyor) doğrulanmalı."
+        "status": "doğrulandı",
+        "notes": "2026-11-01 kontrolü: çizginin tüm noktaları yola oturuyor (OSRM nearest ≤ 50 m), başlangıç/bitiş OSM'deki adlı yerlerle eşleşiyor. lengthKm, sadeleştirilmemiş OSRM güzergâhının uzunluğudur. Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Ara nokta: OSM 'Zigana Geçidi' (mountain_pass). Güzergâh OSM'de 'Eski Trabzon-Gümüşhane yolu 61-95' ve 29-78/29-75/29-76 il yolları üzerinden geçidi aşıyor. Eski yolun tamamının asfalt ve trafiğe açık olduğu, geçit rakımı (yaygın olarak ~2.000 m+ belirtiliyor) doğrulanmalı."
       }
     },
     {
@@ -1078,7 +1078,7 @@
       },
       "verification": {
         "status": "doğrulanmalı",
-        "notes": "Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Taş Yol geometrisi OSM yollarından (W193875160, W104673931, W288389069) birleştirildi; OSM'de yol parçaları arasında ~2 km ve ~0,6 km boşluk var, bu kısımlar düz çizgiyle bağlandı. Uzunluk (~11 km) bu yüzden yaklaşıktır. Taş Yol'un gerçek bitiş noktası, tünel sayısı ve inşa tarihleri (yaygın kaynaklarda elle kazıldığı ve uzun yıllarda tamamlandığı belirtiliyor) doğrulanmalı. Tünellerin aydınlatma durumu ve yolun zemini (asfalt/stabilize) sahada kontrol edilmeli."
+        "notes": "2026-11-01 kontrolü: 22 noktanın 6'sı yoldan 170 m–1,4 km uzakta. Bunlar OSM'deki Taş Yol parçaları arasındaki boşlukların düz çizgiyle bağlandığı kısımlar. OSRM Taş Yol üzerinden rota üretmiyor (~64 km'lik başka yol öneriyor). Boşluklar OSM'de tamamlanana veya sahada GPS izi alınana kadar çizgi yaklaşıktır. Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Taş Yol geometrisi OSM yollarından (W193875160, W104673931, W288389069) birleştirildi; OSM'de yol parçaları arasında ~2 km ve ~0,6 km boşluk var, bu kısımlar düz çizgiyle bağlandı. Uzunluk (~11 km) bu yüzden yaklaşıktır. Taş Yol'un gerçek bitiş noktası, tünel sayısı ve inşa tarihleri (yaygın kaynaklarda elle kazıldığı ve uzun yıllarda tamamlandığı belirtiliyor) doğrulanmalı. Tünellerin aydınlatma durumu ve yolun zemini (asfalt/stabilize) sahada kontrol edilmeli."
       }
     },
     {
@@ -1089,10 +1089,10 @@
         "en": "Mount Nemrut Road"
       },
       "description": {
-        "tr": "Kâhta'dan kuzeye, Karadut köyü üzerinden Nemrut Dağı Milli Parkı'na tırmanan ve zirvedeki Kommagene Kralı I. Antiochos tümülüsüne yakın otoparkta biten yol. Son kesim dik ve virajlı; gün doğumu ve gün batımı manzaralarıyla ünlü.",
-        "en": "From Kâhta north via Karadut village into Mount Nemrut National Park, ending at the car park near the tumulus of King Antiochus I of Commagene on the summit. The final section is steep and twisty; famous for sunrise and sunset views."
+        "tr": "Kâhta'dan kuzeye, Roma dönemi Cendere Köprüsü ve Eski Kâhta (Arsameia) üzerinden Nemrut Dağı Milli Parkı'na tırmanan ve zirvedeki Kommagene Kralı I. Antiochos tümülüsüne yakın otoparkta biten yol. Son kesim dik ve virajlı; gün doğumu ve gün batımı manzaralarıyla ünlü.",
+        "en": "From Kâhta north over the Roman-era Cendere Bridge and Eski Kâhta (Arsameia) into Mount Nemrut National Park, ending at the car park near the tumulus of King Antiochus I of Commagene on the summit. The final section is steep and twisty; famous for sunrise and sunset views."
       },
-      "lengthKm": 86.6,
+      "lengthKm": 57.3,
       "difficulty": "hard",
       "bestSeason": {
         "tr": "Mayıs–Ekim (kışın yol kar nedeniyle kapanabilir)",
@@ -1116,100 +1116,84 @@
             37.78616
           ],
           [
+            38.61636,
+            37.78768
+          ],
+          [
             38.60809,
             37.80682
           ],
           [
-            38.61603,
-            37.81142
+            38.587,
+            37.83563
           ],
           [
-            38.62831,
-            37.8373
+            38.58502,
+            37.86229
           ],
           [
-            38.64412,
-            37.84228
+            38.59012,
+            37.86968
           ],
           [
-            38.68479,
-            37.87141
+            38.58834,
+            37.872
           ],
           [
-            38.71548,
-            37.87977
+            38.59688,
+            37.8814
           ],
           [
-            38.77063,
-            37.88137
+            38.59426,
+            37.88567
           ],
           [
-            38.7617,
-            37.89026
+            38.60265,
+            37.89495
           ],
           [
-            38.76203,
-            37.89782
+            38.60407,
+            37.91743
           ],
           [
-            38.79481,
-            37.90502
+            38.60756,
+            37.92136
           ],
           [
-            38.81018,
-            37.91512
+            38.60607,
+            37.92982
           ],
           [
-            38.81202,
-            37.91987
+            38.61077,
+            37.93063
           ],
           [
-            38.76183,
-            37.93978
+            38.61274,
+            37.93497
           ],
           [
-            38.76164,
-            37.95048
+            38.61868,
+            37.93154
           ],
           [
-            38.74765,
-            37.94629
+            38.61885,
+            37.92601
           ],
           [
-            38.74905,
-            37.95592
+            38.63172,
+            37.93033
           ],
           [
-            38.73882,
-            37.96761
+            38.64198,
+            37.9372
           ],
           [
-            38.71316,
-            37.95976
+            38.65112,
+            37.94947
           ],
           [
-            38.70769,
-            37.94638
-          ],
-          [
-            38.68022,
-            37.94094
-          ],
-          [
-            38.65796,
-            37.94375
-          ],
-          [
-            38.64905,
-            37.93212
-          ],
-          [
-            38.65108,
-            37.94942
-          ],
-          [
-            38.67026,
-            37.95391
+            38.66728,
+            37.95095
           ],
           [
             38.6799,
@@ -1220,8 +1204,24 @@
             37.99183
           ],
           [
+            38.70209,
+            38.00471
+          ],
+          [
+            38.70862,
+            38.00733
+          ],
+          [
             38.71014,
             38.01315
+          ],
+          [
+            38.72584,
+            38.01822
+          ],
+          [
+            38.74121,
+            38.01835
           ],
           [
             38.75004,
@@ -1232,16 +1232,44 @@
             38.02167
           ],
           [
-            38.77016,
-            38.03242
+            38.75669,
+            38.02232
+          ],
+          [
+            38.76496,
+            38.02554
+          ],
+          [
+            38.7701,
+            38.03244
+          ],
+          [
+            38.77255,
+            38.02915
+          ],
+          [
+            38.76866,
+            38.0262
           ],
           [
             38.77051,
             38.01883
           ],
           [
+            38.76353,
+            38.00763
+          ],
+          [
             38.75645,
             38.00548
+          ],
+          [
+            38.7602,
+            38.00426
+          ],
+          [
+            38.75756,
+            37.99957
           ],
           [
             38.76102,
@@ -1266,8 +1294,8 @@
         ]
       },
       "verification": {
-        "status": "doğrulanmalı",
-        "notes": "Geometri ve uzunluk: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili) ile hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Ara nokta: Karadut köyü. Bitiş, OSM'deki 'Nemrut Dağı Yolu'nun zirveye en yakın noktasıdır; zirve otoparkının tam yeri ve özel araç/motosikletin zirveye kadar çıkıp çıkamadığı (ziyaretçi merkezi ~37.970, 38.728 civarında) doğrulanmalı. OSRM Kâhta–Karadut arasında Gerger–Narince yolunu seçti (toplam ~87 km); yerel olarak tercih edilen güzergâh farklı olabilir."
+        "status": "doğrulandı",
+        "notes": "2026-11-01 kontrolü: çizginin tüm noktaları yola oturuyor (OSRM nearest ≤ 50 m), başlangıç/bitiş OSM'deki adlı yerlerle eşleşiyor. lengthKm, sadeleştirilmemiş OSRM güzergâhının uzunluğudur. Geometri ve uzunluk: OpenStreetMap üzerinde OSRM ile Kâhta → Cendere Köprüsü → Nemrut Dağı Yolu güzergâhı (D360 eski, 02-03, 02-09) hesaplandı, Douglas-Peucker ile sadeleştirildi (2026-11-01). Önceki sürüm Gerger–Narince yolundan dolaşıyordu (~87 km) ve Cendere'den geçmiyordu; klasik güzergâhla değiştirildi. Tüm çizgi noktaları yola oturuyor (OSRM nearest ≤ 50 m). Sahada kontrol edilmesi gerekenler: özel araç/motosikletin zirve otoparkına kadar çıkıp çıkamadığı (ziyaretçi merkezinden servis zorunluluğu olabilir) ve kış kapanma tarihleri."
       }
     }
   ]

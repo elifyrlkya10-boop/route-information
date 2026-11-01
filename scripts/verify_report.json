@@ -1,0 +1,308 @@
+{
+ "routes": {
+  "tr-marmara-01": {
+   "points": 33,
+   "offRoadPoints": [],
+   "lineKm": 29.3,
+   "lengthKm": 33.7,
+   "ends": {
+    "start": {
+     "name": "Bursa, Heykel",
+     "geocode": [
+      136,
+      "Bursa, Osmangazi, Bursa, Marmara Bölgesi, 16010, Türkiye"
+     ]
+    },
+    "end": {
+     "name": "Uludağ Oteller Bölgesi (Teleferik Oteller istasyonu)",
+     "geocode": [
+      2184,
+      "Teferrüç-Oteller Bölgesi Telefrik Hattı, Uludağ Caddesi, Bursa, Osmangazi, Bursa"
+     ]
+    }
+   }
+  },
+  "tr-ege-01": {
+   "points": 36,
+   "offRoadPoints": [],
+   "lineKm": 45.0,
+   "lengthKm": 51.7,
+   "ends": {
+    "start": {
+     "name": "Ödemiş",
+     "geocode": [
+      14,
+      "Ödemiş, İzmir, Ege Bölgesi, 35750, Türkiye"
+     ]
+    },
+    "end": {
+     "name": "Salihli",
+     "geocode": [
+      5,
+      "Salihli, Adala, Manisa, Ege Bölgesi, Türkiye"
+     ]
+    }
+   }
+  },
+  "tr-akdeniz-01": {
+   "points": 30,
+   "offRoadPoints": [],
+   "lineKm": 43.8,
+   "lengthKm": 51.4,
+   "ends": {
+    "start": {
+     "name": "Antalya",
+     "geocode": [
+      49,
+      "Antalya, Muratpaşa, Antalya, Akdeniz Bölgesi, 07050, Türkiye"
+     ]
+    },
+    "end": {
+     "name": "Saklıkent Kayak Merkezi",
+     "geocode": null
+    }
+   }
+  },
+  "tr-ic-anadolu-01": {
+   "points": 37,
+   "offRoadPoints": [],
+   "lineKm": 44.6,
+   "lengthKm": 46.1,
+   "ends": {
+    "start": {
+     "name": "Hacılar",
+     "geocode": [
+      2,
+      "Hacılar, Kayseri, İç Anadolu Bölgesi, Türkiye"
+     ]
+    },
+    "end": {
+     "name": "Develi",
+     "geocode": [
+      7,
+      "Develi, Kayseri, İç Anadolu Bölgesi, 38400, Türkiye"
+     ]
+    }
+   }
+  },
+  "tr-karadeniz-01": {
+   "points": 39,
+   "offRoadPoints": [],
+   "lineKm": 49.5,
+   "lengthKm": 54.5,
+   "ends": {
+    "start": {
+     "name": "Maçka",
+     "geocode": [
+      5,
+      "Maçka, Trabzon, Karadeniz Bölgesi, 61750, Türkiye"
+     ]
+    },
+    "end": {
+     "name": "Torul",
+     "geocode": [
+      13,
+      "Torul, Gümüşhane, Karadeniz Bölgesi, 29800, Türkiye"
+     ]
+    }
+   }
+  },
+  "tr-dogu-anadolu-01": {
+   "points": 22,
+   "offRoadPoints": [
+    {
+     "index": 13,
+     "distM": 280
+    },
+    {
+     "index": 14,
+     "distM": 433
+    },
+    {
+     "index": 15,
+     "distM": 289
+    },
+    {
+     "index": 17,
+     "distM": 1394
+    },
+    {
+     "index": 18,
+     "distM": 739
+    },
+    {
+     "index": 20,
+     "distM": 167
+    }
+   ],
+   "lineKm": 10.8,
+   "lengthKm": 11.1,
+   "ends": {
+    "start": {
+     "name": "Kemaliye",
+     "geocode": [
+      6,
+      "Kemaliye, Erzincan, Doğu Anadolu Bölgesi, Türkiye"
+     ]
+    },
+    "end": {
+     "name": "Kemaliyeliler Taş Yolu (Gümüşçeşme yönü, OSM yol parçasının sonu)",
+     "geocode": [
+      1641,
+      "Kemaliyeliler Taş Yolu, Gümüşçeşme, Kemaliye, Erzincan, Doğu Anadolu Bölgesi, Tü"
+     ]
+    }
+   }
+  },
+  "tr-guneydogu-anadolu-01": {
+   "points": 45,
+   "offRoadPoints": [],
+   "lineKm": 50.0,
+   "lengthKm": 57.3,
+   "ends": {
+    "start": {
+     "name": "Kâhta",
+     "geocode": [
+      10,
+      "Kâhta, Adıyaman, Güneydoğu Anadolu Bölgesi, Türkiye"
+     ]
+    },
+    "end": {
+     "name": "Nemrut Dağı zirve otoparkı",
+     "geocode": null
+    }
+   }
+  }
+ },
+ "photoSpots": {
+  "ps-tr-marmara-01-01": {
+   "routeId": "tr-marmara-01",
+   "routeKnown": true,
+   "distToRouteM": 36,
+   "distToRoadM": 82,
+   "roadName": "",
+   "query": "Kirazlıyayla",
+   "geocode": [
+    1,
+    "Kirazlıyayla, Bursa, Osmangazi, Bursa, Marmara Bölgesi, 16059, Türkiye"
+   ]
+  },
+  "ps-tr-marmara-01-02": {
+   "routeId": "tr-marmara-01",
+   "routeKnown": true,
+   "distToRouteM": 2220,
+   "distToRoadM": 5,
+   "roadName": "",
+   "query": "Sarıalan Yaylası",
+   "geocode": null
+  },
+  "ps-tr-ege-01-01": {
+   "routeId": "tr-ege-01",
+   "routeKnown": true,
+   "distToRouteM": 1412,
+   "distToRoadM": 73,
+   "roadName": "",
+   "query": "Gölcük Gölü",
+   "geocode": null
+  },
+  "ps-tr-ege-01-02": {
+   "routeId": "tr-ege-01",
+   "routeKnown": true,
+   "distToRouteM": 3316,
+   "distToRoadM": 20,
+   "roadName": "Bozdağ Kayak Tesisleri Yolu",
+   "query": "Bozdağ Kayak Merkezi Sırtı",
+   "geocode": null
+  },
+  "ps-tr-akdeniz-01-01": {
+   "routeId": "tr-akdeniz-01",
+   "routeKnown": true,
+   "distToRouteM": 579,
+   "distToRoadM": 213,
+   "roadName": "",
+   "query": "Saklıkent Kayak Merkezi",
+   "geocode": null
+  },
+  "ps-tr-ic-anadolu-01-01": {
+   "routeId": "tr-ic-anadolu-01",
+   "routeKnown": true,
+   "distToRouteM": 2403,
+   "distToRoadM": 45,
+   "roadName": "",
+   "query": "Hacılar Kapı",
+   "geocode": [
+    0,
+    "Hacılar Kapı, Yukarı Mahallesi, Hacılar, Kayseri, İç Anadolu Bölgesi, 38310, Tür"
+   ]
+  },
+  "ps-tr-ic-anadolu-01-02": {
+   "routeId": "tr-ic-anadolu-01",
+   "routeKnown": true,
+   "distToRouteM": 238,
+   "distToRoadM": 217,
+   "roadName": "",
+   "query": "Tekir Yaylası",
+   "geocode": [
+    1,
+    "Tekir Yaylası, Hisarcık Erciyes Mahallesi, Hisarcık, Melikgazi, Kayseri, İç Anad"
+   ]
+  },
+  "ps-tr-karadeniz-01-01": {
+   "routeId": "tr-karadeniz-01",
+   "routeKnown": true,
+   "distToRouteM": 31,
+   "distToRoadM": 1,
+   "roadName": "Erzurum-Trabzon Eski Tarihi Tolu",
+   "query": "Zigana Geçidi Zirvesi",
+   "geocode": null
+  },
+  "ps-tr-karadeniz-01-02": {
+   "routeId": "tr-karadeniz-01",
+   "routeKnown": true,
+   "distToRouteM": 1237,
+   "distToRoadM": 17,
+   "roadName": "",
+   "query": "Hamsiköy",
+   "geocode": [
+    1,
+    "Hamsiköy, Maçka, Trabzon, Karadeniz Bölgesi, Türkiye"
+   ]
+  },
+  "ps-tr-dogu-anadolu-01-01": {
+   "routeId": "tr-dogu-anadolu-01",
+   "routeKnown": true,
+   "distToRouteM": 4,
+   "distToRoadM": 3,
+   "roadName": "Kemaliye - İliç yolu",
+   "query": "Karanlık Kanyon",
+   "geocode": [
+    0,
+    "Kemaliye (Eğin) Karanlık Kanyon, Kemaliye - İliç yolu, Esertepe, Kemaliye, Erzin"
+   ]
+  },
+  "ps-tr-guneydogu-anadolu-01-01": {
+   "routeId": "tr-guneydogu-anadolu-01",
+   "routeKnown": true,
+   "distToRouteM": 8,
+   "distToRoadM": 0,
+   "roadName": "Cendere Köprüsü",
+   "query": "Cendere Köprüsü",
+   "geocode": [
+    1,
+    "Cendere Köprüsü, Burmapınar, Kâhta, Adıyaman, Güneydoğu Anadolu Bölgesi, Türkiye"
+   ]
+  },
+  "ps-tr-guneydogu-anadolu-01-02": {
+   "routeId": "tr-guneydogu-anadolu-01",
+   "routeKnown": true,
+   "distToRouteM": 1833,
+   "distToRoadM": 45,
+   "roadName": "",
+   "query": "Nemrut Dağı Ziyaretçi Merkezi",
+   "geocode": [
+    1,
+    "Nemrut Dağı Ziyaretçi Karşılama Merkezi, Nemrut Dağı Milli Parkı, Kâhta, Adıyama"
+   ]
+  }
+ }
+}
