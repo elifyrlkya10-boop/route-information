@@ -319,6 +319,28 @@ function watchErrors(page, errors) {
       await page.evaluate(k => localStorage.removeItem(k), KEY);
     });
 
+    await step("?ek=-yagmur maddeyi listeden ve kayıttan kaldırır", async () => {
+      await page.goto(URL + "?ek=yagmur");
+      for (let i = 0; i < N_ITEMS; i++) await page.click("#start"); // rain is current, 5 done
+      await page.click("#start"); // rain done, bike current
+      await page.goto(URL + "?ek=-yagmur");
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 0);
+      assert.strictEqual(await page.locator("#list .item.done").count(), 5);
+      assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "bike");
+      const st = JSON.parse(await page.evaluate(k => localStorage.getItem(k), KEY));
+      assert.deepStrictEqual(st.extras, []);
+      assert.ok(!st.done.includes("rain"));
+      await page.goto(URL); // parametresiz açılışta geri gelmez
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 0);
+      await page.goto(URL + "?ek=-yagmur"); // olmayan maddeyi kaldırmak hata vermez
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      await page.goto(URL + "?ek=yagmur,-yagmur"); // aynı istekte ekle+kaldır: sıra uygulanır, sonuç yok
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 0);
+      await page.click("#reset");
+      await page.evaluate(k => localStorage.removeItem(k), KEY);
+    });
+
     await step("koşullu madde testlerinde konsol hatası yok", async () => {
       assert.deepStrictEqual(errors, []);
     });

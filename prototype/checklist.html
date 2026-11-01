@@ -75,7 +75,7 @@ const CONDITIONAL = {
               pt: "Há previsão de chuva. Você está levando a capa ou a roupa de chuva?" },
   },
 };
-// URL values for ?ek= (comma separated). Turkish and English keys both accepted.
+// URL values for ?ek= (comma separated; a leading "-" removes). Turkish and English keys both accepted.
 const EK_ALIASES = { yagmur: "rain", "yağmur": "rain", rain: "rain" };
 // Old saves (before conditional items) stored done/current as indices into this exact order.
 const LEGACY_ORDER = ["intercom", "boots", "jacket", "helmet", "guards", "bike"];
@@ -167,9 +167,15 @@ if (saved && typeof saved === "object") {
 }
 try {
   const ek = new URLSearchParams(window.location.search).get("ek");
+  // "?ek=yagmur" adds, "?ek=-yagmur" removes (also from the save). Applied before the save is read
+  // back, so a removed item's tick/current position is dropped too.
   if (ek) ek.split(",").forEach(v => {
-    const k = EK_ALIASES[v.trim().toLowerCase()];
-    if (k && !extras.has(k)) { extras.add(k); persistNow = true; }
+    v = v.trim().toLowerCase();
+    const remove = v.startsWith("-");
+    const k = EK_ALIASES[remove ? v.slice(1) : v];
+    if (!k) return;
+    if (remove && extras.has(k)) { extras.delete(k); persistNow = true; }
+    if (!remove && !extras.has(k)) { extras.add(k); persistNow = true; }
   });
 } catch (_) {}
 buildItems();
