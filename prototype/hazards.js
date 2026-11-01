@@ -89,6 +89,140 @@ export function hazardsWithinRadius(driver, hazards, radiusM, { includeSamples =
   return out.sort((a, b) => a.distanceM - b.distanceM);
 }
 
+// ---------------- Rota boyunca ileriye bakış ----------------
+
+export const ROUTE_STATUS_APPROXIMATE = 'doğrulanmalı';
+
+function assertLineCoords(lineCoords) {
+  if (!Array.isArray(lineCoords) || lineCoords.length < 2) throw new TypeError('lineCoords: en az 2 [lon, lat] noktası olmalı');
+  for (const c of lineCoords) {
+    if (!Array.isArray(c) || !isNum(c[0]) || !isNum(c[1]) || c[1] < -90 || c[1] > 90 || c[0] < -180 || c[0] > 180) {
+      throw new TypeError('lineCoords: her nokta [lon, lat] sayı çifti olmalı (GeoJSON sırası)');
+    }
+  }
+}
+
+/**
+ * Noktayı rota çizgisine (GeoJSON LineString koordinatları, [lon, lat]) izdüşürür.
+ * Her parça için yerel eşdikdörtgen düzlemde en yakın nokta bulunur (kısa parçalarda hata ihmal edilir),
+ * offsetM o noktaya haversine mesafesidir. En küçük offset'li parça seçilir (eşitlikte ilk parça).
+ * distanceAlongM: rota başından izdüşüm noktasına kadar çizgi boyunca mesafe (haversine parça toplamı).
+ * Not: Nokta çizgiye "snap" edilmez/değiştirilmez; yalnızca konumu ölçülür.
+ * @returns {{distanceAlongM: number, offsetM: number, segmentIndex: number}}
+ */
+export function projectOnRoute(point, lineCoords) {
+  if (!point || !isNum(point.lat) || !isNum(point.lon)) throw new TypeError('point: {lat, lon} olmalı');
+  assertLineCoords(lineCoords);
+  let best = null;
+  let cum = 0;
+  for (let i = 0; i < lineCoords.length - 1; i++) {
+    const [lonA, latA] = lineCoords[i];
+    const [lonB, latB] = lineCoords[i + 1];
+    const segLen = haversineMeters({ lat: latA, lon: lonA }, { lat: latB, lon: lonB });
+    const k = Math.cos(toRad((latA + latB) / 2));
+    const bx = (lonB - lonA) * k, by = latB - latA;
+    const px = (point.lon - lonA) * k, py = point.lat - latA;
+    const len2 = bx * bx + by * by;
+    const t = len2 > 0 ? Math.min(1, Math.max(0, (px * bx + py * by) / len2)) : 0;
+    const q = { lat: latA + t * (latB - latA), lon: lonA + t * (lonB - lonA) };
+    const offsetM = haversineMeters(point, q);
+    if (!best || offsetM < best.offsetM) best = { distanceAlongM: cum + t * segLen, offsetM, segmentIndex: i };
+    cum += segLen;
+  }
+  return best;
+}
+
+/** Rota çizgisinin toplam uzunluğu (metre, haversine parça toplamı). */
+export function routeLengthMeters(lineCoords) {
+  assertLineCoords(lineCoords);
+  let m = 0;
+  for (let i = 0; i < lineCoords.length - 1; i++) {
+    m += haversineMeters({ lat: lineCoords[i][1], lon: lineCoords[i][0] }, { lat: lineCoords[i + 1][1], lon: lineCoords[i + 1][0] });
+  }
+  return m;
+}
+
+/**
+ * Sürücünün rota üzerindeki konumundan İLERİDE kalan tehlikeler (kuş uçuşu yarıçap yerine).
+ * - route: data/routes.json'daki rota nesnesi (path: GeoJSON LineString, [lon, lat]).
+ * - Tehlike, rotaya maxOffsetM'den yakınsa ve 0 <= aheadM <= lookAheadM ise döner; geride kalanlar
+ *   ve paralel/başka yoldaki (rotaya uzak) tehlikeler dönmez. Sonuç aheadM'e göre yakından uzağa sıralı.
+ * - direction: 'forward' (path başından sonuna, varsayılan) veya 'reverse' (rotayı ters yönde süren).
+ * - Sürücü rotaya driverMaxOffsetM'den uzaksa "ileride" tanımsızdır: offRoute=true ve boş liste döner.
+ * - Geçersiz kayıtlar atlanır; isSample=true kayıtlar includeSamples olmadan atlanır.
+ * - route.verification.status === 'doğrulanmalı' ise routeApproximate=true (ör. Kemaliye: çizgi yaklaşık,
+ *   aheadM/offsetM de yaklaşıktır; tehlike konumları bu çizgiye snap EDİLMEZ).
+ * @returns {{routeId: string, routeApproximate: boolean, offRoute: boolean,
+ *   driver: {distanceAlongM: number, offsetM: number, segmentIndex: number},
+ *   hazards: Array<{hazard: object, aheadM: number, offsetM: number, distanceAlongM: number}>}}
+ */
+export function hazardsAheadOnRoute(driver, route, hazards, {
+  lookAheadM = 2000, maxOffsetM = 50, driverMaxOffsetM = 100, includeSamples = false, direction = 'forward',
+} = {}) {
+  if (!driver || !isNum(driver.lat) || !isNum(driver.lon)) throw new TypeError('driver: {lat, lon} olmalı');
+  if (!isObj(route) || !isObj(route.path) || route.path.type !== 'LineString') throw new TypeError('route.path: GeoJSON LineString olmalı');
+  if (!isNum(lookAheadM) || lookAheadM < 0) throw new TypeError('lookAheadM: negatif olmayan sayı olmalı');
+  if (!isNum(maxOffsetM) || maxOffsetM < 0) throw new TypeError('maxOffsetM: negatif olmayan sayı olmalı');
+  if (!isNum(driverMaxOffsetM) || driverMaxOffsetM < 0) throw new TypeError('driverMaxOffsetM: negatif olmayan sayı olmalı');
+  if (direction !== 'forward' && direction !== 'reverse') throw new TypeError("direction: 'forward' veya 'reverse' olmalı");
+
+  const coords = route.path.coordinates;
+  const d = projectOnRoute(driver, coords);
+  const result = {
+    routeId: route.id,
+    routeApproximate: route.verification?.status === ROUTE_STATUS_APPROXIMATE,
+    offRoute: d.offsetM > driverMaxOffsetM,
+    driver: d,
+    hazards: [],
+  };
+  if (result.offRoute) return result;
+
+  const sign = direction === 'forward' ? 1 : -1;
+  for (const h of hazards || []) {
+    if (!validateHazard(h).valid) continue;
+    if (h.isSample && !includeSamples) continue;
+    const p = projectOnRoute(h.location, coords);
+    if (p.offsetM > maxOffsetM) continue;
+    const aheadM = sign * (p.distanceAlongM - d.distanceAlongM);
+    if (aheadM < 0 || aheadM > lookAheadM) continue;
+    result.hazards.push({ hazard: h, aheadM, offsetM: p.offsetM, distanceAlongM: p.distanceAlongM });
+  }
+  result.hazards.sort((a, b) => a.aheadM - b.aheadM || String(a.hazard.id).localeCompare(String(b.hazard.id)));
+  return result;
+}
+
+/**
+ * Aynı uyarının tekrar tekrar okunmasını önleyen küçük durum nesnesi.
+ * Her tehlike için kademeli eşikler (varsayılan 1000 m ve 300 m): aheadM bir eşiğin altına ilk kez
+ * indiğinde bir kez okunur. Böylece bir tehlike en fazla iki kez (ön uyarı + yakın uyarı) okunur;
+ * doğrudan 300 m içinde ilk kez görülürse yalnızca bir kez okunur (kademeler atlanır, birikmez).
+ * aheadM en büyük eşik + rearmM'in üstüne çıkarsa (ör. sürücü geri dönüp yeniden yaklaşıyor) tehlike
+ * yeniden kurulur. Geçersiz/negatif aheadM hiçbir zaman okunmaz.
+ * @param {{thresholdsM?: number[], rearmM?: number}} opts
+ */
+export function createAlertTracker({ thresholdsM = [1000, 300], rearmM = 500 } = {}) {
+  if (!Array.isArray(thresholdsM) || thresholdsM.length === 0 || !thresholdsM.every((t) => isNum(t) && t >= 0)) {
+    throw new TypeError('thresholdsM: negatif olmayan sayılardan oluşan boş olmayan dizi olmalı');
+  }
+  if (!isNum(rearmM) || rearmM < 0) throw new TypeError('rearmM: negatif olmayan sayı olmalı');
+  const stages = [...new Set(thresholdsM)].sort((a, b) => b - a); // büyükten küçüğe
+  const rearmAboveM = stages[0] + rearmM;
+  const level = new Map(); // hazardId -> okunan son kademe (1..stages.length)
+  return {
+    /** true ise şimdi okunmalı; durum güncellenir. */
+    shouldAnnounce(hazardId, aheadM) {
+      if (!isNum(aheadM) || aheadM < 0) return false;
+      if (aheadM > rearmAboveM) { level.delete(hazardId); return false; }
+      const now = stages.filter((t) => aheadM <= t).length;
+      if (now > (level.get(hazardId) ?? 0)) { level.set(hazardId, now); return true; }
+      return false;
+    },
+    /** Tek bir tehlikenin ya da (argümansız) tümünün durumunu siler, ör. yeni sürüş başlarken. */
+    reset(hazardId) { if (hazardId === undefined) level.clear(); else level.delete(hazardId); },
+    get size() { return level.size; },
+  };
+}
+
 const HAZARD_LABELS = {
   tr: { gravel: 'taşlı yol', roadwork: 'yol çalışması', steep_grade: 'dik eğim', sharp_curve: 'keskin viraj' },
   en: { gravel: 'gravel road', roadwork: 'roadwork', steep_grade: 'steep grade', sharp_curve: 'sharp curve' },
