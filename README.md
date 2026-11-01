@@ -31,3 +31,5 @@ Her başlığın kendi Claude Code ajanı var (`.claude/agents/`):
 | Neden bu uygulama? (tehlike, yakın çevre, topluluk) | `guvenlik-ve-yakin-cevre` |
 | Fotoğraf çekilmesi gereken noktalar | `fotograf-noktalari` |
 | Hava durumu | `hava-durumu` |
+
+Ajanların ne kadar çalıştığı: [docs/ajan-calisma-tablosu.md](docs/ajan-calisma-tablosu.md) (haftalık ve aylık).
