@@ -22,6 +22,11 @@ const DATA = JSON.parse(JSON.stringify(sandbox.window.MAP_DATA)); // drop cross-
 const SRC_ROUTES = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../data/routes.json"), "utf8")).routes;
 const SRC_SPOTS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../data/photo-spots.json"), "utf8")).photoSpots;
 
+// Labels the page shows for each source verification status.
+const STATUS_TR = { "doğrulandı": "Doğrulandı", "doğrulanmalı": "Doğrulanmalı" };
+const STATUS_EN = { "doğrulandı": "Verified", "doğrulanmalı": "Needs verification" };
+const KEMALIYE = SRC_ROUTES.find((r) => r.id === "tr-dogu-anadolu-01");
+
 const results = [];
 async function step(name, fn) {
   try { await fn(); results.push(["PASS", name]); }
@@ -42,7 +47,7 @@ async function step(name, fn) {
   });
   page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
   page.on("requestfailed", (r) => {
-    if (r.url().includes(TILE_HOST)) ignoredTileErrors.push("requestfailed " + r.url());
+    if (r.url().includes(TILE_HOST)) ignoredTileErrors.push("requestfailed " + (r.failure() && r.failure().errorText));
     else errors.push("requestfailed " + r.url() + " " + (r.failure() && r.failure().errorText));
   });
 
@@ -97,7 +102,7 @@ async function step(name, fn) {
     assert.strictEqual(await page.locator("#list .route").count(), 7);
     const b = page.locator('.route[data-route-id="tr-dogu-anadolu-01"]');
     const txt = await b.textContent();
-    for (const s of ["Kemaliye Taş Yol", "11.1 km", "Zor", "Mayıs–Ekim", "Doğrulanmalı"]) assert.ok(txt.includes(s), "missing '" + s + "' in: " + txt);
+    for (const s of ["Kemaliye Taş Yol", "11.1 km", "Zor", "Mayıs–Ekim", STATUS_TR[KEMALIYE.verification.status]]) assert.ok(txt.includes(s), "missing '" + s + "' in: " + txt);
   });
 
   await step("dokunma alanları >= 64px (liste, dil, zoom, sıfırla)", async () => {
@@ -138,7 +143,7 @@ async function step(name, fn) {
     assert.strictEqual(await page.textContent("#title"), "Route Map");
     assert.strictEqual(await page.getAttribute("html", "lang"), "en");
     const txt = await page.locator('.route[data-route-id="tr-dogu-anadolu-01"]').textContent();
-    for (const s of ["Kemaliye Stone Road", "Hard", "May–October", "Needs verification"]) assert.ok(txt.includes(s), "missing '" + s + "'");
+    for (const s of ["Kemaliye Stone Road", "Hard", "May–October", STATUS_EN[KEMALIYE.verification.status]]) assert.ok(txt.includes(s), "missing '" + s + "'");
     assert.ok((await page.locator("#list h2").allTextContents()).includes("Black Sea"));
     assert.match(await page.textContent("#detail"), /Uludağ Road/);
     assert.match(await page.textContent("#legend"), /Needs verification/);
@@ -146,9 +151,21 @@ async function step(name, fn) {
     assert.strictEqual(await page.textContent("#title"), "Rota Haritası");
   });
 
-  await step("fotoğraf noktası açılır pencere gösterir", async () => {
-    await page.evaluate(() => mapApp.spotLayers["ps-tr-akdeniz-01-01"].openPopup());
-    assert.match(await page.textContent(".leaflet-popup-content"), /Saklıkent.*Doğrulanmalı/s);
+  await step("her fotoğraf noktası açılır penceresi başlığı ve kaynak verideki durumu gösterir", async () => {
+    for (const s of SRC_SPOTS) {
+      // Read this marker's own popup (the previous one may still be fading out in the DOM).
+      const txt = await page.evaluate((id) => {
+        const m = mapApp.spotLayers[id]; m.openPopup();
+        const el = m.getPopup().getElement();
+        return el && el.isConnected ? el.querySelector(".leaflet-popup-content").textContent : "";
+      }, s.id);
+      assert.ok(txt.includes(s.title.tr), `${s.id}: title missing in popup: ${txt.slice(0, 80)}`);
+      const want = STATUS_TR[s.verification.status];
+      assert.ok(want, `${s.id}: unknown status ${s.verification.status}`);
+      assert.ok(txt.includes(want), `${s.id}: expected status '${want}' in popup`);
+      for (const other of Object.values(STATUS_TR)) if (other !== want) assert.ok(!txt.includes(other), `${s.id}: wrong status '${other}'`);
+    }
+    await page.evaluate(() => mapApp.map.closePopup());
   });
 
   await step("konsol hatası yok (OSM karo ağ hataları hariç)", async () => {
@@ -159,7 +176,8 @@ async function step(name, fn) {
   await browser.close();
 
   for (const [s, n] of results) console.log(s + "  " + n);
-  console.log(`ignored tile errors: ${ignoredTileErrors.length}`);
+  const kinds = {}; ignoredTileErrors.forEach((e) => { kinds[e] = (kinds[e] || 0) + 1; });
+  console.log(`ignored tile errors: ${ignoredTileErrors.length}`, JSON.stringify(kinds));
   const failed = results.filter(([s]) => s === "FAIL").length;
   console.log(failed ? `\n${failed} FAILED` : `\nALL ${results.length} PASSED`);
   process.exit(failed ? 1 : 0);
