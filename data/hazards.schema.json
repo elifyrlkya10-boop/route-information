@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://route-information.local/schemas/hazards.schema.json",
+  "title": "Hazard",
+  "description": "Rota üzerindeki tehlike kaydı (docs/urun-dokumani.md > Veri modeli > Hazard). Bu dosya yalnızca şemadır; tehlike verisi içermez. Örnek kayıtlar isSample=true ile açıkça işaretlenmelidir.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "routeId", "type", "location", "note", "reportedBy", "reportedAt", "isSample"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9._:-]+$",
+      "description": "Tehlike kaydının benzersiz kimliği."
+    },
+    "routeId": {
+      "type": "string",
+      "pattern": "^[a-z]{2}-[a-z]+(-[a-z]+)*-\\d{2}$",
+      "description": "rota-uzmani ajanının rota kimliği (ör. tr-ic-anadolu-01, tr-karadeniz-01)."
+    },
+    "type": {
+      "type": "string",
+      "enum": ["gravel", "roadwork", "steep_grade", "sharp_curve"],
+      "description": "gravel=taşlı yol, roadwork=yol çalışması, steep_grade=dik eğim, sharp_curve=keskin viraj."
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lat", "lon"],
+      "properties": {
+        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+        "lon": { "type": "number", "minimum": -180, "maximum": 180 }
+      }
+    },
+    "note": {
+      "type": "object",
+      "description": "Çok dilli kısa not: {dil: metin}. İngilizce (en) zorunlu yedek dildir.",
+      "required": ["en"],
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z]{2}$" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "reportedBy": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Bildiren kullanıcı/kaynak kimliği (takma kimlik; kişisel veri olarak ele alınmalı)."
+    },
+    "reportedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 tarih-saat (ör. 2026-11-01T09:30:00Z)."
+    },
+    "isSample": {
+      "type": "boolean",
+      "description": "true ise kayıt gerçek değildir, yalnızca örnek/test verisidir; sürücüye gerçek uyarı olarak gösterilmemelidir."
+    }
+  }
+}
