@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rota Haritası</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --bg: #111; --panel: #1b1b1b; --card: #242424; --card-active: #3a2a00;
+    --text: #eee; --muted: #bbb; --accent: #f90; --ok: #5c5; --warn: #ffb020;
+    --tap: 64px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text);
+         font-size: 18px; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--panel); }
+  header h1 { font-size: 1.3rem; margin: 0; flex: 1; min-width: 0; }
+  .lang { display: flex; gap: 8px; }
+  .lang button { min-width: var(--tap); min-height: var(--tap); font: inherit; font-weight: bold; border-radius: 12px;
+                 border: 2px solid #444; background: var(--card); color: var(--text); cursor: pointer; }
+  .lang button[aria-pressed="true"] { background: var(--accent); color: #111; border-color: var(--accent); }
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #map { height: 55vh; min-height: 280px; background: #222; }
+  #side { flex: 1; overflow-y: auto; padding: 8px 16px 24px; }
+  #notice { background: #4a1400; color: #ffc0a0; border-radius: 12px; padding: 14px 16px; margin: 8px 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 0.95rem; margin: 8px 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend svg { flex: none; }
+  h2 { font-size: 1.05rem; color: var(--muted); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
+  .route { display: block; width: 100%; min-height: var(--tap); text-align: left; font: inherit; color: var(--text);
+           background: var(--card); border: 2px solid transparent; border-left: 10px solid var(--c, #888);
+           border-radius: 12px; padding: 12px 14px; margin: 0 0 10px; cursor: pointer; }
+  .route[aria-pressed="true"] { background: var(--card-active); border-color: var(--accent); border-left-color: var(--c, #888); }
+  .route .name { font-size: 1.15rem; font-weight: bold; display: block; }
+  .route .meta { display: block; color: var(--muted); margin-top: 4px; font-size: 0.95rem; }
+  .badge { display: inline-block; margin-top: 6px; padding: 2px 10px; border-radius: 999px; font-size: 0.9rem; font-weight: bold; }
+  .badge.ok { background: #143a14; color: var(--ok); }
+  .badge.warn { background: #4a3500; color: var(--warn); border: 2px dashed var(--warn); }
+  #detail { background: var(--panel); border-radius: 12px; padding: 12px 14px; margin: 8px 0; }
+  #detail:empty { display: none; }
+  #detail h3 { margin: 0 0 6px; font-size: 1.2rem; }
+  #detail p { margin: 6px 0; line-height: 1.4; }
+  #detail dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+  #detail dt { color: var(--muted); }
+  #detail dd { margin: 0; }
+  #detail details summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; color: var(--muted); }
+  /* Leaflet controls sized for gloves */
+  .leaflet-touch .leaflet-bar a, .leaflet-bar a { width: var(--tap); height: var(--tap); line-height: var(--tap); font-size: 28px; }
+  .leaflet-container a.leaflet-popup-close-button { width: 48px; height: 48px; font-size: 32px; line-height: 44px; }
+  .leaflet-popup-content { font-size: 16px; line-height: 1.4; margin: 14px 40px 14px 16px; }
+  .leaflet-control-attribution { font-size: 13px; }
+  .reset-view { display: block; width: var(--tap); height: var(--tap); font-size: 26px; line-height: var(--tap);
+                text-align: center; background: #fff; color: #222; cursor: pointer; border: 0; padding: 0; }
+  @media (min-width: 900px) {
+    main { flex-direction: row-reverse; }
+    #map { height: auto; flex: 1; }
+    #side { flex: 0 0 400px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Rota Haritası</h1>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="tr" id="lang-tr">TR</button>
+    <button type="button" data-lang="en" id="lang-en">EN</button>
+  </div>
+</header>
+<main>
+  <div id="map" aria-label="Map"></div>
+  <section id="side">
+    <div id="notice" hidden></div>
+    <div class="legend" id="legend"></div>
+    <div id="detail" aria-live="polite"></div>
+    <div id="list"></div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="map-data.js"></script>
+<script>
+"use strict";
+const UNVERIFIED = "doğrulanmalı";
+const UI = {
+  tr: {
+    title: "Rota Haritası",
+    km: "km",
+    length: "Uzunluk", difficulty: "Zorluk", season: "En iyi sezon", status: "Doğrulama", route: "Rota",
+    start: "Başlangıç", end: "Bitiş", notes: "Doğrulama notları",
+    diff: { easy: "Kolay", moderate: "Orta", hard: "Zor" },
+    st: { "doğrulandı": "Doğrulandı", "doğrulanmalı": "Doğrulanmalı" },
+    legendOk: "Doğrulandı", legendWarn: "Doğrulanmalı (kesikli)", legendSpot: "Fotoğraf noktası",
+    safeStop: "Güvenli durma", photoSpots: "Fotoğraf noktaları",
+    allRoutes: "Tüm rotaları göster",
+    noLeaflet: "Harita kütüphanesi (Leaflet) yüklenemedi. İnternet bağlantısını kontrol edin.",
+    noData: "Rota verisi (map-data.js) yüklenemedi. Önce scripts/build_map_data.py çalıştırın.",
+  },
+  en: {
+    title: "Route Map",
+    km: "km",
+    length: "Length", difficulty: "Difficulty", season: "Best season", status: "Verification", route: "Route",
+    start: "Start", end: "End", notes: "Verification notes",
+    diff: { easy: "Easy", moderate: "Moderate", hard: "Hard" },
+    st: { "doğrulandı": "Verified", "doğrulanmalı": "Needs verification" },
+    legendOk: "Verified", legendWarn: "Needs verification (dashed)", legendSpot: "Photo spot",
+    safeStop: "Safe stop", photoSpots: "Photo spots",
+    allRoutes: "Show all routes",
+    noLeaflet: "The map library (Leaflet) could not be loaded. Check your internet connection.",
+    noData: "Route data (map-data.js) could not be loaded. Run scripts/build_map_data.py first.",
+  },
+};
+const COLORS = ["#e6194b", "#3cb4ff", "#ffe119", "#3cd44b", "#f58231", "#d27bff", "#46f0f0"];
+
+let lang = "tr";
+try { const saved = localStorage.getItem("route-map-lang"); if (UI[saved]) lang = saved; else throw 0; }
+catch (_) { const nav = (navigator.language || "tr").slice(0, 2); lang = UI[nav] ? nav : "en"; }
+
+const t = (k) => UI[lang][k];
+const tx = (obj) => (obj && (obj[lang] || obj.en || obj.tr)) || "";
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const isUnverified = (v) => !v || v.status !== "doğrulandı";
+const statusLabel = (v) => UI[lang].st[v && v.status] || (v && v.status) || UI[lang].st[UNVERIFIED];
+
+const app = { lang: () => lang, selected: null, routeLayers: {}, spotLayers: {}, map: null };
+window.mapApp = app;
+
+let noticeKey = null;
+function showNotice(key) { noticeKey = key; const n = document.getElementById("notice"); n.textContent = t(key); n.hidden = false; }
+
+const D = window.MAP_DATA;
+if (!D) showNotice("noData");
+else if (typeof L === "undefined") showNotice("noLeaflet");
+
+if (D && typeof L !== "undefined") init();
+else renderText();
+
+function init() {
+  const map = L.map("map", { zoomControl: true });
+  app.map = map;
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  }).addTo(map);
+
+  // Set the view first: Leaflet only creates SVG elements once the map has a view.
+  const all = L.latLngBounds(D.routes.flatMap((r) => r.path.coordinates.map(([lon, lat]) => [lat, lon])));
+  map.fitBounds(all, { padding: [16, 16] });
+  D.routes.forEach((r, i) => {
+    const color = COLORS[i % COLORS.length];
+    r._color = color;
+    const latlngs = r.path.coordinates.map(([lon, lat]) => [lat, lon]);
+    const unv = isUnverified(r.verification);
+    // Wide transparent line underneath = large tap target on the map.
+    const hit = L.polyline(latlngs, { weight: 28, opacity: 0, interactive: true }).addTo(map);
+    const line = L.polyline(latlngs, {
+      color, weight: 6, opacity: 0.95, dashArray: unv ? "12 10" : null, lineCap: unv ? "butt" : "round",
+      className: "route-line" + (unv ? " unverified" : " verified"),
+    }).addTo(map);
+    line.getElement().setAttribute("data-route-id", r.id);
+    const onTap = () => selectRoute(r.id);
+    hit.on("click", onTap); line.on("click", onTap);
+    app.routeLayers[r.id] = line;
+  });
+
+  D.photoSpots.forEach((s) => {
+    const unv = isUnverified(s.verification);
+    const route = D.routes.find((r) => r.id === s.routeId);
+    const m = L.circleMarker([s.location.lat, s.location.lon], {
+      radius: 11, weight: 4, color: unv ? "#ffb020" : "#fff", fillColor: (route && route._color) || "#888",
+      fillOpacity: 1, dashArray: unv ? "4 4" : null,
+      className: "photo-spot" + (unv ? " unverified" : " verified"),
+    }).addTo(map);
+    m.getElement().setAttribute("data-spot-id", s.id);
+    m.bindPopup(() => spotPopup(s));
+    app.spotLayers[s.id] = m;
+  });
+
+  app.allBounds = all;
+
+  const Reset = L.Control.extend({
+    options: { position: "topleft" },
+    onAdd() {
+      const div = L.DomUtil.create("div", "leaflet-bar");
+      const b = L.DomUtil.create("button", "reset-view", div);
+      b.type = "button"; b.id = "reset-view"; b.textContent = "⤢";
+      b.title = t("allRoutes"); b.setAttribute("aria-label", t("allRoutes"));
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.on(b, "click", () => { selectRoute(null); map.fitBounds(app.allBounds, { padding: [16, 16] }); });
+      return div;
+    },
+  });
+  new Reset().addTo(map);
+  renderText();
+}
+
+function spotPopup(s) {
+  const unv = isUnverified(s.verification);
+  return `<strong>${esc(tx(s.title))}</strong><br>${esc(tx(s.description))}` +
+    (s.safeStop ? `<br><em>${esc(t("safeStop"))}:</em> ${esc(tx(s.safeStopInfo))}` : "") +
+    `<br><span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(s.verification))}</span>`;
+}
+
+function routeMeta(r) {
+  return `${r.lengthKm} ${t("km")} · ${UI[lang].diff[r.difficulty] || r.difficulty} · ${tx(r.bestSeason)}`;
+}
+
+function renderText() {
+  document.documentElement.lang = lang;
+  document.title = t("title");
+  document.getElementById("title").textContent = t("title");
+  document.querySelectorAll(".lang button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  const rb = document.getElementById("reset-view");
+  if (rb) { rb.title = t("allRoutes"); rb.setAttribute("aria-label", t("allRoutes")); }
+  if (noticeKey) showNotice(noticeKey);
+  if (!D) return;
+
+  document.getElementById("legend").innerHTML =
+    `<span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#ccc" stroke-width="5"/></svg>${esc(t("legendOk"))}</span>` +
+    `<span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#ccc" stroke-width="5" stroke-dasharray="8 6"/></svg>${esc(t("legendWarn"))}</span>` +
+    `<span><svg width="22" height="22"><circle cx="11" cy="11" r="8" fill="#888" stroke="#fff" stroke-width="3"/></svg>${esc(t("legendSpot"))}</span>`;
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+  D.regions.forEach((g) => {
+    const routes = D.routes.filter((r) => r.regionId === g.id);
+    if (!routes.length) return;
+    const h = document.createElement("h2");
+    h.textContent = tx(g.name);
+    list.appendChild(h);
+    routes.forEach((r) => {
+      const unv = isUnverified(r.verification);
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "route";
+      b.dataset.routeId = r.id;
+      b.style.setProperty("--c", r._color || "#888");
+      b.setAttribute("aria-pressed", String(app.selected === r.id));
+      b.innerHTML = `<span class="name">${esc(tx(r.name))}</span>` +
+        `<span class="meta">${esc(routeMeta(r))}</span>` +
+        `<span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(r.verification))}</span>`;
+      b.addEventListener("click", () => selectRoute(r.id, true));
+      list.appendChild(b);
+    });
+  });
+  renderDetail();
+}
+
+function renderDetail() {
+  const el = document.getElementById("detail");
+  const r = D && D.routes.find((x) => x.id === app.selected);
+  if (!r) { el.innerHTML = ""; return; }
+  const unv = isUnverified(r.verification);
+  const spots = D.photoSpots.filter((s) => s.routeId === r.id);
+  el.innerHTML = `<h3>${esc(tx(r.name))}</h3>` +
+    `<span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(r.verification))}</span>` +
+    `<dl><dt>${esc(t("length"))}</dt><dd>${r.lengthKm} ${t("km")}</dd>` +
+    `<dt>${esc(t("difficulty"))}</dt><dd>${esc(UI[lang].diff[r.difficulty] || r.difficulty)}</dd>` +
+    `<dt>${esc(t("season"))}</dt><dd>${esc(tx(r.bestSeason))}</dd>` +
+    `<dt>${esc(t("start"))}</dt><dd>${esc(r.start.name)}</dd>` +
+    `<dt>${esc(t("end"))}</dt><dd>${esc(r.end.name)}</dd>` +
+    (spots.length ? `<dt>${esc(t("photoSpots"))}</dt><dd>${spots.map((s) => esc(tx(s.title))).join("; ")}</dd>` : "") +
+    `</dl><p>${esc(tx(r.description))}</p>` +
+    // Verification notes exist only in Turkish in the data.
+    `<details><summary>${esc(t("notes"))}</summary><p lang="tr">${esc(r.verification.notes || "")}</p></details>`;
+}
+
+function selectRoute(id, fromList) {
+  app.selected = id;
+  Object.entries(app.routeLayers).forEach(([rid, line]) => {
+    line.setStyle({ weight: rid === id ? 9 : 6, opacity: !id || rid === id ? 0.95 : 0.45 });
+    if (rid === id) line.bringToFront();
+  });
+  if (id && app.map) {
+    app.map.fitBounds(app.routeLayers[id].getBounds(), { padding: [24, 24] });
+    if (fromList && window.matchMedia("(max-width: 899px)").matches) {
+      document.getElementById("map").scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+  }
+  document.querySelectorAll(".route").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.routeId === id)));
+  renderDetail();
+}
+
+document.querySelectorAll(".lang button").forEach((b) => b.addEventListener("click", () => {
+  lang = b.dataset.lang;
+  try { localStorage.setItem("route-map-lang", lang); } catch (_) {}
+  renderText();
+  if (app.map) app.map.closePopup();
+}));
+</script>
+</body>
+</html>
