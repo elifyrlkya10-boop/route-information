@@ -6,23 +6,29 @@
 <title>Ekipman Kontrol Listesi</title>
 <style>
   :root { color-scheme: dark; }
-  body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; }
-  main { max-width: 520px; margin: 0 auto; padding: 16px; }
-  header { display: flex; justify-content: space-between; align-items: center; }
-  h1 { font-size: 1.4rem; }
-  select, button { font-size: 1.1rem; border-radius: 10px; border: 0; }
-  select { padding: 8px; }
-  ul { list-style: none; padding: 0; }
-  li { display: flex; align-items: center; gap: 12px; padding: 14px; margin: 8px 0;
-       background: #222; border-radius: 12px; font-size: 1.15rem; cursor: pointer; }
-  li.done { opacity: .5; text-decoration: line-through; }
-  li.current { outline: 3px solid #f90; }
-  .box { width: 28px; height: 28px; border-radius: 6px; background: #333; display: grid; place-items: center; }
-  li.done .box::after { content: "✓"; color: #4c4; font-weight: bold; }
-  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .actions button { padding: 18px; background: #f90; color: #111; font-weight: bold; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #eee; font-size: 20px; }
+  main { max-width: 560px; margin: 0 auto; padding: 16px; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 1.6rem; margin: 12px 0; }
+  select, button { font: inherit; border-radius: 14px; border: 0; }
+  /* Glove-friendly: every tap target at least 72px tall, generous spacing. */
+  select { min-height: 72px; padding: 0 16px; font-size: 1.25rem; background: #333; color: #eee; }
+  ul { list-style: none; padding: 0; margin: 16px 0; }
+  li { margin: 0 0 14px; }
+  .item { display: flex; align-items: center; gap: 18px; width: 100%; min-height: 76px; padding: 14px 18px;
+          background: #222; color: #eee; font-size: 1.35rem; text-align: left; cursor: pointer; }
+  .item.done { opacity: .55; text-decoration: line-through; }
+  .item.current { outline: 4px solid #f90; outline-offset: -4px; }
+  .box { flex: none; width: 40px; height: 40px; border-radius: 8px; background: #333;
+         display: grid; place-items: center; font-size: 1.6rem; }
+  .item.done .box::after { content: "✓"; color: #4c4; font-weight: bold; }
+  .actions { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .actions button { min-height: 80px; padding: 16px; background: #f90; color: #111; font-weight: bold; font-size: 1.4rem; }
   .actions button.secondary { background: #333; color: #eee; }
-  #status { min-height: 1.5em; margin-top: 12px; color: #aaa; }
+  #notice { background: #4a3500; color: #ffd27a; border-radius: 12px; padding: 14px 16px; font-size: 1.1rem; margin: 8px 0; }
+  #notice:empty { display: none; }
+  #notice p { margin: 4px 0; }
+  #status { min-height: 1.5em; margin-top: 16px; color: #ccc; font-size: 1.3rem; }
 </style>
 </head>
 <body>
@@ -37,6 +43,7 @@
       <option value="pt">Português</option>
     </select>
   </header>
+  <div id="notice" role="status"></div>
   <ul id="list"></ul>
   <div class="actions">
     <button id="start"></button>
@@ -54,74 +61,181 @@ const ITEMS = [
   { tr: "Motor kontrolü: fren, gaz, aynalar", en: "Bike check: brakes, throttle, mirrors", el: "Έλεγχος μηχανής: φρένα, γκάζι, καθρέφτες", es: "Revisión de la moto: frenos, acelerador, espejos", pt: "Checagem da moto: freios, acelerador, espelhos" },
 ];
 const UI = {
-  tr: { title: "Ekipman Kontrolü", start: "🔊 Sesli başlat", next: "✓ Tamam, sonraki", reset: "Sıfırla", done: "Her şey hazır. İyi yolculuklar!", say: "tamam", voice: "BCP:tr-TR" },
-  en: { title: "Gear Check", start: "🔊 Start voice", next: "✓ OK, next", reset: "Reset", done: "All set. Ride safe!", say: "ok", voice: "BCP:en-US" },
-  el: { title: "Έλεγχος εξοπλισμού", start: "🔊 Έναρξη", next: "✓ Εντάξει, επόμενο", reset: "Επαναφορά", done: "Όλα έτοιμα. Καλό δρόμο!", say: "εντάξει", voice: "BCP:el-GR" },
-  es: { title: "Revisión de equipo", start: "🔊 Iniciar voz", next: "✓ Listo, siguiente", reset: "Reiniciar", done: "Todo listo. ¡Buen viaje!", say: "listo", voice: "BCP:es-ES" },
-  pt: { title: "Checagem de equipamento", start: "🔊 Iniciar voz", next: "✓ Ok, próximo", reset: "Reiniciar", done: "Tudo pronto. Boa viagem!", say: "ok", voice: "BCP:pt-BR" },
+  tr: { title: "Ekipman Kontrolü", start: "🔊 Sesli başlat", begin: "▶ Başlat", next: "✓ Tamam, sonraki", again: "↻ Yeniden başlat", reset: "Sıfırla",
+        done: "Her şey hazır. İyi yolculuklar!", say: "tamam", voice: "tr-TR",
+        noTts: "Bu tarayıcı sesli okumayı (speechSynthesis) desteklemiyor.",
+        noSr: "Bu tarayıcı ses tanımayı (SpeechRecognition) desteklemiyor.",
+        useButtons: "Butonlarla devam edebilirsiniz.",
+        noStore: "Durum bu tarayıcıda kaydedilemiyor; yenilemede kaybolur." },
+  en: { title: "Gear Check", start: "🔊 Start voice", begin: "▶ Start", next: "✓ OK, next", again: "↻ Start over", reset: "Reset",
+        done: "All set. Ride safe!", say: "ok", voice: "en-US",
+        noTts: "This browser does not support speech output (speechSynthesis).",
+        noSr: "This browser does not support speech recognition (SpeechRecognition).",
+        useButtons: "You can continue with the buttons.",
+        noStore: "Progress cannot be saved in this browser; it will be lost on reload." },
+  el: { title: "Έλεγχος εξοπλισμού", start: "🔊 Έναρξη φωνής", begin: "▶ Έναρξη", next: "✓ Εντάξει, επόμενο", again: "↻ Από την αρχή", reset: "Επαναφορά",
+        done: "Όλα έτοιμα. Καλό δρόμο!", say: "εντάξει", voice: "el-GR",
+        noTts: "Αυτό το πρόγραμμα περιήγησης δεν υποστηρίζει φωνητική ανάγνωση (speechSynthesis).",
+        noSr: "Αυτό το πρόγραμμα περιήγησης δεν υποστηρίζει αναγνώριση φωνής (SpeechRecognition).",
+        useButtons: "Μπορείτε να συνεχίσετε με τα κουμπιά.",
+        noStore: "Η πρόοδος δεν μπορεί να αποθηκευτεί σε αυτό το πρόγραμμα περιήγησης· θα χαθεί με την ανανέωση." },
+  es: { title: "Revisión de equipo", start: "🔊 Iniciar voz", begin: "▶ Iniciar", next: "✓ Listo, siguiente", again: "↻ Empezar de nuevo", reset: "Reiniciar",
+        done: "Todo listo. ¡Buen viaje!", say: "listo", voice: "es-ES",
+        noTts: "Este navegador no admite la lectura en voz alta (speechSynthesis).",
+        noSr: "Este navegador no admite el reconocimiento de voz (SpeechRecognition).",
+        useButtons: "Puedes continuar con los botones.",
+        noStore: "El progreso no se puede guardar en este navegador; se perderá al recargar." },
+  pt: { title: "Checagem de equipamento", start: "🔊 Iniciar voz", begin: "▶ Iniciar", next: "✓ Ok, próximo", again: "↻ Recomeçar", reset: "Reiniciar",
+        done: "Tudo pronto. Boa viagem!", say: "ok", voice: "pt-BR",
+        noTts: "Este navegador não suporta leitura em voz alta (speechSynthesis).",
+        noSr: "Este navegador não suporta reconhecimento de voz (SpeechRecognition).",
+        useButtons: "Você pode continuar usando os botões.",
+        noStore: "O progresso não pode ser salvo neste navegador; será perdido ao recarregar." },
 };
+const STORE_KEY = "gear-checklist-v1";
 const $ = id => document.getElementById(id);
+
+const HAS_TTS = typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance === "function";
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let storageOk = true;
+
+// --- persistence (never throws) ---
+function loadState() {
+  try {
+    const raw = window.localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { storageOk = false; return null; }
+}
+function saveState() {
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify({ done: [...done], current, finished, lang }));
+  } catch (_) { storageOk = false; renderNotice(); }
+}
+function clearState() {
+  try { window.localStorage.removeItem(STORE_KEY); } catch (_) { storageOk = false; }
+}
+
 let lang = (navigator.language || "tr").slice(0, 2);
 if (!UI[lang]) lang = "en";
-let done = new Set(), current = -1, recog = null;
+let done = new Set(), current = -1, finished = false, recog = null;
 
-const bcp = () => UI[lang].voice.slice(4);
+const saved = loadState();
+if (saved && typeof saved === "object") {
+  if (UI[saved.lang]) lang = saved.lang;
+  if (Array.isArray(saved.done)) {
+    saved.done.forEach(i => { if (Number.isInteger(i) && i >= 0 && i < ITEMS.length) done.add(i); });
+  }
+  if (Number.isInteger(saved.current) && saved.current >= -1 && saved.current < ITEMS.length) current = saved.current;
+  finished = saved.finished === true && done.size === ITEMS.length;
+}
+
+// --- speech (all optional) ---
 function speak(text, then) {
-  if (!("speechSynthesis" in window)) { then && then(); return; }
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = bcp();
-  u.onend = () => then && then();
-  speechSynthesis.speak(u);
+  if (!HAS_TTS) { then && then(); return; }
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = UI[lang].voice;
+    u.onend = () => then && then();
+    u.onerror = () => then && then();
+    speechSynthesis.speak(u);
+  } catch (_) { then && then(); }
 }
 function listen() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return; // fall back to the button
-  recog && recog.abort();
-  recog = new SR();
-  recog.lang = bcp();
-  recog.onresult = e => {
-    const heard = e.results[0][0].transcript.toLowerCase();
-    if (heard.includes(UI[lang].say)) next();
-  };
-  try { recog.start(); } catch (_) {}
+  try {
+    recog && recog.abort();
+    recog = new SR();
+    recog.lang = UI[lang].voice;
+    recog.onresult = e => {
+      const heard = e.results[0][0].transcript.toLowerCase();
+      if (heard.includes(UI[lang].say)) next();
+    };
+    recog.onerror = () => {};
+    recog.start();
+  } catch (_) {}
+}
+function stopSpeech() {
+  try { recog && recog.abort(); } catch (_) {}
+  recog = null;
+  if (HAS_TTS) { try { speechSynthesis.cancel(); } catch (_) {} }
+}
+
+// --- UI ---
+function renderNotice() {
+  const t = UI[lang];
+  const lines = [];
+  if (!HAS_TTS) lines.push(t.noTts);
+  if (!SR) lines.push(t.noSr);
+  if (lines.length) lines.push(t.useButtons);
+  if (!storageOk) lines.push(t.noStore);
+  const box = $("notice");
+  box.innerHTML = "";
+  lines.forEach((txt, i) => {
+    const p = document.createElement("p");
+    p.textContent = txt;
+    if (txt === t.noTts) p.id = "notice-tts";
+    if (txt === t.noSr) p.id = "notice-sr";
+    box.appendChild(p);
+  });
 }
 function render() {
   const t = UI[lang];
   document.documentElement.lang = lang;
+  document.title = t.title;
   $("title").textContent = t.title;
-  $("start").textContent = current >= 0 ? t.next : t.start;
+  $("lang").value = lang;
+  $("start").textContent = finished ? t.again : current >= 0 ? t.next : (HAS_TTS ? t.start : t.begin);
   $("reset").textContent = t.reset;
   $("list").innerHTML = "";
   ITEMS.forEach((item, i) => {
     const li = document.createElement("li");
-    li.className = (done.has(i) ? "done " : "") + (i === current ? "current" : "");
-    li.innerHTML = '<span class="box"></span><span></span>';
-    li.lastChild.textContent = item[lang];
-    li.onclick = () => { done.has(i) ? done.delete(i) : done.add(i); render(); };
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "item" + (done.has(i) ? " done" : "") + (i === current ? " current" : "");
+    b.setAttribute("aria-pressed", done.has(i) ? "true" : "false");
+    b.dataset.index = i;
+    b.innerHTML = '<span class="box" aria-hidden="true"></span><span></span>';
+    b.lastChild.textContent = item[lang];
+    b.onclick = () => {
+      done.has(i) ? done.delete(i) : done.add(i);
+      if (done.size < ITEMS.length) finished = false;
+      saveState(); render();
+    };
+    li.appendChild(b);
     $("list").appendChild(li);
   });
+  $("status").textContent = finished ? t.done : current >= 0 ? ITEMS[current][lang] : "";
+  renderNotice();
 }
 function askCurrent() {
+  saveState();
   render();
-  $("status").textContent = ITEMS[current][lang];
   speak(ITEMS[current][lang], listen);
 }
 function next() {
+  if (finished) { reset(); }
   if (current >= 0) done.add(current);
   current = ITEMS.findIndex((_, i) => !done.has(i));
   if (current === -1) {
+    finished = true;
+    stopSpeech();
+    saveState();
     render();
-    $("status").textContent = UI[lang].done;
     speak(UI[lang].done);
     return;
   }
   askCurrent();
 }
+function reset() {
+  done.clear(); current = -1; finished = false;
+  stopSpeech();
+  clearState();
+  render();
+}
 $("start").onclick = next;
-$("reset").onclick = () => { done.clear(); current = -1; recog && recog.abort(); speechSynthesis.cancel(); $("status").textContent = ""; render(); };
-$("lang").value = lang;
-$("lang").onchange = e => { lang = e.target.value; render(); };
+$("reset").onclick = reset;
+$("lang").onchange = e => { lang = e.target.value; saveState(); render(); };
 render();
 </script>
 </body>
