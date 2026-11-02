@@ -347,6 +347,128 @@ function watchErrors(page, errors) {
     await ctx.close();
   }
 
+  // --- conditional items: cold (thermal layer) and fog (reflective vest / lights) ---
+  {
+    const COLD_TEXT = { tr: "Termal içlik", en: "Thermal base layer", el: "Ισοθερμικά εσώρουχα",
+                        es: "Capa térmica interior", pt: "Segunda pele térmica" };
+    const FOG_TEXT = { tr: "Reflektif yelek / ışıklar açık", en: "Reflective vest / lights on", el: "Ανακλαστικό γιλέκο / φώτα αναμμένα",
+                       es: "Chaleco reflectante / luces encendidas", pt: "Colete refletivo / faróis acesos" };
+    const COLD_SPOKEN = { tr: /Hava soğuk/, en: /It is cold/, el: /Κάνει κρύο/, es: /Hace frío/, pt: /Está frio/ };
+    const FOG_SPOKEN = { tr: /Sis bekleniyor/, en: /Fog is expected/, el: /Αναμένεται ομίχλη/, es: /Se espera niebla/, pt: /previsão de neblina/ };
+    const ALL = ["intercom", "boots", "cold", "jacket", "helmet", "guards", "rain", "fog", "bike"];
+    const ctx = await browser.newContext({ locale: "tr-TR" });
+    await ctx.addInitScript(() => {
+      window.__spoken = [];
+      window.SpeechSynthesisUtterance = function (t) { this.text = t; };
+      Object.defineProperty(window, "speechSynthesis", { configurable: true, value: {
+        cancel() {}, speak(u) { window.__spoken.push(u.text); setTimeout(() => u.onend && u.onend(), 0); } } });
+    });
+    const page = await ctx.newPage();
+    const errors = [];
+    watchErrors(page, errors);
+
+    await step("?ek=soguk termal içliği ceketten hemen önce ekler; ?ek=cold da çalışır", async () => {
+      await page.goto(URL + "?ek=soguk");
+      assert.deepStrictEqual(await ids(page), ["intercom", "boots", "cold", "jacket", "helmet", "guards", "bike"]);
+      assert.strictEqual(await page.textContent('#list .item[data-id="cold"]'), COLD_TEXT.tr);
+      await page.goto(URL + "?ek=-soguk");
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      await page.goto(URL + "?ek=cold");
+      assert.deepStrictEqual((await ids(page)).slice(2, 4), ["cold", "jacket"]);
+      await page.goto(URL + "?ek=-cold");
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      await page.goto(URL + "?ek=" + encodeURIComponent("SOĞUK")); // Türkçe karakter ve büyük harf
+      assert.strictEqual(await page.locator('#list .item[data-id="cold"]').count(), 1);
+      await page.goto(URL + "?ek=-soguk");
+    });
+
+    await step("?ek=sis reflektif yeleği motor kontrolünden hemen önce ekler; ?ek=fog da çalışır", async () => {
+      await page.goto(URL + "?ek=sis");
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["fog", "bike"]);
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS + 1);
+      assert.strictEqual(await page.textContent('#list .item[data-id="fog"]'), FOG_TEXT.tr);
+      await page.goto(URL + "?ek=-sis");
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      await page.goto(URL + "?ek=fog");
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["fog", "bike"]);
+      await page.goto(URL + "?ek=-fog");
+      assert.strictEqual(await page.locator('#list .item[data-id="fog"]').count(), 0);
+    });
+
+    await step("üç madde birlikte: tablo sırası (yağmur, sonra sis), ekleme sırasından bağımsız", async () => {
+      await page.goto(URL + "?ek=sis,soguk,yagmur");
+      assert.deepStrictEqual(await ids(page), ALL);
+      await page.goto(URL + "?ek=-yagmur,-sis,-soguk");
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      await page.goto(URL); // parametresiz aç: yenilemede URL komutu tekrar uygulanmasın
+      // API ile ters sırada eklense de sıra aynı
+      for (const k of ["fog", "cold", "rain"]) assert.strictEqual(await page.evaluate(k => window.gearChecklist.addConditional(k), k), true);
+      assert.deepStrictEqual(await ids(page), ALL);
+      assert.deepStrictEqual(await page.evaluate(() => window.gearChecklist.available()), ["rain", "cold", "fog"]);
+      await page.reload();
+      assert.deepStrictEqual(await ids(page), ALL);
+    });
+
+    await step("soğuk ve sis maddesi metni 5 dilde", async () => {
+      for (const l of ["en", "el", "es", "pt", "tr"]) {
+        await page.selectOption("#lang", l);
+        assert.strictEqual(await page.textContent('#list .item[data-id="cold"]'), COLD_TEXT[l]);
+        assert.strictEqual(await page.textContent('#list .item[data-id="fog"]'), FOG_TEXT[l]);
+      }
+    });
+
+    await step("sesli okuma soğuk/sis için spokenText kullanır (5 dil), liste sona kadar ilerler", async () => {
+      for (const l of ["tr", "en", "el", "es", "pt"]) {
+        await page.click("#reset");
+        await page.selectOption("#lang", l);
+        await page.evaluate(() => { window.__spoken = []; });
+        for (let i = 0; i < ALL.length; i++) await page.click("#start");
+        const order = await page.evaluate(() => window.__spoken);
+        assert.strictEqual(order.length, ALL.length);
+        assert.match(order[ALL.indexOf("cold")], COLD_SPOKEN[l]);
+        assert.match(order[ALL.indexOf("fog")], FOG_SPOKEN[l]);
+        assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "bike");
+      }
+      await page.selectOption("#lang", "tr");
+      await page.click("#start");
+      assert.strictEqual(await page.locator("#list .item.done").count(), ALL.length);
+      assert.strictEqual(await page.textContent("#status"), "Her şey hazır. İyi yolculuklar!");
+    });
+
+    await step("Sıfırla soğuk/sis maddelerini korur; kayıt biçimi aynı (v2, id'ler)", async () => {
+      await page.click("#reset");
+      const st = JSON.parse(await page.evaluate(k => localStorage.getItem(k), KEY));
+      assert.deepStrictEqual(Object.keys(st).sort(), ["extras", "v"]);
+      assert.strictEqual(st.v, 2);
+      assert.deepStrictEqual([...st.extras].sort(), ["cold", "fog", "rain"]);
+      await page.reload();
+      assert.deepStrictEqual(await ids(page), ALL);
+      assert.strictEqual(await page.locator("#list .item.done").count(), 0);
+      await page.click("#start"); await page.click("#start"); await page.click("#start"); // intercom, boots done; cold current
+      const st2 = JSON.parse(await page.evaluate(k => localStorage.getItem(k), KEY));
+      assert.deepStrictEqual(st2.done, ["intercom", "boots"]);
+      assert.strictEqual(st2.current, "cold");
+    });
+
+    await step("?ek=-soguk sorulmakta olan maddeyi kaldırır; diğer işaretler ve sis kalır", async () => {
+      await page.goto(URL + "?ek=-soguk");
+      assert.deepStrictEqual(await ids(page), ALL.filter(x => x !== "cold"));
+      assert.strictEqual(await page.locator("#list .item.done").count(), 2);
+      assert.strictEqual(await page.locator("#list .item.current").count(), 0);
+      await page.click("#start");
+      assert.strictEqual(await page.getAttribute("#list .item.current", "data-id"), "jacket");
+      await page.goto(URL + "?ek=-sis,-yagmur");
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      await page.click("#reset");
+      assert.strictEqual(await page.evaluate(k => localStorage.getItem(k), KEY), null);
+    });
+
+    await step("soğuk/sis testlerinde konsol hatası yok", async () => {
+      assert.deepStrictEqual(errors, []);
+    });
+    await ctx.close();
+  }
+
   // --- conditional item without speech APIs and without storage ---
   {
     const ctx = await browser.newContext({ locale: "tr-TR" });

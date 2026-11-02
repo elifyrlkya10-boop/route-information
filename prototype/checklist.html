@@ -61,7 +61,7 @@ const BASE_ITEMS = [
   { id: "guards", tr: "Dizlikler ve kolluklar", en: "Knee and elbow guards", el: "Επιγονατίδες και επιαγκωνίδες", es: "Rodilleras y coderas", pt: "Joelheiras e cotoveleiras" },
   { id: "bike", tr: "Motor kontrolü: fren, gaz, aynalar", en: "Bike check: brakes, throttle, mirrors", el: "Έλεγχος μηχανής: φρένα, γκάζι, καθρέφτες", es: "Revisión de la moto: frenos, acelerador, espejos", pt: "Checagem da moto: freios, acelerador, espelhos" },
 ];
-// Conditional items: off by default, added via ?ek=yagmur or window.gearChecklist.addConditional("rain").
+// Conditional items: off by default, added via ?ek=yagmur|soguk|sis or window.gearChecklist.addConditional("rain"|"cold"|"fog").
 // `before` = id of the base item they are inserted in front of. `spoken` = text read aloud (falls back to `text`).
 const CONDITIONAL = {
   rain: {
@@ -74,9 +74,33 @@ const CONDITIONAL = {
               es: "Se espera lluvia. ¿Llevas el chubasquero o el traje de lluvia?",
               pt: "Há previsão de chuva. Você está levando a capa ou a roupa de chuva?" },
   },
+  cold: {
+    id: "cold", before: "jacket",
+    text: { tr: "Termal içlik", en: "Thermal base layer", el: "Ισοθερμικά εσώρουχα",
+            es: "Capa térmica interior", pt: "Segunda pele térmica" },
+    spoken: { tr: "Hava soğuk. Termal içliğini giydin mi?",
+              en: "It is cold. Are you wearing your thermal base layer?",
+              el: "Κάνει κρύο. Φοράς τα ισοθερμικά εσώρουχα;",
+              es: "Hace frío. ¿Llevas puesta la capa térmica interior?",
+              pt: "Está frio. Você está usando a segunda pele térmica?" },
+  },
+  fog: {
+    id: "fog", before: "bike",
+    text: { tr: "Reflektif yelek / ışıklar açık", en: "Reflective vest / lights on", el: "Ανακλαστικό γιλέκο / φώτα αναμμένα",
+            es: "Chaleco reflectante / luces encendidas", pt: "Colete refletivo / faróis acesos" },
+    spoken: { tr: "Sis bekleniyor. Reflektif yeleğini giydin mi, ışıkların açık mı?",
+              en: "Fog is expected. Are you wearing your reflective vest, and are your lights on?",
+              el: "Αναμένεται ομίχλη. Φοράς το ανακλαστικό γιλέκο και είναι αναμμένα τα φώτα;",
+              es: "Se espera niebla. ¿Llevas el chaleco reflectante y las luces encendidas?",
+              pt: "Há previsão de neblina. Você está com o colete refletivo e os faróis acesos?" },
+  },
 };
+// When several items share the same `before`, they appear in the order of this table (rain, then fog).
+// Thresholds (when to add which key) live with the caller (weather module / docs), not here.
 // URL values for ?ek= (comma separated; a leading "-" removes). Turkish and English keys both accepted.
-const EK_ALIASES = { yagmur: "rain", "yağmur": "rain", rain: "rain" };
+const EK_ALIASES = { yagmur: "rain", "yağmur": "rain", rain: "rain",
+                     soguk: "cold", "soğuk": "cold", cold: "cold",
+                     sis: "fog", fog: "fog" };
 // Old saves (before conditional items) stored done/current as indices into this exact order.
 const LEGACY_ORDER = ["intercom", "boots", "jacket", "helmet", "guards", "bike"];
 
