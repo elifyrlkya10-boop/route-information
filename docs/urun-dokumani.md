@@ -128,6 +128,9 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
 - Koşullu ekipman maddeleri: yağmur beklenirse (rota üzerindeki herhangi bir örnek noktada, sürücünün varış saatinde yağış ≥ 0,2 mm/sa,
   yağış olasılığı ≥ %40 ya da yağışlı hava kodu) kontrol listesi `checklist.html?ek=yagmur` ile açılır; `?ek=-yagmur` maddeyi kaldırır.
   Madde motor kontrolünden önce yer alır; Sıfırla işaretleri temizler ama koşullu maddeyi bırakır. Kayıt sabit madde kimlikleriyle tutulur.
+- Önerilen ek koşullu maddeler (eşikler `THRESHOLDS` ile aynı, **proje varsayımı**, kullanıcı onayı bekliyor):
+  soğuk — rota üzerinde varış saatinde sıcaklık ≤ 5 °C → `?ek=soguk` (termal içlik); sis — görüş < 1000 m ya da sis kodu (45/48) → `?ek=sis`
+  (reflektif yelek / ışıklar açık). Kaldırmak için `?ek=-soguk`, `?ek=-sis`.
 
 - Harita: OpenStreetMap tabanlı (ör. Leaflet / MapLibre) — global erişim ve lisans açısından uygun.
 - Yakındaki noktalar: OSM verisi (Overpass API: `amenity=fuel`, `shop=supermarket`, `shop=convenience`, `shop=motorcycle`) — `prototype/hazards.js`. Genel Overpass sunucusunun kullanım sınırı var; önbellek/seyreltme gerekir ve OSM (ODbL) atıfı gösterilmelidir.
