@@ -7,6 +7,11 @@ so the data is wrapped as a script: window.MAP_DATA = {...}.
 The source JSON files are only read, never modified. Output is deterministic
 (no timestamps) so re-running without data changes yields an identical file.
 
+Route fields listed in MAP_EXCLUDED_ROUTE_FIELDS (currently the optional,
+unsimplified `pathFull` geometry) are left out of map-data.js so the file stays
+small; the map draws the simplified `path`. Modules that need the full
+geometry read data/routes.json directly.
+
 Run: python3 scripts/build_map_data.py
 """
 import hashlib
@@ -18,6 +23,9 @@ ROOT = Path(__file__).resolve().parent.parent
 ROUTES = ROOT / "data" / "routes.json"
 SPOTS = ROOT / "data" / "photo-spots.json"
 OUT = ROOT / "prototype" / "map-data.js"
+
+# Fields kept in data/routes.json but not copied to map-data.js.
+MAP_EXCLUDED_ROUTE_FIELDS = ("pathFull",)
 
 
 def sha256(path):
@@ -39,6 +47,13 @@ def main():
             problems.append(f"{r['id']}: unknown regionId {r['regionId']}")
         if r.get("path", {}).get("type") != "LineString" or len(r["path"].get("coordinates", [])) < 2:
             problems.append(f"{r['id']}: path is not a LineString with >= 2 points")
+        full = r.get("pathFull")
+        if full is not None:
+            coords = full.get("coordinates", [])
+            if full.get("type") != "LineString" or len(coords) < 2:
+                problems.append(f"{r['id']}: pathFull is not a LineString with >= 2 points")
+            elif coords[0] != r["path"]["coordinates"][0] or coords[-1] != r["path"]["coordinates"][-1]:
+                problems.append(f"{r['id']}: pathFull does not start/end where path does")
     for s in spots:
         if s["routeId"] not in route_ids:
             problems.append(f"{s['id']}: unknown routeId {s['routeId']}")
@@ -53,7 +68,10 @@ def main():
         },
         "countries": routes_doc["countries"],
         "regions": routes_doc["regions"],
-        "routes": routes,
+        "routes": [
+            {k: v for k, v in r.items() if k not in MAP_EXCLUDED_ROUTE_FIELDS}
+            for r in routes
+        ],
         "photoSpots": spots,
     }
     body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))

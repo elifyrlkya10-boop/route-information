@@ -55,7 +55,8 @@ async function step(name, fn) {
 
   await step("map-data.js kaynak JSON ile birebir aynı (7 rota)", async () => {
     assert.strictEqual(SRC_ROUTES.length, 7);
-    assert.deepStrictEqual(DATA.routes, SRC_ROUTES);
+    // pathFull bilerek map-data.js'e taşınmaz; diğer tüm rota alanları birebir aynı olmalı.
+    assert.deepStrictEqual(DATA.routes, SRC_ROUTES.map(({ pathFull, ...r }) => r));
     assert.deepStrictEqual(DATA.photoSpots, SRC_SPOTS);
   });
 
