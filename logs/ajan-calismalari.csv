@@ -15,3 +15,4 @@ tarih,baslangic,bitis,ajan,sure_sn,arac_kullanimi,token,durum,is
 2026-11-03,02:16:02,02:21:54,rota-uzmani,351.8,22,91861,tamamlandi,6 rotaya sadeleştirilmemiş tam geometri (pathFull)
 2026-11-03,02:25:01,02:27:52,hava-durumu,171.1,9,100275,tamamlandi,"Hava modülü: pathFull, soğuk/sis koşulları, üç koşullu kontrol listesi bağlantısı"
 2026-11-03,02:25:00,02:27:52,guvenlik-ve-yakin-cevre,171.7,14,95533,tamamlandi,"Tehlike modülü: pathFull, filter/getLocation, ileride uyarısı, bildirim önceliği"
+2026-11-03,02:24:46,02:28:33,fotograf-noktalari,227.4,15,103320,tamamlandi,"Fotoğraf bildirimi modülü (approachPoint, tek bildirim, sapma bilgisi)"
