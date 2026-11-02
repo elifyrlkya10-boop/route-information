@@ -36,6 +36,10 @@ export const THRESHOLDS = Object.freeze({
   iceTemp: 3,               // buzlanma: sıcaklık ≤ 3 °C VE yağış → önerilmez (görev tanımı)
   heatCaution: 35,
   heatUnsafe: 40,
+  // Koşullu ekipman tetikleyicileri (ekipman-asistani ?ek= arayüzü). PROJE VARSAYIMI, kullanıcı onayı bekliyor.
+  // Herhangi bir örnek noktada, sürücünün varış saatinde:
+  coldGearTemp: 5,          // sıcaklık ≤ 5 °C → ?ek=soguk (termal içlik)
+  fogGearVisibility: 1000,  // görüş < 1000 m ya da kod 45/48 → ?ek=sis (reflektif yelek / ışıklar açık)
 });
 
 // WMO hava kodları (Open-Meteo weather_code).
@@ -58,43 +62,66 @@ function haversineKm(a, b) {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
 }
 
-function routeCoords(route) {
-  const c = route?.path?.coordinates;
-  if (route?.path?.type !== 'LineString' || !Array.isArray(c) || c.length < 2) {
-    throw new Error(`${route?.id ?? 'rota'}: path GeoJSON LineString ([lon,lat], en az 2 nokta) olmalı`);
+/**
+ * Kullanılacak çizgiyi seçer: varsayılan `route.pathFull ?? route.path` (rota-uzmani: pathFull tam yol geometrisi,
+ * lengthKm ile %0,2 içinde; path sadeleştirilmiş ve %3–17,5 kısa). geometry: 'auto' | 'pathFull' | 'path'.
+ * @returns {{geometry:'pathFull'|'path', pts:{lat:number, lon:number}[]}}
+ */
+function routeLine(route, geometry = 'auto') {
+  if (!['auto', 'pathFull', 'path'].includes(geometry)) throw new Error(`geometry 'auto', 'pathFull' ya da 'path' olmalı`);
+  const key = geometry === 'auto' ? (route?.pathFull != null ? 'pathFull' : 'path') : geometry;
+  const line = route?.[key];
+  const c = line?.coordinates;
+  if (line?.type !== 'LineString' || !Array.isArray(c) || c.length < 2) {
+    throw new Error(`${route?.id ?? 'rota'}: ${key} GeoJSON LineString ([lon,lat], en az 2 nokta) olmalı`);
   }
-  return c.map(([lon, lat]) => ({ lat, lon }));
+  return { geometry: key, pts: c.map(([lon, lat]) => ({ lat, lon })) };
 }
 
-/** Rota çizgisinin (path) haversine ile ölçülen uzunluğu, km. lengthKm'den kısadır (çizgi sadeleştirilmiş). */
-export function lineLengthKm(route) {
-  const pts = routeCoords(route);
-  let total = 0;
-  for (let i = 1; i < pts.length; i++) total += haversineKm(pts[i - 1], pts[i]);
-  return total;
+function cumulativeKm(pts) {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + haversineKm(pts[i - 1], pts[i]));
+  return cum;
 }
 
 /**
- * Çizgi üzerinden eşit aralıklı n nokta (başlangıç ve bitiş dahil).
- * @returns {{index:number, lat:number, lon:number, distanceKm:number}[]} distanceKm: çizgi üzerinden başlangıca uzaklık
+ * Rota çizgisinin haversine ile ölçülen uzunluğu, km. Varsayılan pathFull ?? path;
+ * { geometry: 'path' } sadeleştirilmiş çizgiyi ölçer (lengthKm'den kısa).
  */
-export function sampleRoutePoints(route, n = DEFAULT_SAMPLE_COUNT) {
+export function lineLengthKm(route, { geometry = 'auto' } = {}) {
+  const cum = cumulativeKm(routeLine(route, geometry).pts);
+  return cum[cum.length - 1];
+}
+
+/** Çizgi km'sini yol km'sine çeviren çarpan: pathFull'da 1; yalnız path varsa lengthKm / çizgi uzunluğu (rota-uzmani). */
+function distanceScaleFor(route, geometry, lineKm) {
+  if (geometry === 'pathFull') return 1;
+  return isNum(route?.lengthKm) && route.lengthKm > 0 && lineKm > 0 ? route.lengthKm / lineKm : 1;
+}
+
+/**
+ * Çizgi üzerinden eşit aralıklı n nokta (başlangıç ve bitiş dahil). Çizgi: route.pathFull ?? route.path.
+ * @returns {{index:number, lat:number, lon:number, distanceKm:number, geometry:'pathFull'|'path'}[]}
+ *   distanceKm: başlangıca yol mesafesi. pathFull'da çizgi mesafesinin kendisi; yalnız path varsa
+ *   lengthKm / çizgi uzunluğu ile ölçeklenir (yaklaşık). geometry: hangi çizginin kullanıldığı.
+ */
+export function sampleRoutePoints(route, n = DEFAULT_SAMPLE_COUNT, { geometry: geomOpt = 'auto' } = {}) {
   if (!Number.isInteger(n) || n < 2) throw new Error('n en az 2 olan tam sayı olmalı');
-  const pts = routeCoords(route);
-  const cum = [0];
-  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + haversineKm(pts[i - 1], pts[i]));
+  const { geometry, pts } = routeLine(route, geomOpt);
+  const cum = cumulativeKm(pts);
   const total = cum[cum.length - 1];
+  const scale = distanceScaleFor(route, geometry, total);
   const out = [];
   let seg = 1;
   for (let k = 0; k < n; k++) {
     const d = (total * k) / (n - 1);
-    if (k === 0) { out.push({ index: 0, ...pts[0], distanceKm: 0 }); continue; }
-    if (k === n - 1) { out.push({ index: k, ...pts[pts.length - 1], distanceKm: total }); continue; }
+    if (k === 0) { out.push({ index: 0, ...pts[0], distanceKm: 0, geometry }); continue; }
+    if (k === n - 1) { out.push({ index: k, ...pts[pts.length - 1], distanceKm: total * scale, geometry }); continue; }
     while (seg < pts.length - 1 && cum[seg] < d) seg++;
     const segLen = cum[seg] - cum[seg - 1];
     const t = segLen > 0 ? (d - cum[seg - 1]) / segLen : 0;
     const a = pts[seg - 1], b = pts[seg];
-    out.push({ index: k, lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t, distanceKm: d });
+    out.push({ index: k, lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t, distanceKm: d * scale, geometry });
   }
   return out;
 }
@@ -136,8 +163,10 @@ export function pickHour(locationJson, timeMs) {
 }
 
 /**
- * Her örnek nokta için varış saatini (startTime + çizgi mesafesi / speedKmh) hesaplar ve o saatin tahminini seçer.
- * @returns {Promise<{routeId, source, startTime, speedKmh, lineLengthKm, points: object[]}>}
+ * Her örnek nokta için varış saatini (startTime + yol mesafesi / speedKmh) hesaplar ve o saatin tahminini seçer.
+ * Çizgi route.pathFull ?? route.path; sonuçta geometry ('pathFull' | 'path') ve distanceScale görünür.
+ * Yalnız path kullanıldığında mesafeler ve varış saatleri yaklaşıktır (routeApproximate: true).
+ * @returns {Promise<{routeId, source, geometry, routeApproximate, distanceScale, startTime, speedKmh, lineLengthKm, routeKm, points: object[]}>}
  */
 export async function fetchRouteForecast(route, {
   fetchImpl, startTime = Date.now(), speedKmh = DEFAULT_SPEED_KMH, n = DEFAULT_SAMPLE_COUNT,
@@ -150,6 +179,8 @@ export async function fetchRouteForecast(route, {
   if (!Number.isFinite(startMs)) throw new Error('startTime geçerli bir zaman olmalı');
 
   const samples = sampleRoutePoints(route, n);
+  const geometry = samples[0].geometry;
+  const lineKm = lineLengthKm(route, { geometry });
   const arrivals = samples.map((p) => startMs + (p.distanceKm / speedKmh) * 3600 * 1000);
   const hours = Math.ceil((arrivals[arrivals.length - 1] - now) / 3600000) + 2;
   const url = buildForecastUrl(samples, { hours, endpoint });
@@ -164,9 +195,13 @@ export async function fetchRouteForecast(route, {
   return {
     routeId: route.id,
     source: 'Open-Meteo (open-meteo.com, CC BY 4.0)',
+    geometry,
+    routeApproximate: geometry !== 'pathFull' || route.routeApproximate === true,
+    distanceScale: distanceScaleFor(route, geometry, lineKm),
     startTime: new Date(startMs).toISOString(),
     speedKmh,
-    lineLengthKm: samples[samples.length - 1].distanceKm,
+    lineLengthKm: lineKm,
+    routeKm: samples[samples.length - 1].distanceKm,
     points: samples.map((p, i) => ({
       ...p,
       arrival: new Date(arrivals[i]).toISOString(),
@@ -201,7 +236,7 @@ function assessPoint(p) {
   const out = [];
   const add = (code, level) => out.push({ code, level, pointIndex: p.index, distanceKm: p.distanceKm, ...MSG[code](p.forecast, p) });
   const f = p.forecast;
-  if (!f || HOURLY_VARS.every((v) => f[v] === null)) { add('no_data', 'dikkat'); return { reasons: out, rain: false }; }
+  if (!f || HOURLY_VARS.every((v) => f[v] === null)) { add('no_data', 'dikkat'); return { reasons: out, rain: false, cold: false, fog: false, noData: true }; }
   const t = f.temperature_2m, mm = f.precipitation, prob = f.precipitation_probability, code = f.weather_code;
   const precip = (isNum(mm) && mm > 0) || isPrecipCode(code);
 
@@ -225,30 +260,38 @@ function assessPoint(p) {
   if (isNum(t) && t >= T.heatCaution) add('heat', t >= T.heatUnsafe ? 'önerilmez' : 'dikkat');
 
   const rain = precip || (isNum(mm) && mm >= T.rainMmCaution) || (isNum(prob) && prob >= T.rainProbCaution);
-  return { reasons: out, rain };
+  const cold = isNum(t) && t <= T.coldGearTemp;
+  const fog = (isNum(f.visibility) && f.visibility < T.fogGearVisibility) || has(WC.fog, code) || has(WC.rimeFog, code);
+  return { reasons: out, rain, cold, fog, noData: false };
 }
 
 /**
  * @param {object[]|{points:object[]}} pointForecasts fetchRouteForecast sonucu ya da onun points dizisi
- * @returns {{level:'uygun'|'dikkat'|'önerilmez', reasons:object[], rainExpected:boolean, points:object[]}}
+ * @returns {{level:'uygun'|'dikkat'|'önerilmez', reasons:object[], rainExpected:boolean, coldExpected:boolean,
+ *   fogExpected:boolean, dataMissing:boolean, points:object[]}}
  *   reasons: en ağır seviyeden hafife, aynı seviyede rota sırasına göre; her biri {code, level, tr, en, pointIndex, distanceKm}
+ *   coldExpected: bir noktada ≤ THRESHOLDS.coldGearTemp °C; fogExpected: görüş < THRESHOLDS.fogGearVisibility m ya da kod 45/48
+ *   (ikisi de proje varsayımı). dataMissing: en az bir noktada tahmin yok (o noktada koşullar bilinmiyor).
  */
 export function assessRide(pointForecasts) {
   const pts = Array.isArray(pointForecasts) ? pointForecasts : pointForecasts?.points;
   if (!Array.isArray(pts) || pts.length === 0) throw new Error('nokta tahmini yok');
   const rank = (l) => LEVELS.indexOf(l);
-  let level = 'uygun', rainExpected = false;
+  let level = 'uygun', rainExpected = false, coldExpected = false, fogExpected = false, dataMissing = false;
   const reasons = [];
   const points = pts.map((p) => {
     const r = assessPoint(p);
     const pl = r.reasons.reduce((m, x) => (rank(x.level) > rank(m) ? x.level : m), 'uygun');
     if (rank(pl) > rank(level)) level = pl;
     rainExpected ||= r.rain;
+    coldExpected ||= r.cold;
+    fogExpected ||= r.fog;
+    dataMissing ||= r.noData;
     reasons.push(...r.reasons);
     return { index: p.index, distanceKm: p.distanceKm, arrival: p.arrival, elevationM: p.elevationM ?? null, level: pl };
   });
   reasons.sort((a, b) => rank(b.level) - rank(a.level) || a.distanceKm - b.distanceKm);
-  return { level, reasons, rainExpected, points };
+  return { level, reasons, rainExpected, coldExpected, fogExpected, dataMissing, points };
 }
 
 /** Yağmur ekipmanı gerekli mi? (THRESHOLDS: herhangi bir noktada yağış kodu, ≥ 0,2 mm/sa ya da olasılık ≥ %40) */
@@ -256,19 +299,50 @@ export function rainGearNeeded(assessment) {
   return Boolean(assessment?.rainExpected);
 }
 
-/** ekipman-asistani kontrol listesi bağlantısı; yağmur bekleniyorsa ?ek=yagmur ekler (mevcut sorgu ve # korunur). */
-export function checklistUrl(base = 'checklist.html', needsRain = false) {
-  if (!needsRain) return base;
+/**
+ * Koşullu ekipman kararları: true → ekle, false → kaldır, null → bilinmiyor (dokunma).
+ * Bir noktada tahmin yoksa (dataMissing) "beklenmiyor" kesin değildir; false yerine null döner ki madde silinmesin.
+ */
+export function gearConditions(assessment) {
+  const v = (x) => (x ? true : assessment?.dataMissing ? null : false);
+  return { rain: v(assessment?.rainExpected), cold: v(assessment?.coldExpected), fog: v(assessment?.fogExpected) };
+}
+
+// checklist.html EK_ALIASES ile aynı anahtarlar; yazarken Türkçe ASCII anahtar kullanılır.
+const GEAR_KEYS = Object.freeze({ rain: 'yagmur', cold: 'soguk', fog: 'sis' });
+const GEAR_ALIASES = Object.freeze({ yagmur: 'rain', 'yağmur': 'rain', rain: 'rain', soguk: 'cold', 'soğuk': 'cold', cold: 'cold', sis: 'fog', fog: 'fog' });
+
+/**
+ * ekipman-asistani kontrol listesi bağlantısı (?ek=; virgülle ayrılır, başta "-" kaldırır). Mevcut sorgu ve # korunur.
+ * - checklistUrl(base, needsRain: boolean): eski arayüz; true → yagmur eklenir, false → base aynen döner.
+ * - checklistUrl(base, assessment | {rain, cold, fog}): üç koşul her seferinde açıkça yazılır, ör. ?ek=yagmur,-soguk,sis
+ *   (önceki günden kayıtta kalan madde böylece temizlenir). null/undefined koşul yazılmaz (mevcut değeri korunur).
+ *   Not: checklist.html ?ek= komutunu her yüklemede yeniden uygular; bağlantı sürüş öncesi kararı temsil eder.
+ */
+export function checklistUrl(base = 'checklist.html', conditions = false) {
+  const legacy = typeof conditions === 'boolean' || conditions == null;
+  if (legacy && !conditions) return base;
+  const want = legacy ? { rain: true }
+    : ('rainExpected' in conditions || 'coldExpected' in conditions || 'fogExpected' in conditions) ? gearConditions(conditions)
+      : conditions;
   const hashAt = base.indexOf('#');
   const hash = hashAt >= 0 ? base.slice(hashAt) : '';
   const head = hashAt >= 0 ? base.slice(0, hashAt) : base;
   const qAt = head.indexOf('?');
   const path = qAt >= 0 ? head.slice(0, qAt) : head;
   const params = new URLSearchParams(qAt >= 0 ? head.slice(qAt + 1) : '');
-  const ek = (params.get('ek') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (!ek.some((v) => ['yagmur', 'yağmur', 'rain'].includes(v.toLowerCase()))) ek.push('yagmur');
-  params.set('ek', ek.join(','));
-  return `${path}?${params.toString().replace(/%2C/g, ',')}${hash}`;
+  let ek = (params.get('ek') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const condOf = (v) => GEAR_ALIASES[v.toLowerCase().replace(/^-/, '')];
+  if (legacy) {
+    if (!ek.some((v) => !v.startsWith('-') && condOf(v) === 'rain')) ek.push(GEAR_KEYS.rain);
+  } else {
+    const decided = Object.keys(GEAR_KEYS).filter((k) => typeof want[k] === 'boolean');
+    ek = ek.filter((v) => !decided.includes(condOf(v)));
+    for (const k of decided) ek.push(want[k] ? GEAR_KEYS[k] : `-${GEAR_KEYS[k]}`);
+  }
+  if (ek.length === 0) params.delete('ek'); else params.set('ek', ek.join(','));
+  const q = params.toString().replace(/%2C/g, ',');
+  return `${path}${q ? `?${q}` : ''}${hash}`;
 }
 
 const ALERT = {

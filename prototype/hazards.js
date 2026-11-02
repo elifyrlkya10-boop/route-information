@@ -143,33 +143,69 @@ export function routeLengthMeters(lineCoords) {
 }
 
 /**
+ * Mesafe/ileriye bakış için kullanılacak rota çizgisi: route.pathFull ?? route.path.
+ * pathFull (OSRM tam çizgisi) varsa o, yoksa sadeleştirilmiş path (ör. Kemaliye) kullanılır.
+ * pathFull varsa ama GeoJSON LineString değilse sessizce path'e düşülmez, hata verilir.
+ * @returns {{geometry: 'pathFull'|'path', coordinates: number[][]}}
+ */
+export function routeLine(route) {
+  if (!isObj(route)) throw new TypeError('route: nesne olmalı');
+  const geometry = route.pathFull != null ? 'pathFull' : 'path';
+  const line = route[geometry];
+  if (!isObj(line) || line.type !== 'LineString') throw new TypeError(`route.${geometry}: GeoJSON LineString olmalı`);
+  assertLineCoords(line.coordinates);
+  return { geometry, coordinates: line.coordinates };
+}
+
+/**
+ * hazardsAheadOnRoute'un varsayılan süzgeci: şemaya uyan kayıt ve (includeSamples yoksa) isSample=false.
+ * Gerçek sürüşte örnek veri uyarı olarak okunmamalı.
+ */
+export function defaultHazardFilter(h, { includeSamples = false } = {}) {
+  return validateHazard(h).valid && (!h.isSample || includeSamples);
+}
+
+const defaultGetLocation = (item) => item?.location;
+
+/**
  * Sürücünün rota üzerindeki konumundan İLERİDE kalan tehlikeler (kuş uçuşu yarıçap yerine).
- * - route: data/routes.json'daki rota nesnesi (path: GeoJSON LineString, [lon, lat]).
+ * - route: data/routes.json'daki rota nesnesi. Çizgi olarak route.pathFull ?? route.path kullanılır
+ *   (GeoJSON LineString, [lon, lat]); hangisinin kullanıldığı sonuçta geometry alanında görünür.
+ *   pathFull ile mesafeler gerçek yol uzunluğudur (lengthKm ile tutarlı); path ile kısalır.
  * - Tehlike, rotaya maxOffsetM'den yakınsa ve 0 <= aheadM <= lookAheadM ise döner; geride kalanlar
  *   ve paralel/başka yoldaki (rotaya uzak) tehlikeler dönmez. Sonuç aheadM'e göre yakından uzağa sıralı.
- * - direction: 'forward' (path başından sonuna, varsayılan) veya 'reverse' (rotayı ters yönde süren).
- * - Sürücü rotaya driverMaxOffsetM'den uzaksa "ileride" tanımsızdır: offRoute=true ve boş liste döner.
- * - Geçersiz kayıtlar atlanır; isSample=true kayıtlar includeSamples olmadan atlanır.
- * - route.verification.status === 'doğrulanmalı' ise routeApproximate=true (ör. Kemaliye: çizgi yaklaşık,
- *   aheadM/offsetM de yaklaşıktır; tehlike konumları bu çizgiye snap EDİLMEZ).
- * @returns {{routeId: string, routeApproximate: boolean, offRoute: boolean,
+ * - direction: 'forward' (çizgi başından sonuna, varsayılan) veya 'reverse' (rotayı ters yönde süren).
+ * - Sürücü rotaya driverMaxOffsetM'den uzaksa (rota dışı kontrolü, aynı çizgiyle) "ileride" tanımsızdır:
+ *   offRoute=true ve boş liste döner.
+ * - filter(item, {includeSamples}) => boolean: hangi kayıtların değerlendirileceği. Varsayılan
+ *   defaultHazardFilter (validateHazard + isSample kuralı). Başka kayıt türleri (ör. fotoğraf noktaları)
+ *   için kendi süzgecinizi verin; o zaman includeSamples yalnızca süzgece iletilir.
+ * - getLocation(item) => {lat, lon}: izdüşürülecek konum (varsayılan item.location; ör. fotoğraf
+ *   noktası için item => item.approachPoint). Geçerli konum dönmeyen kayıt atlanır.
+ * - route.verification.status === 'doğrulanmalı' ise routeApproximate=true (ör. Kemaliye: yalnız path var,
+ *   çizgi yaklaşık, aheadM/offsetM de yaklaşıktır; tehlike konumları bu çizgiye snap EDİLMEZ).
+ * Sonuç kayıtlarında öğe, geriye uyum için her zaman "hazard" anahtarındadır.
+ * @returns {{routeId: string, geometry: 'pathFull'|'path', routeApproximate: boolean, offRoute: boolean,
  *   driver: {distanceAlongM: number, offsetM: number, segmentIndex: number},
  *   hazards: Array<{hazard: object, aheadM: number, offsetM: number, distanceAlongM: number}>}}
  */
 export function hazardsAheadOnRoute(driver, route, hazards, {
   lookAheadM = 2000, maxOffsetM = 50, driverMaxOffsetM = 100, includeSamples = false, direction = 'forward',
+  filter = defaultHazardFilter, getLocation = defaultGetLocation,
 } = {}) {
   if (!driver || !isNum(driver.lat) || !isNum(driver.lon)) throw new TypeError('driver: {lat, lon} olmalı');
-  if (!isObj(route) || !isObj(route.path) || route.path.type !== 'LineString') throw new TypeError('route.path: GeoJSON LineString olmalı');
+  const { geometry, coordinates: coords } = routeLine(route);
   if (!isNum(lookAheadM) || lookAheadM < 0) throw new TypeError('lookAheadM: negatif olmayan sayı olmalı');
   if (!isNum(maxOffsetM) || maxOffsetM < 0) throw new TypeError('maxOffsetM: negatif olmayan sayı olmalı');
   if (!isNum(driverMaxOffsetM) || driverMaxOffsetM < 0) throw new TypeError('driverMaxOffsetM: negatif olmayan sayı olmalı');
   if (direction !== 'forward' && direction !== 'reverse') throw new TypeError("direction: 'forward' veya 'reverse' olmalı");
+  if (typeof filter !== 'function') throw new TypeError('filter: fonksiyon olmalı');
+  if (typeof getLocation !== 'function') throw new TypeError('getLocation: fonksiyon olmalı');
 
-  const coords = route.path.coordinates;
   const d = projectOnRoute(driver, coords);
   const result = {
     routeId: route.id,
+    geometry,
     routeApproximate: route.verification?.status === ROUTE_STATUS_APPROXIMATE,
     offRoute: d.offsetM > driverMaxOffsetM,
     driver: d,
@@ -179,15 +215,16 @@ export function hazardsAheadOnRoute(driver, route, hazards, {
 
   const sign = direction === 'forward' ? 1 : -1;
   for (const h of hazards || []) {
-    if (!validateHazard(h).valid) continue;
-    if (h.isSample && !includeSamples) continue;
-    const p = projectOnRoute(h.location, coords);
+    if (!filter(h, { includeSamples })) continue;
+    const loc = getLocation(h);
+    if (!isObj(loc) || !isNum(loc.lat) || !isNum(loc.lon)) continue;
+    const p = projectOnRoute(loc, coords);
     if (p.offsetM > maxOffsetM) continue;
     const aheadM = sign * (p.distanceAlongM - d.distanceAlongM);
     if (aheadM < 0 || aheadM > lookAheadM) continue;
     result.hazards.push({ hazard: h, aheadM, offsetM: p.offsetM, distanceAlongM: p.distanceAlongM });
   }
-  result.hazards.sort((a, b) => a.aheadM - b.aheadM || String(a.hazard.id).localeCompare(String(b.hazard.id)));
+  result.hazards.sort((a, b) => a.aheadM - b.aheadM || String(a.hazard?.id).localeCompare(String(b.hazard?.id)));
   return result;
 }
 
@@ -228,29 +265,51 @@ const HAZARD_LABELS = {
   en: { gravel: 'gravel road', roadwork: 'roadwork', steep_grade: 'steep grade', sharp_curve: 'sharp curve' },
 };
 
-/** Sesli okumaya uygun yuvarlanmış mesafe: <1 km için 50 m adımlar, üstü 0.1 km. */
-function spokenDistance(distanceM, lang) {
+/**
+ * Sesli okumaya uygun yuvarlanmış mesafe: <1 km için 50 m adımlar, üstü 0.1 km.
+ * ahead=true: yön biliniyor (rota boyunca ileride) -> "ileride"/"ahead"; değilse "mesafede"/"in".
+ */
+function spokenDistance(distanceM, lang, ahead) {
   if (distanceM < 50) return lang === 'tr' ? 'çok yakında' : 'right here';
-  if (distanceM < 1000) {
-    const m = Math.round(distanceM / 50) * 50;
-    if (m >= 1000) return lang === 'tr' ? '1 kilometre mesafede' : 'in 1 kilometer';
-    return lang === 'tr' ? `${m} metre mesafede` : `in ${m} meters`;
-  }
-  const km = Math.round(distanceM / 100) / 10;
-  const kmText = lang === 'tr' ? String(km).replace('.', ',') : String(km);
-  return lang === 'tr' ? `${kmText} kilometre mesafede` : `in ${kmText} kilometers`;
+  const m = Math.round(distanceM / 50) * 50;
+  const km = distanceM < 1000 ? (m >= 1000 ? 1 : null) : Math.round(distanceM / 100) / 10;
+  const tr = km === null ? `${m} metre` : `${String(km).replace('.', ',')} kilometre`;
+  const en = km === null ? `${m} meters` : `${km} ${km === 1 ? 'kilometer' : 'kilometers'}`;
+  if (lang === 'tr') return `${tr} ${ahead ? 'ileride' : 'mesafede'}`;
+  return ahead ? `${en} ahead` : `in ${en}`;
 }
 
 /**
  * Kısa sesli uyarı metni (tr/en). Etkileşim gerektirmez; tek cümle.
- * Not: mesafe kuş uçuşudur, "ileride" denmez çünkü yön bilgisi yoktur.
+ * - Varsayılan (ahead=false): distanceM kuş uçuşu kabul edilir, yön yoktur -> "300 metre mesafede".
+ * - { ahead: true }: distanceM rota boyunca ileride kalan mesafedir (hazardsAheadOnRoute'un aheadM'i)
+ *   -> "300 metre ileride" / "300 meters ahead".
  */
-export function buildVoiceAlert(hazard, distanceM, lang = 'en') {
+export function buildVoiceAlert(hazard, distanceM, lang = 'en', { ahead = false } = {}) {
   const l = lang === 'tr' ? 'tr' : 'en';
   const label = HAZARD_LABELS[l][hazard.type];
   if (!label) throw new TypeError(`bilinmeyen tehlike tipi: ${hazard.type}`);
-  const dist = spokenDistance(distanceM, l);
+  const dist = spokenDistance(distanceM, l, ahead === true);
   return l === 'tr' ? `Dikkat, ${dist} ${label}.` : `Caution, ${label} ${dist}.`;
+}
+
+/** Aynı anda okunacak bildirimlerde tür önceliği: küçük olan önce. Bilinmeyen tür en sona. */
+export const ANNOUNCEMENT_PRIORITY = Object.freeze({ hazard: 0, photo: 1 });
+
+/**
+ * Aynı anda tetiklenen sesli bildirimleri okuma sırasına koyar (girdiyi değiştirmez).
+ * Kural: önce güvenlik — tüm tehlike uyarıları (kind: 'hazard') fotoğraf bildirimlerinden
+ * (kind: 'photo') önce okunur; aynı tür içinde aheadM küçük olan önce; eşitlikte giriş sırası korunur.
+ * @param {Array<{kind: string, aheadM?: number}>} items
+ */
+export function orderAnnouncements(items) {
+  if (!Array.isArray(items)) throw new TypeError('items: dizi olmalı');
+  const rank = (k) => ANNOUNCEMENT_PRIORITY[k] ?? Object.keys(ANNOUNCEMENT_PRIORITY).length;
+  const dist = (x) => (isNum(x?.aheadM) ? x.aheadM : Infinity);
+  return items
+    .map((item, i) => ({ item, i }))
+    .sort((a, b) => rank(a.item?.kind) - rank(b.item?.kind) || dist(a.item) - dist(b.item) || a.i - b.i)
+    .map((x) => x.item);
 }
 
 // ---------------- Overpass / POI ----------------

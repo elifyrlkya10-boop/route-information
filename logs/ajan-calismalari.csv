@@ -13,3 +13,5 @@ tarih,baslangic,bitis,ajan,sure_sn,arac_kullanimi,token,durum,is
 2026-11-02,02:31:57,02:33:32,rota-uzmani,95.7,8,113088,tamamlandi,"Aşama 3: rota sorularına cevap, harita testi kaynak veriden okuyor"
 2026-11-03,02:15:21,02:18:09,ekipman-asistani,168.0,14,88641,tamamlandi,Kontrol listesi: soğuk ve sis koşullu maddeleri
 2026-11-03,02:16:02,02:21:54,rota-uzmani,351.8,22,91861,tamamlandi,6 rotaya sadeleştirilmemiş tam geometri (pathFull)
+2026-11-03,02:25:01,02:27:52,hava-durumu,171.1,9,100275,tamamlandi,"Hava modülü: pathFull, soğuk/sis koşulları, üç koşullu kontrol listesi bağlantısı"
+2026-11-03,02:25:00,02:27:52,guvenlik-ve-yakin-cevre,171.7,14,95533,tamamlandi,"Tehlike modülü: pathFull, filter/getLocation, ileride uyarısı, bildirim önceliği"
