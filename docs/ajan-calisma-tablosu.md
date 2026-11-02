@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 2 | 6.9 | 3.4 | 5.3 | 214.144 |
-| ekipman-asistani | 2 | 3.5 | 1.8 | 2.8 | 164.602 |
-| guvenlik-ve-yakin-cevre | 1 | 2.7 | 2.7 | 2.7 | 89.734 |
-| fotograf-noktalari | 2 | 6.5 | 3.3 | 5.7 | 186.586 |
-| hava-durumu | 1 | 3.9 | 3.9 | 3.9 | 94.439 |
-| **Toplam** | **8** | **23.5** | | | **749.505** |
+| rota-uzmani | 4 | 13.8 | 3.4 | 5.9 | 403.880 |
+| ekipman-asistani | 4 | 6.8 | 1.7 | 2.8 | 344.651 |
+| guvenlik-ve-yakin-cevre | 3 | 6.1 | 2.0 | 2.9 | 284.492 |
+| fotograf-noktalari | 4 | 10.9 | 2.7 | 5.7 | 399.353 |
+| hava-durumu | 2 | 6.8 | 3.4 | 3.9 | 194.714 |
+| **Toplam** | **17** | **44.3** | | | **1.627.090** |
 
 ### 44. hafta: 26 Ekim – 1 Kasım 2026
 
@@ -33,17 +33,26 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 3 | 11.7 | 3.9 | 5.3 | 289.590 |
-| ekipman-asistani | 3 | 5.2 | 1.7 | 2.8 | 223.708 |
-| guvenlik-ve-yakin-cevre | 2 | 4.7 | 2.4 | 2.7 | 151.712 |
-| fotograf-noktalari | 3 | 8.0 | 2.7 | 5.7 | 241.132 |
-| hava-durumu | 1 | 3.9 | 3.9 | 3.9 | 94.439 |
-| **Toplam** | **12** | **33.5** | | | **1.000.581** |
+| rota-uzmani | 5 | 18.6 | 3.7 | 5.9 | 479.326 |
+| ekipman-asistani | 5 | 8.4 | 1.7 | 2.8 | 403.757 |
+| guvenlik-ve-yakin-cevre | 4 | 8.1 | 2.0 | 2.9 | 346.470 |
+| fotograf-noktalari | 5 | 12.4 | 2.5 | 5.7 | 453.899 |
+| hava-durumu | 2 | 6.8 | 3.4 | 3.9 | 194.714 |
+| **Toplam** | **21** | **54.3** | | | **1.878.166** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-03 | 02:30:04 | 02:31:05 | rota-uzmani | 1.0 | tamamlandi | Aşama 3: yön penceresi önerisi, geometri sürümü önerisi (dosya değişmedi) |
+| 2026-11-03 | 02:29:55 | 02:30:23 | ekipman-asistani | 0.5 | tamamlandi | Aşama 3: hava-durumu sorusuna cevap, adres parametresi önerisi (dosya değişmedi) |
+| 2026-11-03 | 02:29:51 | 02:30:23 | guvenlik-ve-yakin-cevre | 0.5 | tamamlandi | Aşama 3: fotoğraf sorularına cevap, skipped/lookAheadOf önerisi (dosya değişmedi) |
+| 2026-11-03 | 02:29:48 | 02:30:23 | fotograf-noktalari | 0.6 | tamamlandi | Aşama 3: tek rota çizgisi kuralı ve ölçek önerisi (dosya değişmedi) |
+| 2026-11-03 | 02:25:01 | 02:27:52 | hava-durumu | 2.9 | tamamlandi | Hava modülü: pathFull, soğuk/sis koşulları, üç koşullu kontrol listesi bağlantısı |
+| 2026-11-03 | 02:25:00 | 02:27:52 | guvenlik-ve-yakin-cevre | 2.9 | tamamlandi | Tehlike modülü: pathFull, filter/getLocation, ileride uyarısı, bildirim önceliği |
+| 2026-11-03 | 02:24:46 | 02:28:33 | fotograf-noktalari | 3.8 | tamamlandi | Fotoğraf bildirimi modülü (approachPoint, tek bildirim, sapma bilgisi) |
+| 2026-11-03 | 02:16:02 | 02:21:54 | rota-uzmani | 5.9 | tamamlandi | 6 rotaya sadeleştirilmemiş tam geometri (pathFull) |
+| 2026-11-03 | 02:15:21 | 02:18:09 | ekipman-asistani | 2.8 | tamamlandi | Kontrol listesi: soğuk ve sis koşullu maddeleri |
 | 2026-11-02 | 02:31:57 | 02:33:32 | rota-uzmani | 1.6 | tamamlandi | Aşama 3: rota sorularına cevap, harita testi kaynak veriden okuyor |
 | 2026-11-02 | 02:31:38 | 02:32:21 | ekipman-asistani | 0.7 | tamamlandi | Aşama 3: ?ek=-yagmur ile kaldırma, hava-durumu sorularına cevap |
 | 2026-11-02 | 02:31:33 | 02:32:21 | fotograf-noktalari | 0.8 | tamamlandi | Aşama 3: fotoğraf bildirimi için öneri (dosya değişmedi) |

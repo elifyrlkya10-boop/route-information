@@ -93,6 +93,7 @@ Route     { id, regionId, name{lang}, description{lang}, lengthKm,
             difficulty: easy|moderate|hard, bestSeason{lang},
             start{name, lat, lon}, end{name, lat, lon},
             path: GeoJSON LineString ([lon,lat]),
+            pathFull?: GeoJSON LineString (sadeleştirilmemiş OSRM geometrisi; uzunluğu lengthKm ile ±%2; map-data.js'e taşınmaz),
             verification{ status: doğrulanmalı|doğrulandı, notes } }
 Hazard    { id, routeId, type: gravel|roadwork|steep_grade|sharp_curve, location{lat, lon},
             note{lang; en zorunlu}, reportedBy, reportedAt, isSample }
@@ -117,9 +118,14 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
 - Harita prototipi: `prototype/map.html` (Leaflet 1.9.4 + OSM karoları, "© OpenStreetMap contributors" atfı). Veri `scripts/build_map_data.py`
   ile `prototype/map-data.js` olarak üretilir; JSON değişince betik yeniden çalıştırılır. OSM karo politikası yoğun kullanıma izin vermez;
   ürüne geçmeden önce kendi karo sunucusu ya da sağlayıcı gerekir.
-- `lengthKm` yol uzunluğudur (OSRM); `path` sadeleştirilmiş çizgidir ve %3–17,5 daha kısadır. Çizgiden mesafe hesaplayan modüller bunu hesaba katmalıdır.
+- `lengthKm` yol uzunluğudur (OSRM); `path` sadeleştirilmiş çizgidir ve %3–17,5 daha kısadır. Mesafe, varış saati, rota dışı ve
+  tehlike hesapları `pathFull ?? path` kullanır; yalnızca `path` olan rotada (şu an Kemaliye) sonuç yaklaşıktır (`routeApproximate: true`).
+  Harita sadeleştirilmiş `path`'i çizer.
 - Fotoğraf noktası bildirimi rota üzerindeki `approachPoint` çevresinde `notifyRadiusM` ile tetiklenir; `detourKm` rotadan noktaya kuş uçuşu
   mesafedir (gerçek yol mesafesi değil). Değerler `scripts/compute_photo_approach.py` ile `data/routes.json`'dan hesaplanır; rota çizgisi değişirse betik yeniden çalıştırılır.
+- Fotoğraf bildirimi: `prototype/photo-alerts.js`. `approachPoint` rota çizgisine izdüşürülür; `aheadM` ≤ `notifyRadiusM` olunca nokta başına bir kez
+  tetiklenir, `notifyRadiusM` + 500 m uzaklaşınca yeniden kurulur. `detourKm` ≥ 0,5 ise "rotadan yaklaşık X km sapma" söylenir; `safeStop` false olan nokta önerilmez.
+- Aynı anda gelen bildirimlerde tehlike, fotoğraftan önce okunur (`orderAnnouncements`). Rota boyunca hesaplanan uyarılar "X metre ileride" der.
 - Tehlike uyarıları rota boyunca ileriye bakılarak sıralanır (`hazardsAheadOnRoute`, `prototype/hazards.js`); her tehlike en fazla iki kez
   (≈1 km ön uyarı, ≈300 m yakın uyarı) sesli okunur. "doğrulanmalı" rotalarda sonuç `routeApproximate: true` taşır ve mesafeler yaklaşıktır.
 - Hava durumu: `prototype/weather.js`, Open-Meteo Forecast API (anahtarsız). Veri lisansı CC BY 4.0; arayüzde "Weather data by Open-Meteo.com"
@@ -130,7 +136,8 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
   Madde motor kontrolünden önce yer alır; Sıfırla işaretleri temizler ama koşullu maddeyi bırakır. Kayıt sabit madde kimlikleriyle tutulur.
 - Önerilen ek koşullu maddeler (eşikler `THRESHOLDS` ile aynı, **proje varsayımı**, kullanıcı onayı bekliyor):
   soğuk — rota üzerinde varış saatinde sıcaklık ≤ 5 °C → `?ek=soguk` (termal içlik); sis — görüş < 1000 m ya da sis kodu (45/48) → `?ek=sis`
-  (reflektif yelek / ışıklar açık). Kaldırmak için `?ek=-soguk`, `?ek=-sis`.
+  (reflektif yelek / ışıklar açık). Kaldırmak için `?ek=-soguk`, `?ek=-sis`. Uygulandı: soğuk maddesi ceketten, sis maddesi motor kontrolünden önce.
+  Hava modülü bağlantıyı her seferinde üç koşulla açıkça üretir (ör. `checklist.html?ek=yagmur,-soguk,sis`); bir noktada tahmin yoksa o koşul için kaldırma yazılmaz.
 
 - Harita: OpenStreetMap tabanlı (ör. Leaflet / MapLibre) — global erişim ve lisans açısından uygun.
 - Yakındaki noktalar: OSM verisi (Overpass API: `amenity=fuel`, `shop=supermarket`, `shop=convenience`, `shop=motorcycle`) — `prototype/hazards.js`. Genel Overpass sunucusunun kullanım sınırı var; önbellek/seyreltme gerekir ve OSM (ODbL) atıfı gösterilmelidir.
