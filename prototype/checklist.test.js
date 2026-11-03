@@ -493,6 +493,123 @@ function watchErrors(page, errors) {
     await ctx.close();
   }
 
+  // --- address bar ?ek= kept in sync with the conditional items (syncEkParam) ---
+  const search = page => page.evaluate(() => location.search);
+  {
+    const ctx = await browser.newContext({ locale: "tr-TR" });
+    const page = await ctx.newPage();
+    const errors = [];
+    watchErrors(page, errors);
+
+    await step("parametresiz açılışta ek madde yoksa adres değişmez", async () => {
+      await page.goto(URL);
+      assert.strictEqual(await page.evaluate(() => location.href), URL);
+      await page.goto(URL + "#x");
+      assert.strictEqual(await page.evaluate(() => location.href), URL + "#x");
+    });
+
+    await step("URL ile açılışta ek tam durumla yazılır (yagmur,-soguk,-sis biçimi)", async () => {
+      await page.goto(URL + "?ek=SOĞUK");
+      assert.strictEqual(await search(page), "?ek=-yagmur,soguk,-sis");
+      await page.goto(URL + "?ek=-soguk");
+      assert.strictEqual(await search(page), "?ek=-yagmur,-soguk,-sis");
+      await page.goto(URL + "?ek=yagmur,-soguk,sis"); // zaten tam biçim: aynen kalır
+      assert.strictEqual(await search(page), "?ek=yagmur,-soguk,sis");
+      await page.goto(URL + "?ek=-yagmur,-sis");
+      assert.strictEqual(await search(page), "?ek=-yagmur,-soguk,-sis");
+      await page.evaluate(k => localStorage.removeItem(k), KEY);
+    });
+
+    await step("?ek=-sis ile açılıp addConditional('fog'): adres güncellenir, yenilemede sis kalır", async () => {
+      await page.goto(URL + "?ek=-sis");
+      const hist = await page.evaluate(() => history.length);
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.addConditional("fog")), true);
+      assert.strictEqual(await search(page), "?ek=-yagmur,-soguk,sis");
+      assert.strictEqual(await page.evaluate(() => history.length), hist, "geçmişe yeni kayıt eklenmez");
+      await page.reload();
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["fog", "bike"]);
+      assert.strictEqual(await search(page), "?ek=-yagmur,-soguk,sis");
+    });
+
+    await step("?ek=yagmur ile açılıp removeConditional('rain'): yenilemede yağmur geri gelmez", async () => {
+      await page.goto(URL + "?ek=yagmur");
+      assert.strictEqual(await search(page), "?ek=yagmur,-soguk,sis"); // sis kayıttan geliyor
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.removeConditional("rain")), true);
+      assert.strictEqual(await search(page), "?ek=-yagmur,-soguk,sis");
+      await page.reload();
+      assert.strictEqual(await page.locator('#list .item[data-id="rain"]').count(), 0);
+      assert.strictEqual(await page.locator('#list .item[data-id="fog"]').count(), 1);
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.removeConditional("rain")), false);
+      assert.strictEqual(await search(page), "?ek=-yagmur,-soguk,sis", "başarısız çağrı adresi değiştirmez");
+    });
+
+    await step("diğer parametreler, sıraları, bilinmeyen ek değeri ve # korunur", async () => {
+      await page.goto(URL + "?rota=tr-ege-01&ek=sis,kar&dil=en#bolum");
+      assert.strictEqual(await search(page), "?rota=tr-ege-01&ek=-yagmur,-soguk,sis,kar&dil=en");
+      await page.evaluate(() => window.gearChecklist.addConditional("cold"));
+      assert.strictEqual(await page.evaluate(() => location.search + location.hash),
+                         "?rota=tr-ege-01&ek=-yagmur,soguk,sis,kar&dil=en#bolum");
+      await page.goto(URL + "?a=1#h"); // ek yok ama kayıtta ek madde var: sona eklenir
+      assert.strictEqual(await page.evaluate(() => location.search + location.hash), "?a=1&ek=-yagmur,soguk,sis#h");
+      await page.click("#reset"); // Sıfırla ek maddeleri değiştirmez, adrese dokunmaz
+      assert.strictEqual(await search(page), "?a=1&ek=-yagmur,soguk,sis");
+      await page.goto(URL + "?ek=-soguk,-sis");
+      await page.click("#reset");
+      assert.strictEqual(await page.evaluate(k => localStorage.getItem(k), KEY), null);
+    });
+
+    await step("adres senkronu testlerinde konsol hatası yok", async () => {
+      assert.deepStrictEqual(errors, []);
+    });
+    await ctx.close();
+  }
+
+  // --- storage disabled: the address bar alone carries the conditional items across reloads ---
+  {
+    const ctx = await browser.newContext({ locale: "tr-TR" });
+    await ctx.addInitScript(() => {
+      Object.defineProperty(window, "localStorage", { get: () => { throw new Error("SecurityError"); }, configurable: true });
+    });
+    const page = await ctx.newPage();
+    const errors = [];
+    watchErrors(page, errors);
+    await step("kayıt kapalıyken API ile eklenen madde yenilemede korunur", async () => {
+      await page.goto(URL);
+      assert.strictEqual(await page.evaluate(() => location.search), "");
+      await page.evaluate(() => window.gearChecklist.addConditional("rain"));
+      await page.reload();
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["rain", "bike"]);
+      await page.evaluate(() => window.gearChecklist.removeConditional("rain"));
+      await page.reload();
+      assert.strictEqual(await page.locator("#list .item").count(), N_ITEMS);
+      assert.deepStrictEqual(errors, []);
+    });
+    await ctx.close();
+  }
+
+  // --- history.replaceState throws: page keeps working ---
+  {
+    const ctx = await browser.newContext({ locale: "tr-TR" });
+    await ctx.addInitScript(() => {
+      History.prototype.replaceState = function () { throw new Error("SecurityError: replaceState blocked"); };
+    });
+    const page = await ctx.newPage();
+    const errors = [];
+    watchErrors(page, errors);
+    await step("replaceState hata verirse sayfa çalışmaya devam eder", async () => {
+      await page.goto(URL + "?ek=yagmur");
+      assert.strictEqual(await page.evaluate(() => location.search), "?ek=yagmur");
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.addConditional("fog")), true);
+      assert.strictEqual(await page.evaluate(() => window.gearChecklist.removeConditional("rain")), true);
+      assert.deepStrictEqual((await ids(page)).slice(-2), ["fog", "bike"]);
+      for (let i = 0; i < N_ITEMS + 2; i++) await page.click("#start");
+      assert.strictEqual(await page.locator("#list .item.done").count(), N_ITEMS + 1);
+      assert.strictEqual(await page.textContent("#status"), "Her şey hazır. İyi yolculuklar!");
+      assert.deepStrictEqual(errors, []);
+    });
+    await ctx.close();
+  }
+
   await browser.close();
   for (const [s, n] of results) console.log(`${s}  ${n}`);
   const failed = results.filter(r => r[0] === "FAIL").length;

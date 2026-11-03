@@ -101,6 +101,8 @@ const CONDITIONAL = {
 const EK_ALIASES = { yagmur: "rain", "yağmur": "rain", rain: "rain",
                      soguk: "cold", "soğuk": "cold", cold: "cold",
                      sis: "fog", fog: "fog" };
+// Form written back to the address bar (see syncEkParam): Turkish keys, table order.
+const EK_URL_KEY = { rain: "yagmur", cold: "soguk", fog: "sis" };
 // Old saves (before conditional items) stored done/current as indices into this exact order.
 const LEGACY_ORDER = ["intercom", "boots", "jacket", "helmet", "guards", "bike"];
 
@@ -185,12 +187,14 @@ let done = new Set(), current = null, finished = false, recog = null;
 
 const saved = loadState();
 let persistNow = false; // write back once on load if the URL added an item or an old save was migrated
+let hadEkParam = false; // the page was opened with ?ek=...
 if (saved && typeof saved === "object") {
   if (UI[saved.lang]) lang = saved.lang;
   if (Array.isArray(saved.extras)) saved.extras.forEach(k => { if (CONDITIONAL[k]) extras.add(k); });
 }
 try {
   const ek = new URLSearchParams(window.location.search).get("ek");
+  hadEkParam = ek !== null;
   // "?ek=yagmur" adds, "?ek=-yagmur" removes (also from the save). Applied before the save is read
   // back, so a removed item's tick/current position is dropped too.
   if (ek) ek.split(",").forEach(v => {
@@ -323,13 +327,47 @@ function reset() {
   clearState();
   render();
 }
+// Keep ?ek= in the address bar equal to the current conditional items, written out in full
+// (e.g. "?ek=yagmur,-soguk,sis"), so a reload restores the latest state even without storage
+// instead of re-applying the stale command the page was opened with. Other parameters, the
+// order of the query, unknown ek values and the #hash are kept. replaceState: no reload, no new
+// history entry. Any failure is ignored; the page keeps working.
+function syncEkParam() {
+  try {
+    const loc = window.location;
+    const parts = loc.search.replace(/^\?/, "").split("&").filter(Boolean);
+    const isEk = p => { try { return decodeURIComponent(p.split("=")[0].replace(/\+/g, " ")) === "ek"; } catch (_) { return false; } };
+    // Unknown values from the first ek parameter (e.g. a newer key) are carried over unchanged.
+    const unknown = [];
+    const first = parts.find(isEk);
+    if (first !== undefined) {
+      let raw = first.includes("=") ? first.slice(first.indexOf("=") + 1) : "";
+      try { raw = decodeURIComponent(raw.replace(/\+/g, " ")); } catch (_) {}
+      raw.split(",").forEach(v => {
+        const t = v.trim(), l = t.toLowerCase();
+        if (t && !EK_ALIASES[l.startsWith("-") ? l.slice(1) : l]) unknown.push(encodeURIComponent(t));
+      });
+    }
+    const value = Object.keys(CONDITIONAL).map(k => (extras.has(k) ? "" : "-") + EK_URL_KEY[k]).concat(unknown).join(",");
+    let placed = false;
+    const out = [];
+    parts.forEach(p => {
+      if (!isEk(p)) { out.push(p); return; }
+      if (!placed) { out.push("ek=" + value); placed = true; } // first ek keeps its position, extra ek's are dropped
+    });
+    if (!placed) out.push("ek=" + value);
+    const search = "?" + out.join("&");
+    if (search === loc.search) return;
+    window.history.replaceState(window.history.state, "", loc.pathname + search + loc.hash);
+  } catch (_) {}
+}
 // --- conditional items API (used by e.g. the weather agent) ---
 function addConditional(key) {
   if (!CONDITIONAL[key] || extras.has(key)) return false;
   extras.add(key);
   buildItems();
   finished = false; // a new unchecked item means the list is no longer complete
-  saveState(); render();
+  saveState(); render(); syncEkParam();
   return true;
 }
 function removeConditional(key) {
@@ -344,7 +382,7 @@ function removeConditional(key) {
     current = null;
     finished = ITEMS.every(it => done.has(it.id));
   }
-  saveState(); render();
+  saveState(); render(); syncEkParam();
   return true;
 }
 window.gearChecklist = {
@@ -353,6 +391,9 @@ window.gearChecklist = {
   available: () => Object.keys(CONDITIONAL),
 };
 if (persistNow) saveState();
+// Opened with ?ek= or with conditional items from the save: write the full state to the address.
+// A plain open with no conditional items leaves the address untouched.
+if (hadEkParam || extras.size) syncEkParam();
 $("start").onclick = next;
 $("reset").onclick = reset;
 $("lang").onchange = e => { lang = e.target.value; saveState(); render(); };
