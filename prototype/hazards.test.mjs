@@ -8,7 +8,7 @@ import {
   validateHazard, haversineMeters, hazardsWithinRadius, buildVoiceAlert,
   buildOverpassQuery, parseOverpassResponse, fetchNearbyPois,
   projectOnRoute, routeLengthMeters, hazardsAheadOnRoute, createAlertTracker,
-  routeLine, defaultHazardFilter, orderAnnouncements,
+  routeLine, defaultHazardFilter, orderAnnouncements, SKIP_REASONS,
 } from './hazards.js';
 
 let passed = 0;
@@ -353,7 +353,9 @@ test('hazardsAheadOnRoute pathFull ile: aheadM gerçek yol mesafesi; pathFull yo
   const hs = [ornekHazard({ id: 'ORNEK-eski', routeId: eski.id, location: pointAlong(c, 30400) })];
   const re = hazardsAheadOnRoute(pointAlong(c, 30000), eski, hs, { includeSamples: true });
   assert.equal(re.geometry, 'path');
-  assert.ok(Math.abs(re.hazards[0].aheadM - 400) < 2);
+  // Çizgi üzerindeki fark hâlâ 400 m; aheadM artık yol mesafesi (× scale = lengthKm / path uzunluğu)
+  assert.ok(Math.abs(re.hazards[0].distanceAlongM - re.driver.distanceAlongM - 400) < 2);
+  assert.ok(Math.abs(re.hazards[0].aheadM - 400 * re.scale) < 2);
   // Kemaliye: path + routeApproximate
   const k = hazardsAheadOnRoute(pointAlong(KEMALIYE.path.coordinates, 1000), KEMALIYE, []);
   assert.equal(k.geometry, 'path');
@@ -422,6 +424,122 @@ test('orderAnnouncements: önce tehlike, sonra fotoğraf; tür içinde yakın ol
   assert.deepEqual(giris, kopya); // girdi değişmez
   assert.deepEqual(orderAnnouncements([]), []);
   assert.throws(() => orderAnnouncements(null));
+});
+
+// ---------------- scale, lookAheadOf, includeSkipped (ortak çizgi kuralı) ----------------
+
+test('routeLine.scale: pathFull için 1; yalnız path varsa lengthKm / çizgi uzunluğu', () => {
+  for (const r of ROUTES) {
+    const { geometry, scale } = routeLine(r);
+    if (geometry === 'pathFull') assert.equal(scale, 1, r.id);
+    else assert.ok(Math.abs(scale - (r.lengthKm * 1000) / routeLengthMeters(r.path.coordinates)) < 1e-12, r.id);
+  }
+  const k = routeLine(KEMALIYE);
+  assert.equal(k.geometry, 'path');
+  assert.ok(k.scale > 1 && k.scale < 1.1, String(k.scale)); // 11,1 km / ~10,8 km
+  // lengthKm yoksa/geçersizse ölçek 1 (çizgi mesafesi olduğu gibi)
+  const { lengthKm, ...uzunluksuz } = KEMALIYE;
+  assert.equal(routeLine(uzunluksuz).scale, 1);
+  assert.equal(routeLine({ ...KEMALIYE, lengthKm: 0 }).scale, 1);
+  assert.equal(routeLine({ ...KEMALIYE, lengthKm: 'x' }).scale, 1);
+  // pathFull varsa lengthKm farklı olsa bile ölçeklenmez
+  assert.equal(routeLine({ ...NEMRUT, lengthKm: 999 }).scale, 1);
+});
+
+test('Kemaliye: aheadM = çizgi mesafesi × lengthKm / çizgi uzunluğu; lookAheadM yol mesafesiyle', () => {
+  const c = KEMALIYE.path.coordinates;
+  const { scale } = routeLine(KEMALIYE);
+  const h = ornekRotaTehlikesi('kemaliye-olcek', KEMALIYE, 4000, 0, 'gravel');
+  const r = hazardsAheadOnRoute(pointAlong(c, 2000), KEMALIYE, [h], { includeSamples: true, lookAheadM: 3000 });
+  assert.equal(r.scale, scale);
+  assert.equal(r.routeApproximate, true);
+  const cizgi = r.hazards[0].distanceAlongM - r.driver.distanceAlongM;
+  assert.ok(Math.abs(cizgi - 2000) < 2, String(cizgi));
+  assert.ok(Math.abs(r.hazards[0].aheadM - cizgi * scale) < 1e-6);
+  assert.ok(r.hazards[0].aheadM > 2000); // ~%3 uzun: ölçek uygulanmış
+  // Menzil yol mesafesine uygulanır: çizgide 2000 m ama yolda >2000 m -> lookAheadM 2000'de dönmez
+  assert.equal(hazardsAheadOnRoute(pointAlong(c, 2000), KEMALIYE, [h], { includeSamples: true, lookAheadM: 2010 }).hazards.length, 0);
+  // pathFull rotasında scale 1 ve aheadM çizgi farkıyla aynı
+  const full = etkinCizgi(AKDENIZ);
+  const a = hazardsAheadOnRoute(pointAlong(full, 10000), AKDENIZ, [ornekRotaTehlikesi('ak', AKDENIZ, 10700)], { includeSamples: true });
+  assert.equal(a.scale, 1);
+  assert.equal(a.hazards[0].aheadM, a.hazards[0].distanceAlongM - a.driver.distanceAlongM);
+});
+
+test('lookAheadOf: kayıt başına menzil; geçersiz değerde lookAheadM', () => {
+  const c = etkinCizgi(NEMRUT);
+  const surucu = pointAlong(c, 30000);
+  const menzil = { 'ORNEK-r300': 300, 'ORNEK-r1000': 1000, 'ORNEK-nan': NaN, 'ORNEK-neg': -1 };
+  const list = [
+    ornekRotaTehlikesi('r300', NEMRUT, 30500),   // 500 m ileride, menzil 300 -> dönmez
+    ornekRotaTehlikesi('r1000', NEMRUT, 30500),  // 500 m ileride, menzil 1000 -> döner
+    ornekRotaTehlikesi('nan', NEMRUT, 31500),    // geçersiz menzil -> lookAheadM (2000) -> döner
+    ornekRotaTehlikesi('neg', NEMRUT, 32500),    // negatif menzil -> lookAheadM (2000) -> dönmez (2500)
+    ornekRotaTehlikesi('yok', NEMRUT, 31800),    // undefined -> lookAheadM -> döner
+  ];
+  const r = hazardsAheadOnRoute(surucu, NEMRUT, list, { includeSamples: true, lookAheadOf: (h) => menzil[h.id] });
+  assert.deepEqual(r.hazards.map((x) => x.hazard.id), ['ORNEK-r1000', 'ORNEK-nan', 'ORNEK-yok']);
+  // lookAheadOf verilmezse eski davranış
+  assert.deepEqual(hazardsAheadOnRoute(surucu, NEMRUT, list, { includeSamples: true }).hazards.map((x) => x.hazard.id),
+    ['ORNEK-r1000', 'ORNEK-r300', 'ORNEK-nan', 'ORNEK-yok']);
+  assert.throws(() => hazardsAheadOnRoute(surucu, NEMRUT, list, { lookAheadOf: 5 }), /lookAheadOf/);
+});
+
+test('includeSkipped: filter/location/offset nedenleri; geride ve menzil dışı listeye girmez', () => {
+  assert.deepEqual([...SKIP_REASONS], ['filter', 'location', 'offset']);
+  const c = etkinCizgi(NEMRUT);
+  const surucu = pointAlong(c, 30000);
+  const ileri = ornekRotaTehlikesi('ileri', NEMRUT, 30400);
+  const gecersizTip = ornekRotaTehlikesi('tip', NEMRUT, 30500, 0, 'pothole');
+  const kopuk = ornekRotaTehlikesi('kopuk', NEMRUT, 30600, 300);
+  const geride = ornekRotaTehlikesi('geride', NEMRUT, 29000);
+  const uzak = ornekRotaTehlikesi('uzak', NEMRUT, 36000);
+  const list = [ileri, gecersizTip, kopuk, geride, uzak];
+  const r = hazardsAheadOnRoute(surucu, NEMRUT, list, { includeSamples: true, includeSkipped: true });
+  assert.deepEqual(r.hazards.map((x) => x.hazard.id), ['ORNEK-ileri']);
+  assert.deepEqual(r.skipped.map((x) => [x.item.id, x.reason]), [['ORNEK-tip', 'filter'], ['ORNEK-kopuk', 'offset']]);
+  assert.equal(r.skipped[0].item, gecersizTip);
+  assert.equal('offsetM' in r.skipped[0], false);
+  assert.ok(r.skipped[1].offsetM > 50 && r.skipped[1].offsetM <= 310, String(r.skipped[1].offsetM)); // en yakın parçaya izdüşüm (köşede 300'den az olabilir)
+  // Örnek kayıtlar includeSamples olmadan 'filter' nedeniyle atlanır (sessiz değil, raporlanır)
+  const v = hazardsAheadOnRoute(surucu, NEMRUT, list, { includeSkipped: true });
+  assert.equal(v.hazards.length, 0);
+  assert.deepEqual(v.skipped.map((x) => x.reason), ['filter', 'filter', 'filter', 'filter', 'filter']);
+  // Geçerli konum dönmeyen kayıt: 'location'
+  const l = hazardsAheadOnRoute(surucu, NEMRUT, [ileri], { includeSamples: true, includeSkipped: true, getLocation: () => ({ lat: 'x' }) });
+  assert.deepEqual(l.skipped.map((x) => x.reason), ['location']);
+  // Varsayılan: skipped alanı yok (eski dönüş biçimi)
+  assert.equal('skipped' in hazardsAheadOnRoute(surucu, NEMRUT, list, { includeSamples: true }), false);
+  // Rota dışı sürücü: kayıtlar değerlendirilmez, skipped boş
+  const d = hazardsAheadOnRoute(pointAlong(c, 30000, 500), NEMRUT, list, { includeSamples: true, includeSkipped: true });
+  assert.equal(d.offRoute, true);
+  assert.deepEqual(d.skipped, []);
+});
+
+test('ince sarmalayıcı örneği: fotoğraf noktası benzeri ÖRNEK kayıtlar (filter + getLocation + lookAheadOf + includeSkipped)', () => {
+  const full = etkinCizgi(NEMRUT);
+  const surucu = pointAlong(full, 30000);
+  const ornekNokta = (id, alongM, offsetM, notifyRadiusM, over = {}) => ({
+    id: `ORNEK-${id}`, routeId: NEMRUT.id, isSample: true, safeStop: true, notifyRadiusM,
+    approachPoint: pointAlong(full, alongM, offsetM), ...over,
+  });
+  const noktalar = [
+    ornekNokta('yakin', 30800, 0, 1000),
+    ornekNokta('yaricap-disi', 31500, 0, 1000),
+    ornekNokta('kopuk', 30500, 250, 3000),
+    ornekNokta('guvensiz', 30400, 0, 1000, { safeStop: false }),
+    ornekNokta('baska-rota', 30400, 0, 1000, { routeId: 'tr-ege-01' }),
+  ];
+  const filter = (s, { includeSamples }) => s.safeStop === true && s.routeId === NEMRUT.id && (!s.isSample || includeSamples);
+  const r = hazardsAheadOnRoute(surucu, NEMRUT, noktalar, {
+    includeSamples: true, filter, getLocation: (s) => s.approachPoint, lookAheadOf: (s) => s.notifyRadiusM,
+    maxOffsetM: 100, includeSkipped: true,
+  });
+  assert.deepEqual(r.hazards.map((x) => x.hazard.id), ['ORNEK-yakin']);
+  assert.ok(Math.abs(r.hazards[0].aheadM - 800) < 2);
+  // detached karşılığı: reason 'offset'
+  assert.deepEqual(r.skipped.filter((x) => x.reason === 'offset').map((x) => x.item.id), ['ORNEK-kopuk']);
+  assert.deepEqual(r.skipped.filter((x) => x.reason === 'filter').map((x) => x.item.id), ['ORNEK-guvensiz', 'ORNEK-baska-rota']);
 });
 
 for (const { name, fn } of tests) {

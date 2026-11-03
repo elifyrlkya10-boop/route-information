@@ -22,3 +22,5 @@ tarih,baslangic,bitis,ajan,sure_sn,arac_kullanimi,token,durum,is
 2026-11-03,02:30:04,02:31:05,rota-uzmani,61.1,5,97875,tamamlandi,"Aşama 3: yön penceresi önerisi, geometri sürümü önerisi (dosya değişmedi)"
 2026-11-04,02:15:27,02:17:50,ekipman-asistani,142.5,13,95214,tamamlandi,Kontrol listesi: adresteki ek parametresini güncel tutma
 2026-11-04,02:16:09,02:33:50,rota-uzmani,1060.9,36,124161,tamamlandi,"Nemrut ve Bozdağ güzergâh kontrolü (yalnızca notlar, geometri değişmedi)"
+2026-11-04,02:35:20,02:38:10,hava-durumu,170.2,14,85612,tamamlandi,"Ortak yön yardımcısı routeBearings (prototype/route-geometry.js)"
+2026-11-04,02:35:05,02:38:10,guvenlik-ve-yakin-cevre,184.7,13,101936,tamamlandi,"Tehlike modülü: routeLine.scale, includeSkipped, lookAheadOf"

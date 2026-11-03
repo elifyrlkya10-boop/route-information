@@ -146,7 +146,12 @@ export function routeLengthMeters(lineCoords) {
  * Mesafe/ileriye bakış için kullanılacak rota çizgisi: route.pathFull ?? route.path.
  * pathFull (OSRM tam çizgisi) varsa o, yoksa sadeleştirilmiş path (ör. Kemaliye) kullanılır.
  * pathFull varsa ama GeoJSON LineString değilse sessizce path'e düşülmez, hata verilir.
- * @returns {{geometry: 'pathFull'|'path', coordinates: number[][]}}
+ * scale: çizgi mesafesini yol mesafesine çeviren çarpan (yol mesafesi = çizgi mesafesi × scale).
+ *   - pathFull için 1 (pathFull zaten gerçek yol; lengthKm ile %0,5 içinde).
+ *   - Yalnız path varsa route.lengthKm × 1000 / çizgi uzunluğu (ör. Kemaliye ~1,03).
+ *   - Yalnız path var ama lengthKm geçerli pozitif sayı değilse (ya da çizgi uzunluğu 0 ise) 1.
+ * Geriye uyum: önceki dönüş alanları (geometry, coordinates) aynen duruyor; scale yeni alan.
+ * @returns {{geometry: 'pathFull'|'path', coordinates: number[][], scale: number}}
  */
 export function routeLine(route) {
   if (!isObj(route)) throw new TypeError('route: nesne olmalı');
@@ -154,7 +159,12 @@ export function routeLine(route) {
   const line = route[geometry];
   if (!isObj(line) || line.type !== 'LineString') throw new TypeError(`route.${geometry}: GeoJSON LineString olmalı`);
   assertLineCoords(line.coordinates);
-  return { geometry, coordinates: line.coordinates };
+  let scale = 1;
+  if (geometry === 'path' && isNum(route.lengthKm) && route.lengthKm > 0) {
+    const lineM = routeLengthMeters(line.coordinates);
+    if (lineM > 0) scale = (route.lengthKm * 1000) / lineM;
+  }
+  return { geometry, coordinates: line.coordinates, scale };
 }
 
 /**
@@ -167,13 +177,21 @@ export function defaultHazardFilter(h, { includeSamples = false } = {}) {
 
 const defaultGetLocation = (item) => item?.location;
 
+/** includeSkipped ile dönen atlanma nedenleri. */
+export const SKIP_REASONS = Object.freeze(['filter', 'location', 'offset']);
+
 /**
  * Sürücünün rota üzerindeki konumundan İLERİDE kalan tehlikeler (kuş uçuşu yarıçap yerine).
- * - route: data/routes.json'daki rota nesnesi. Çizgi olarak route.pathFull ?? route.path kullanılır
- *   (GeoJSON LineString, [lon, lat]); hangisinin kullanıldığı sonuçta geometry alanında görünür.
- *   pathFull ile mesafeler gerçek yol uzunluğudur (lengthKm ile tutarlı); path ile kısalır.
- * - Tehlike, rotaya maxOffsetM'den yakınsa ve 0 <= aheadM <= lookAheadM ise döner; geride kalanlar
+ * - route: data/routes.json'daki rota nesnesi. Çizgi olarak routeLine(route) kullanılır
+ *   (route.pathFull ?? route.path, GeoJSON LineString, [lon, lat]); hangisinin kullanıldığı sonuçta
+ *   geometry alanında, çarpanı scale alanında görünür.
+ * - aheadM YOL mesafesidir: (çizgi mesafesi farkı) × scale. pathFull'da scale = 1; yalnız path olan
+ *   rotada (Kemaliye) lengthKm / çizgi uzunluğu. lookAheadM ve lookAheadOf da yol mesafesiyle karşılaştırılır.
+ *   distanceAlongM (sürücü ve kayıt) ve offsetM ölçeklenmez: çizgi üzerindeki ham değerlerdir.
+ * - Tehlike, rotaya maxOffsetM'den yakınsa ve 0 <= aheadM <= menzil ise döner; geride kalanlar
  *   ve paralel/başka yoldaki (rotaya uzak) tehlikeler dönmez. Sonuç aheadM'e göre yakından uzağa sıralı.
+ * - Menzil kayıt başınadır: lookAheadOf(item) => number (varsayılan () => lookAheadM). Geçerli,
+ *   negatif olmayan sayı dönmezse o kayıt için lookAheadM kullanılır. Ör. fotoğraf noktası: s => s.notifyRadiusM.
  * - direction: 'forward' (çizgi başından sonuna, varsayılan) veya 'reverse' (rotayı ters yönde süren).
  * - Sürücü rotaya driverMaxOffsetM'den uzaksa (rota dışı kontrolü, aynı çizgiyle) "ileride" tanımsızdır:
  *   offRoute=true ve boş liste döner.
@@ -182,46 +200,58 @@ const defaultGetLocation = (item) => item?.location;
  *   için kendi süzgecinizi verin; o zaman includeSamples yalnızca süzgece iletilir.
  * - getLocation(item) => {lat, lon}: izdüşürülecek konum (varsayılan item.location; ör. fotoğraf
  *   noktası için item => item.approachPoint). Geçerli konum dönmeyen kayıt atlanır.
+ * - includeSkipped: true ise sonuçta skipped: Array<{item, reason, offsetM?}> bulunur (giriş sırasıyla).
+ *   reason: 'filter' (süzgeç reddetti), 'location' (geçerli konum yok), 'offset' (izdüşüm maxOffsetM'den
+ *   uzak; offsetM ile — ör. rota çizgisi değişmiş, kayıt kopmuş). Geride kalan ve menzil dışındaki kayıtlar
+ *   normal durumdur, skipped'e GİRMEZ. offRoute=true iken kayıtlar değerlendirilmez, skipped boş döner.
+ *   includeSkipped false (varsayılan) ise skipped alanı hiç yoktur (eski dönüş biçimi).
  * - route.verification.status === 'doğrulanmalı' ise routeApproximate=true (ör. Kemaliye: yalnız path var,
  *   çizgi yaklaşık, aheadM/offsetM de yaklaşıktır; tehlike konumları bu çizgiye snap EDİLMEZ).
- * Sonuç kayıtlarında öğe, geriye uyum için her zaman "hazard" anahtarındadır.
- * @returns {{routeId: string, geometry: 'pathFull'|'path', routeApproximate: boolean, offRoute: boolean,
+ * Sonuç kayıtlarında öğe, geriye uyum için her zaman "hazard" anahtarındadır (skipped'de "item").
+ * @returns {{routeId: string, geometry: 'pathFull'|'path', scale: number, routeApproximate: boolean, offRoute: boolean,
  *   driver: {distanceAlongM: number, offsetM: number, segmentIndex: number},
- *   hazards: Array<{hazard: object, aheadM: number, offsetM: number, distanceAlongM: number}>}}
+ *   hazards: Array<{hazard: object, aheadM: number, offsetM: number, distanceAlongM: number}>,
+ *   skipped?: Array<{item: object, reason: 'filter'|'location'|'offset', offsetM?: number}>}}
  */
 export function hazardsAheadOnRoute(driver, route, hazards, {
   lookAheadM = 2000, maxOffsetM = 50, driverMaxOffsetM = 100, includeSamples = false, direction = 'forward',
-  filter = defaultHazardFilter, getLocation = defaultGetLocation,
+  filter = defaultHazardFilter, getLocation = defaultGetLocation, lookAheadOf, includeSkipped = false,
 } = {}) {
   if (!driver || !isNum(driver.lat) || !isNum(driver.lon)) throw new TypeError('driver: {lat, lon} olmalı');
-  const { geometry, coordinates: coords } = routeLine(route);
+  const { geometry, coordinates: coords, scale } = routeLine(route);
   if (!isNum(lookAheadM) || lookAheadM < 0) throw new TypeError('lookAheadM: negatif olmayan sayı olmalı');
   if (!isNum(maxOffsetM) || maxOffsetM < 0) throw new TypeError('maxOffsetM: negatif olmayan sayı olmalı');
   if (!isNum(driverMaxOffsetM) || driverMaxOffsetM < 0) throw new TypeError('driverMaxOffsetM: negatif olmayan sayı olmalı');
   if (direction !== 'forward' && direction !== 'reverse') throw new TypeError("direction: 'forward' veya 'reverse' olmalı");
   if (typeof filter !== 'function') throw new TypeError('filter: fonksiyon olmalı');
   if (typeof getLocation !== 'function') throw new TypeError('getLocation: fonksiyon olmalı');
+  if (lookAheadOf != null && typeof lookAheadOf !== 'function') throw new TypeError('lookAheadOf: fonksiyon olmalı');
 
   const d = projectOnRoute(driver, coords);
   const result = {
     routeId: route.id,
     geometry,
+    scale,
     routeApproximate: route.verification?.status === ROUTE_STATUS_APPROXIMATE,
     offRoute: d.offsetM > driverMaxOffsetM,
     driver: d,
     hazards: [],
   };
+  if (includeSkipped) result.skipped = [];
   if (result.offRoute) return result;
 
+  const skip = includeSkipped ? (entry) => result.skipped.push(entry) : () => {};
   const sign = direction === 'forward' ? 1 : -1;
   for (const h of hazards || []) {
-    if (!filter(h, { includeSamples })) continue;
+    if (!filter(h, { includeSamples })) { skip({ item: h, reason: 'filter' }); continue; }
     const loc = getLocation(h);
-    if (!isObj(loc) || !isNum(loc.lat) || !isNum(loc.lon)) continue;
+    if (!isObj(loc) || !isNum(loc.lat) || !isNum(loc.lon)) { skip({ item: h, reason: 'location' }); continue; }
     const p = projectOnRoute(loc, coords);
-    if (p.offsetM > maxOffsetM) continue;
-    const aheadM = sign * (p.distanceAlongM - d.distanceAlongM);
-    if (aheadM < 0 || aheadM > lookAheadM) continue;
+    if (p.offsetM > maxOffsetM) { skip({ item: h, reason: 'offset', offsetM: p.offsetM }); continue; }
+    const aheadM = sign * (p.distanceAlongM - d.distanceAlongM) * scale;
+    const own = lookAheadOf ? lookAheadOf(h) : lookAheadM;
+    const rangeM = isNum(own) && own >= 0 ? own : lookAheadM;
+    if (aheadM < 0 || aheadM > rangeM) continue;
     result.hazards.push({ hazard: h, aheadM, offsetM: p.offsetM, distanceAlongM: p.distanceAlongM });
   }
   result.hazards.sort((a, b) => a.aheadM - b.aheadM || String(a.hazard?.id).localeCompare(String(b.hazard?.id)));
