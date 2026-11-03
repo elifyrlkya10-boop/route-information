@@ -3,9 +3,11 @@
 // yalnızca okunur. Simüle sürücü konumları ÖRNEKTİR: rota çizgisi üzerinde hesapla üretilmiş noktalardır.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { projectOnRoute, routeLengthMeters, haversineMeters } from './hazards.js';
 import {
-  routeLineForAlerts, photoSpotsAheadOnRoute, createPhotoAlertTracker, buildPhotoVoiceAlert, DETOUR_ANNOUNCE_MIN_KM,
+  projectOnRoute, routeLengthMeters, haversineMeters, routeLine, hazardsAheadOnRoute, buildVoiceAlert, orderAnnouncements,
+} from './hazards.js';
+import {
+  photoSpotsAheadOnRoute, createPhotoAlertTracker, buildPhotoVoiceAlert, toPhotoAnnouncement, DETOUR_ANNOUNCE_MIN_KM,
 } from './photo-alerts.js';
 
 let passed = 0;
@@ -37,7 +39,7 @@ function pointAt(coords, alongM) {
 
 /** Sürücüyü çizgi boyunca fromM'den toM'e stepM adımlarla sürer; her adımda izleyiciye `ahead` verilir. */
 function drive(r, fromM, toM, stepM, tracker, opts = {}) {
-  const { coords } = routeLineForAlerts(r);
+  const { coordinates: coords } = routeLine(r);
   const announced = [];
   const dir = toM >= fromM ? 1 : -1;
   for (let m = fromM; dir > 0 ? m <= toM : m >= toM; m += dir * stepM) {
@@ -69,7 +71,7 @@ test('12 noktada approachPoint path üzerinde (< 5 m; Python betiğiyle JS hesab
 test('12 noktada approachPoint bildirim çizgisine (pathFull ?? path) 100 m içinde; hiçbiri detached değil', () => {
   for (const s of SPOTS) {
     const r = route(s.routeId);
-    const { coords, source } = routeLineForAlerts(r);
+    const { coordinates: coords, geometry: source } = routeLine(r);
     assert.equal(source, r.pathFull ? 'pathFull' : 'path');
     const p = projectOnRoute(s.approachPoint, coords);
     assert.ok(p.offsetM < 100, `${s.id}: ${source} offset ${p.offsetM.toFixed(1)} m`);
@@ -82,7 +84,7 @@ test('12 noktada approachPoint bildirim çizgisine (pathFull ?? path) 100 m içi
 test('rotası değişmiş (kopmuş) approachPoint sessizce atlanmaz, detached olarak raporlanır', () => {
   const r = route('tr-marmara-01');
   const kopuk = { ...spot('ps-tr-marmara-01-02'), approachPoint: { ...spot('ps-tr-marmara-01-02').location } };
-  const res = photoSpotsAheadOnRoute(pointAt(routeLineForAlerts(r).coords, 0), r, [kopuk]);
+  const res = photoSpotsAheadOnRoute(pointAt(routeLine(r).coordinates, 0), r, [kopuk]);
   assert.equal(res.detached.length, 1);
   assert.equal(res.detached[0].id, 'ps-tr-marmara-01-02');
   assert.ok(res.detached[0].offsetM > 2000);
@@ -93,7 +95,7 @@ test('Sarıalan: ileri sürüşte tek bildirim, yarıçap içinde', () => {
   const r = route('tr-marmara-01');
   const s = spot('ps-tr-marmara-01-02');
   const tracker = createPhotoAlertTracker();
-  const lenM = routeLengthMeters(routeLineForAlerts(r).coords);
+  const lenM = routeLengthMeters(routeLine(r).coordinates);
   const ann = drive(r, 0, lenM, 25, tracker).filter((a) => a.id === s.id);
   assert.equal(ann.length, 1, JSON.stringify(ann));
   assert.ok(ann[0].aheadM <= s.notifyRadiusM && ann[0].aheadM > s.notifyRadiusM - 30, `aheadM ${ann[0].aheadM}`);
@@ -102,7 +104,7 @@ test('Sarıalan: ileri sürüşte tek bildirim, yarıçap içinde', () => {
 test('Sarıalan: geçip geri dönen ve yeniden yaklaşan sürücü yeniden bildirim alır', () => {
   const r = route('tr-marmara-01');
   const s = spot('ps-tr-marmara-01-02');
-  const { coords } = routeLineForAlerts(r);
+  const { coordinates: coords } = routeLine(r);
   const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
   const tracker = createPhotoAlertTracker({ rearmM: 500 });
   const start = apAlong - 2000;
@@ -120,7 +122,7 @@ test('Sarıalan: geçip geri dönen ve yeniden yaklaşan sürücü yeniden bildi
 test('Sarıalan: yarıçap + rearm sınırını aşmadan geri-ileri salınım tekrar bildirim üretmez', () => {
   const r = route('tr-marmara-01');
   const s = spot('ps-tr-marmara-01-02');
-  const { coords } = routeLineForAlerts(r);
+  const { coordinates: coords } = routeLine(r);
   const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
   const tracker = createPhotoAlertTracker({ rearmM: 500 });
   let n = 0;
@@ -134,7 +136,7 @@ test('Sarıalan: yarıçap + rearm sınırını aşmadan geri-ileri salınım te
 test('ters yön: aheadM doğru, ileri yönde geride kalan nokta ters yönde ileride', () => {
   const r = route('tr-marmara-01');
   const s = spot('ps-tr-marmara-01-02');
-  const { coords } = routeLineForAlerts(r);
+  const { coordinates: coords } = routeLine(r);
   const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
   const d = pointAt(coords, apAlong + 400); // noktayı 400 m geçmiş (ileri yöne göre)
   const fwd = photoSpotsAheadOnRoute(d, r, SPOTS);
@@ -185,24 +187,24 @@ test('pathFull seçimi: gerçek yoldaki sürücü path\'e göre rota dışı gö
 test('Kemaliye (yalnız path): mesafe lengthKm ile ölçeklenir, routeApproximate=true', () => {
   const r = route('tr-dogu-anadolu-01');
   assert.equal(r.pathFull, undefined);
-  const line = routeLineForAlerts(r);
-  assert.equal(line.source, 'path');
+  const line = routeLine(r);
+  assert.equal(line.geometry, 'path');
   assert.ok(Math.abs(line.scale - (r.lengthKm * 1000) / routeLengthMeters(r.path.coordinates)) < 1e-12);
   const s = spot('ps-tr-dogu-anadolu-01-01');
-  const apAlong = projectOnRoute(s.approachPoint, line.coords).distanceAlongM;
-  const res = photoSpotsAheadOnRoute(pointAt(line.coords, apAlong - 500), r, SPOTS);
+  const apAlong = projectOnRoute(s.approachPoint, line.coordinates).distanceAlongM;
+  const res = photoSpotsAheadOnRoute(pointAt(line.coordinates, apAlong - 500), r, SPOTS);
   assert.equal(res.routeApproximate, true);
   const e = res.spots.find((x) => x.spot.id === s.id);
   assert.ok(e);
   assert.ok(Math.abs(e.aheadM - 500 * line.scale) < 2, `aheadM ${e.aheadM}`);
   // pathFull olan rotalarda ölçek 1.
-  assert.equal(routeLineForAlerts(route('tr-akdeniz-01')).scale, 1);
+  assert.equal(routeLine(route('tr-akdeniz-01')).scale, 1);
 });
 
 test('safeStop false olan nokta önerilmez; başka rotanın noktası dönmez', () => {
   const r = route('tr-marmara-01');
   const s = spot('ps-tr-marmara-01-02');
-  const { coords } = routeLineForAlerts(r);
+  const { coordinates: coords } = routeLine(r);
   const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
   const d = pointAt(coords, apAlong - 300);
   const guvensiz = { ...s, id: 'ORNEK-guvensiz', safeStop: false };
@@ -230,11 +232,88 @@ test('sesli metin tr/en; detourKm >= 0,5 ise sapma eklenir', () => {
 test('12 noktanın her biri kendi rotasında baştan sona sürüşte tam bir kez bildirilir', () => {
   for (const r of ROUTES) {
     const tracker = createPhotoAlertTracker();
-    const lenM = routeLengthMeters(routeLineForAlerts(r).coords);
+    const lenM = routeLengthMeters(routeLine(r).coordinates);
     const ann = drive(r, 0, lenM, 50, tracker);
     const beklenen = SPOTS.filter((s) => s.routeId === r.id && s.safeStop === true).map((s) => s.id).sort();
     assert.deepEqual(ann.map((a) => a.id).sort(), beklenen, r.id);
   }
+});
+
+test('bozuk pathFull: sessizce path\'e düşülmez, hata verilir (ortak routeLine kuralı)', () => {
+  const r = route('tr-marmara-01');
+  const d = pointAt(r.path.coordinates, 0);
+  for (const pathFull of [{ type: 'Point', coordinates: [29.0, 40.0] }, 'bozuk']) {
+    assert.throws(() => photoSpotsAheadOnRoute(d, { ...r, pathFull }, SPOTS), /route\.pathFull/, JSON.stringify(pathFull));
+  }
+  // Tek noktalı LineString de reddedilir (hata metni hazards.js'te 'lineCoords: ...').
+  assert.throws(() => photoSpotsAheadOnRoute(d, { ...r, pathFull: { type: 'LineString', coordinates: [[29.0, 40.0]] } }, SPOTS), TypeError);
+  // Sağlam pathFull'da çizgi kaynağı ve ölçek sonuçta görünür.
+  const ok = photoSpotsAheadOnRoute(d, r, SPOTS);
+  assert.equal(ok.lineSource, 'pathFull');
+  assert.equal(ok.scale, 1);
+});
+
+test('toPhotoAnnouncement: {kind: photo, id, aheadM, text}; güvenli durulamayan nokta null', () => {
+  const r = route('tr-marmara-01');
+  const s = spot('ps-tr-marmara-01-02');
+  const { coordinates: coords } = routeLine(r);
+  const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
+  const e = photoSpotsAheadOnRoute(pointAt(coords, apAlong - 690), r, SPOTS).spots.find((x) => x.spot.id === s.id);
+  assert.ok(e);
+  const a = toPhotoAnnouncement(e, 'tr');
+  assert.deepEqual(Object.keys(a).sort(), ['aheadM', 'id', 'kind', 'text']);
+  assert.equal(a.kind, 'photo');
+  assert.equal(a.id, s.id);
+  assert.equal(a.aheadM, e.aheadM);
+  assert.equal(a.text, buildPhotoVoiceAlert(s, e.aheadM, 'tr'));
+  assert.match(toPhotoAnnouncement(e).text, /^Photo spot in 700 meters: Sarıalan Plateau\./);
+  assert.equal(toPhotoAnnouncement({ ...e, spot: { ...s, id: 'ORNEK-guvensiz', safeStop: false } }, 'tr'), null);
+  assert.throws(() => toPhotoAnnouncement(null), TypeError);
+});
+
+test('aynı anda gelen tehlike + fotoğraf: orderAnnouncements önce tehlikeyi okutur (fotoğraf daha yakın olsa da)', () => {
+  const r = route('tr-marmara-01');
+  const s = spot('ps-tr-marmara-01-02');
+  const { coordinates: coords } = routeLine(r);
+  const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
+  // ÖRNEK tehlike: rota çizgisi üzerinde, fotoğraf noktasının 300 m ötesinde (uydurma, isSample: true).
+  const hazard = {
+    id: 'ORNEK-gravel-sarialan', routeId: r.id, type: 'gravel', location: pointAt(coords, apAlong + 300),
+    note: { en: 'Sample hazard for tests', tr: 'Test için örnek tehlike' },
+    reportedBy: 'ORNEK', reportedAt: '2026-11-03T00:00:00Z', isSample: true,
+  };
+  const driver = pointAt(coords, apAlong - 650);
+  const photoRes = photoSpotsAheadOnRoute(driver, r, SPOTS);
+  const hazRes = hazardsAheadOnRoute(driver, r, [hazard], { includeSamples: true });
+  // Aynı konum güncellemesinde ikisi de tetiklenir.
+  const photoTracker = createPhotoAlertTracker();
+  const nowPhotos = photoTracker.update(photoRes.ahead);
+  assert.deepEqual(nowPhotos.map((x) => x.id), [s.id]);
+  assert.equal(hazRes.hazards.length, 1);
+  const h = hazRes.hazards[0];
+  const photoEntry = photoRes.ahead.find((x) => x.spot.id === s.id);
+  assert.ok(photoEntry.aheadM < h.aheadM, 'fotoğraf noktası tehlikeden daha yakın olmalı (sınama koşulu)');
+  const items = [
+    toPhotoAnnouncement(photoEntry, 'tr'),
+    { kind: 'hazard', id: h.hazard.id, aheadM: h.aheadM, text: buildVoiceAlert(h.hazard, h.aheadM, 'tr', { ahead: true }) },
+  ];
+  const ordered = orderAnnouncements(items);
+  assert.deepEqual(ordered.map((x) => x.kind), ['hazard', 'photo']);
+  assert.equal(ordered[0].text, 'Dikkat, 950 metre ileride taşlı yol.');
+  assert.match(ordered[1].text, /^Fotoğraf noktası 650 metre ileride: Sarıalan Yaylası\./);
+  // Girdi değişmez.
+  assert.deepEqual(items.map((x) => x.kind), ['photo', 'hazard']);
+});
+
+test('isSample: true olan (örnek) fotoğraf noktası yalnızca includeSamples ile değerlendirilir', () => {
+  const r = route('tr-marmara-01');
+  const s = spot('ps-tr-marmara-01-02');
+  const { coordinates: coords } = routeLine(r);
+  const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
+  const ornek = { ...s, id: 'ORNEK-sarialan', isSample: true };
+  const d = pointAt(coords, apAlong - 300);
+  assert.deepEqual(photoSpotsAheadOnRoute(d, r, [ornek]).spots, []);
+  assert.deepEqual(photoSpotsAheadOnRoute(d, r, [ornek], { includeSamples: true }).spots.map((e) => e.spot.id), [ornek.id]);
 });
 
 for (const { name, fn } of tests) {
