@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 4 | 13.8 | 3.4 | 5.9 | 403.880 |
-| ekipman-asistani | 4 | 6.8 | 1.7 | 2.8 | 344.651 |
-| guvenlik-ve-yakin-cevre | 3 | 6.1 | 2.0 | 2.9 | 284.492 |
-| fotograf-noktalari | 4 | 10.9 | 2.7 | 5.7 | 399.353 |
-| hava-durumu | 2 | 6.8 | 3.4 | 3.9 | 194.714 |
-| **Toplam** | **17** | **44.3** | | | **1.627.090** |
+| rota-uzmani | 6 | 33.0 | 5.5 | 17.7 | 666.095 |
+| ekipman-asistani | 5 | 9.2 | 1.8 | 2.8 | 439.865 |
+| guvenlik-ve-yakin-cevre | 5 | 9.5 | 1.9 | 3.1 | 490.871 |
+| fotograf-noktalari | 5 | 14.2 | 2.8 | 5.7 | 510.552 |
+| hava-durumu | 3 | 9.6 | 3.2 | 3.9 | 280.326 |
+| **Toplam** | **24** | **75.6** | | | **2.387.709** |
 
 ### 44. hafta: 26 Ekim – 1 Kasım 2026
 
@@ -33,17 +33,24 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 5 | 18.6 | 3.7 | 5.9 | 479.326 |
-| ekipman-asistani | 5 | 8.4 | 1.7 | 2.8 | 403.757 |
-| guvenlik-ve-yakin-cevre | 4 | 8.1 | 2.0 | 2.9 | 346.470 |
-| fotograf-noktalari | 5 | 12.4 | 2.5 | 5.7 | 453.899 |
-| hava-durumu | 2 | 6.8 | 3.4 | 3.9 | 194.714 |
-| **Toplam** | **21** | **54.3** | | | **1.878.166** |
+| rota-uzmani | 7 | 37.8 | 5.4 | 17.7 | 741.541 |
+| ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
+| guvenlik-ve-yakin-cevre | 6 | 11.5 | 1.9 | 3.1 | 552.849 |
+| fotograf-noktalari | 6 | 15.8 | 2.6 | 5.7 | 565.098 |
+| hava-durumu | 3 | 9.6 | 3.2 | 3.9 | 280.326 |
+| **Toplam** | **28** | **85.5** | | | **2.638.785** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-04 | 02:43:42 | 02:45:17 | rota-uzmani | 1.6 | tamamlandi | Aşama 3: yön oranları, Nemrut toprak kesim tablosu, geometryRevision tanımı (dosya değişmedi) |
+| 2026-11-04 | 02:43:10 | 02:43:30 | guvenlik-ve-yakin-cevre | 0.3 | tamamlandi | Aşama 3: hata metni önerisine cevap (dosya değişmedi) |
+| 2026-11-04 | 02:39:14 | 02:42:36 | fotograf-noktalari | 3.4 | tamamlandi | Fotoğraf bildirimi: ortak routeLine, ince sarmalayıcı, toPhotoAnnouncement |
+| 2026-11-04 | 02:35:20 | 02:38:10 | hava-durumu | 2.8 | tamamlandi | Ortak yön yardımcısı routeBearings (prototype/route-geometry.js) |
+| 2026-11-04 | 02:35:05 | 02:38:10 | guvenlik-ve-yakin-cevre | 3.1 | tamamlandi | Tehlike modülü: routeLine.scale, includeSkipped, lookAheadOf |
+| 2026-11-04 | 02:16:09 | 02:33:50 | rota-uzmani | 17.7 | tamamlandi | Nemrut ve Bozdağ güzergâh kontrolü (yalnızca notlar, geometri değişmedi) |
+| 2026-11-04 | 02:15:27 | 02:17:50 | ekipman-asistani | 2.4 | tamamlandi | Kontrol listesi: adresteki ek parametresini güncel tutma |
 | 2026-11-03 | 02:30:04 | 02:31:05 | rota-uzmani | 1.0 | tamamlandi | Aşama 3: yön penceresi önerisi, geometri sürümü önerisi (dosya değişmedi) |
 | 2026-11-03 | 02:29:55 | 02:30:23 | ekipman-asistani | 0.5 | tamamlandi | Aşama 3: hava-durumu sorusuna cevap, adres parametresi önerisi (dosya değişmedi) |
 | 2026-11-03 | 02:29:51 | 02:30:23 | guvenlik-ve-yakin-cevre | 0.5 | tamamlandi | Aşama 3: fotoğraf sorularına cevap, skipped/lookAheadOf önerisi (dosya değişmedi) |
