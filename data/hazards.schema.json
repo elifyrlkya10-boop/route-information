@@ -2,10 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://route-information.local/schemas/hazards.schema.json",
   "title": "Hazard",
-  "description": "Rota üzerindeki tehlike kaydı (docs/urun-dokumani.md > Veri modeli > Hazard). Bu dosya yalnızca şemadır; tehlike verisi içermez. Örnek kayıtlar isSample=true ile açıkça işaretlenmelidir.",
+  "description": "Rota üzerindeki tehlike kaydı (docs/urun-dokumani.md > Veri modeli > Hazard). Bu dosya yalnızca şemadır; tehlike verisi içermez. Örnek kayıtlar isSample=true ile açıkça işaretlenmelidir. source, verification ve extent isteğe bağlıdır (kullanıcı kararı 7B; eski kayıtlarla geriye uyumlu). verification.status 'doğrulanmalı' olan kayıt temkinli metinle okunur, ör. 'olası taşlı yol' (karar 8A).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "routeId", "type", "location", "note", "reportedBy", "reportedAt", "isSample"],
+  "required": [
+    "id",
+    "routeId",
+    "type",
+    "location",
+    "note",
+    "reportedBy",
+    "reportedAt",
+    "isSample"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -20,25 +29,49 @@
     },
     "type": {
       "type": "string",
-      "enum": ["gravel", "roadwork", "steep_grade", "sharp_curve"],
+      "enum": [
+        "gravel",
+        "roadwork",
+        "steep_grade",
+        "sharp_curve"
+      ],
       "description": "gravel=taşlı yol, roadwork=yol çalışması, steep_grade=dik eğim, sharp_curve=keskin viraj."
     },
     "location": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["lat", "lon"],
+      "required": [
+        "lat",
+        "lon"
+      ],
       "properties": {
-        "lat": { "type": "number", "minimum": -90, "maximum": 90 },
-        "lon": { "type": "number", "minimum": -180, "maximum": 180 }
-      }
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      },
+      "description": "Uyarının bağlandığı nokta. extent varsa kesimin başlangıcı (rotanın ileri yönünde ilk nokta, fromKm)."
     },
     "note": {
       "type": "object",
       "description": "Çok dilli kısa not: {dil: metin}. İngilizce (en) zorunlu yedek dildir.",
-      "required": ["en"],
+      "required": [
+        "en"
+      ],
       "minProperties": 1,
-      "propertyNames": { "pattern": "^[a-z]{2}$" },
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "propertyNames": {
+        "pattern": "^[a-z]{2}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "reportedBy": {
       "type": "string",
@@ -53,6 +86,192 @@
     "isSample": {
       "type": "boolean",
       "description": "true ise kayıt gerçek değildir, yalnızca örnek/test verisidir; sürücüye gerçek uyarı olarak gösterilmemelidir."
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "description": "Kaydın kaynağı. osm: OpenStreetMap öğesi ve etiketi; user: kullanıcı bildirimi; field: saha kontrolü.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "osm",
+            "user",
+            "field"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "osm için 'node|way|relation/<id>' (ör. way/49055992); user/field için bildirim ya da kontrol kaydı kimliği."
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_:]+=.+$",
+          "description": "Kaydı doğuran OSM etiketi, ör. surface=gravel. osm için zorunlu."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "osm"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "tag"
+            ],
+            "properties": {
+              "ref": {
+                "pattern": "^(node|way|relation)/[0-9]+$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "description": "Doğrulama durumu (routes.json verification ile aynı değerler). 'doğrulanmalı' kayıt sürücüye temkinli metinle okunur.",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "doğrulanmalı",
+            "doğrulandı"
+          ]
+        },
+        "checkedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Son kontrol zamanı, RFC 3339."
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "extent": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tehlikenin rota boyunca kapsadığı kesim: {fromKm, toKm} (geometry çizgisinde, rota başından km) ve/veya kesimin LineString'i. fromKm <= toKm olmalı.",
+      "properties": {
+        "fromKm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "toKm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "geometry": {
+          "type": "string",
+          "enum": [
+            "pathFull",
+            "path"
+          ],
+          "description": "fromKm/toKm'nin ölçüldüğü rota çizgisi."
+        },
+        "line": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "coordinates"
+          ],
+          "properties": {
+            "type": {
+              "const": "LineString"
+            },
+            "coordinates": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        },
+        "geometryRevision": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "date",
+            "pathSha256",
+            "pathFullSha256"
+          ],
+          "description": "routes.json'daki rotanın geometryRevision nesnesinin kopyası (karar 5A biçimi). Rotadaki değerle eşit değilse extent eskimiştir.",
+          "properties": {
+            "date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "pathSha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "pathFullSha256": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "fromKm",
+            "toKm"
+          ]
+        },
+        {
+          "required": [
+            "line"
+          ]
+        }
+      ],
+      "dependentRequired": {
+        "fromKm": [
+          "toKm",
+          "geometry"
+        ],
+        "toKm": [
+          "fromKm",
+          "geometry"
+        ]
+      }
     }
   }
 }

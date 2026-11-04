@@ -94,14 +94,38 @@ test('düz kesim: İç Anadolu (Erciyes) pathFull üzerinde en az 1 km kesintisi
   assert.ok(stretch.every((x) => !x.variable));
 });
 
-test('firkete (gerçek pathFull, Nemrut ve Bozdağ/Ege): variable pencereler var ve gerçekten yön dönüşü içeriyor', () => {
-  for (const r of [NEMRUT, EGE]) {
+// Veri revizyonu: aşağıdaki sayısal beklentiler (oranlar, pencere sayıları) bu geometriye aittir
+// (rota-uzmani 2026-11-05 Aşama 1: Nemrut güneye taşındı, Bozdağ çıkıntısı kalktı). Geometri değişirse
+// test hata mesajında revizyon farkını gösterir; beklentiler yeni veriye göre güncellenmeli.
+const REF_REVISION = {
+  'tr-guneydogu-anadolu-01': '3ef5856ff1f860eedab05cb7c3ba07f8fc07bf56ad18daccaec61e007025614f',
+  'tr-ege-01': '83dce96f3fcf36cec9f711b86b41af46715f32ccb3837c6a0929b19575771d3a',
+};
+const revNote = (r) => (REF_REVISION[r.id] && r.geometryRevision?.pathFullSha256 !== REF_REVISION[r.id]
+  ? ` [UYARI: ${r.id} pathFull revizyonu değişmiş (${r.geometryRevision?.pathFullSha256?.slice(0, 12) ?? 'yok'}); test beklentileri eski geometriye ait]` : '');
+const KARADENIZ = byId('tr-karadeniz-01');
+const PATHFULL_ROUTES = data.routes.filter((x) => x.pathFull);
+
+test('firkete (gerçek pathFull): her rotada variable pencereler gerçekten yön dönüşü içeriyor; Bozdağ ve Karadeniz sıkı firketeli, Nemrut (güney) daha az', () => {
+  // Rota başına en az beklentiler (2026-11-05 geometrisi). Nemrut güney yaklaşımı (Karadut) kuzey yoluna göre
+  // çok daha az firketeli: 15 variable pencere, en düşük R 0,41 — bu yüzden onun eşiği ayrı ve gerçek değere göre.
+  const expect = {
+    'tr-ege-01': { minVariable: 20, maxMinR: 0.3 },
+    'tr-karadeniz-01': { minVariable: 20, maxMinR: 0.3 },
+    'tr-guneydogu-anadolu-01': { minVariable: 10, maxMinR: 0.5 },
+  };
+  for (const r of PATHFULL_ROUTES) {
     const c = r.pathFull.coordinates;
     const sl = segList(c);
     const w = routeBearings(c);
     const v = w.filter((x) => x.variable);
-    assert.ok(v.length >= 20, `${r.id}: variable pencere sayısı ${v.length}`);
-    assert.ok(Math.min(...w.map((x) => x.R)) < 0.3, `${r.id}: en az bir sıkı firkete (R < 0,3) beklenir`);
+    const e = expect[r.id];
+    if (e) {
+      assert.ok(v.length >= e.minVariable, `${r.id}: variable pencere sayısı ${v.length} (beklenen ≥ ${e.minVariable})${revNote(r)}`);
+      const minR = Math.min(...w.map((x) => x.R));
+      assert.ok(minR < e.maxMinR, `${r.id}: en düşük R ${minR.toFixed(3)} (beklenen < ${e.maxMinR})${revNote(r)}`);
+    }
+    if (!v.length) continue;
     let uTurn = 0;
     for (const x of v) {
       // bağımsız kontrol 1 (zorunlu koşul): tüm parça yönleri θ genişliğinde bir yayda ise R ≥ cos(θ/2);
@@ -119,36 +143,67 @@ test('firkete (gerçek pathFull, Nemrut ve Bozdağ/Ege): variable pencereler var
   }
 });
 
-test('variable oranı rota-uzmani ölçümüyle uyumlu (200 m): İç Anadolu en düşük, Nemrut en yüksek; her biri ±1,5 puan', () => {
-  // rota-uzmani 2026-11-03 Aşama 3: İç Anadolu 1,5 · Marmara 5,2 · Karadeniz 5,6 · Akdeniz 5,9 · Ege 7,6 · Nemrut 9,3 (%)
-  const ref = { 'tr-ic-anadolu-01': 1.5, 'tr-marmara-01': 5.2, 'tr-karadeniz-01': 5.6, 'tr-akdeniz-01': 5.9, 'tr-ege-01': 7.6, 'tr-guneydogu-anadolu-01': 9.3 };
-  const pct = {};
-  for (const [id, p] of Object.entries(ref)) {
-    const w = routeBearings(byId(id).pathFull.coordinates);
-    pct[id] = (100 * w.filter((x) => x.variable).length) / w.length;
-    assert.ok(Math.abs(pct[id] - p) <= 1.5, `${id}: %${pct[id].toFixed(1)} (rota-uzmani %${p})`);
-  }
-  assert.equal(Object.entries(pct).sort((a, b) => a[1] - b[1])[0][0], 'tr-ic-anadolu-01');
-  assert.equal(Object.entries(pct).sort((a, b) => b[1] - a[1])[0][0], 'tr-guneydogu-anadolu-01');
+test('Bozdağ (Ege) eski yapay U dönüşü kalktı: kavşak çevresinde (pathFull km 26,5–27,5) variable pencere yok', () => {
+  // rota-uzmani 2026-11-04: km 26,64–26,92'deki gidip-dönen çıkıntı firkete örneği sayılmamalı. 2026-11-05'te
+  // ara nokta kavşak node 2122980385'e (yeni pathFull km 26,98) alındı. Çıkıntı geri gelirse burada variable çıkar.
+  const v = routeBearings(EGE.pathFull.coordinates).filter((x) => x.variable && x.sM + 200 > 26500 && x.sM < 27500);
+  assert.deepEqual(v.map((x) => x.sM), [], `Ege kavşak çevresinde variable pencere: ${v.map((x) => `${x.sM}(R ${x.R.toFixed(2)})`).join(', ')}${revNote(EGE)}`);
 });
 
-test('359°/1° geçişi (gerçek pathFull): kuzeye giden düz pencerede (parçalar 330°–30°) yön kuzeyde, açı ortalaması ise belirgin yanlış verirdi', () => {
+test('variable oranı (200 m) rota-uzmani 2026-11-05 ölçümüyle uyumlu: Nemrut en düşük, Ege en yüksek; her biri ±0,5 puan', () => {
+  // rota-uzmani 2026-11-05 Aşama 1 (yeni geometri): Marmara 5,97 · Ege 7,32 · Akdeniz 5,47 · İç Anadolu 1,96 · Karadeniz 5,35 · Nemrut 1,73 (%)
+  // Eski referans (2026-11-03, kuzey Nemrut 9,3 · Ege 7,6) eski geometriye aitti. Yeni değerler bu modülle aynı yöntemden
+  // geldiği için tolerans ±1,5'ten ±0,5 puana daraltıldı.
+  const ref = { 'tr-ic-anadolu-01': 1.96, 'tr-marmara-01': 5.97, 'tr-karadeniz-01': 5.35, 'tr-akdeniz-01': 5.47, 'tr-ege-01': 7.32, 'tr-guneydogu-anadolu-01': 1.73 };
+  const pct = {};
+  for (const [id, p] of Object.entries(ref)) {
+    const r = byId(id);
+    const w = routeBearings(r.pathFull.coordinates);
+    pct[id] = (100 * w.filter((x) => x.variable).length) / w.length;
+    assert.ok(Math.abs(pct[id] - p) <= 0.5, `${id}: %${pct[id].toFixed(2)} (rota-uzmani %${p})${revNote(r)}`);
+  }
+  assert.deepEqual(Object.keys(ref).sort(), PATHFULL_ROUTES.map((r) => r.id).sort(), 'pathFull olan her rota referansta olmalı');
+  const order = Object.entries(pct).sort((a, b) => a[1] - b[1]).map(([id]) => id);
+  assert.equal(order[0], 'tr-guneydogu-anadolu-01', `en düşük: ${order[0]}`);
+  assert.equal(order.at(-1), 'tr-ege-01', `en yüksek: ${order.at(-1)}`);
+});
+
+test('359°/1° geçişi (gerçek pathFull, tüm rotalar): sağlam seçilmiş kuzey pencerelerinde yön kuzeyde, açı ortalaması belirgin yanlış', () => {
+  // Pencere seçimi (rota-uzmani 2026-11-04 önerisi, kırılgan pencereleri eler — ör. eski Ege sM=45950, sınıra taşan tek 38 m parça):
+  //   - pencereye değen TÜM parçalar (kısa olanlar dahil) 330°–30° yayında,
+  //   - >350° parçalar ve <10° parçalar ayrı ayrı pencere uzunluğunun ≥ %20'sini (40 m) kaplıyor,
+  //   - bu sayılan parçalar pencerenin tamamen İÇİNDE (sınıra taşan parça sayılmaz).
+  // Ek sağlamlık: aynı pencere 10 m ileri/geri kaydırılınca da yön kuzeyde kalmalı.
+  const WIN = 200, MIN_COVER = 0.2 * WIN;
   let found = 0;
-  for (const r of [EGE, NEMRUT]) {
+  const perRoute = {};
+  for (const r of PATHFULL_ROUTES) {
     const c = r.pathFull.coordinates;
     const sl = segList(c);
-    for (const x of routeBearings(c)) {
+    const fine = new Map(routeBearings(c, { windowM: WIN, stepM: 10 }).map((x) => [x.sM, x]));
+    for (const x of routeBearings(c, { windowM: WIN })) {
       if (x.R < 0.95) continue;
-      const s = segsIn(sl, x.sM, x.sM + 200);
-      const hasHigh = s.some((g) => g.brg > 350), hasLow = s.some((g) => g.brg < 10);
-      if (!hasHigh || !hasLow || s.some((g) => g.brg >= 30 && g.brg <= 330)) continue;
+      const a = x.sM, b = x.sM + WIN;
+      const touching = sl.segs.filter((g) => g.s0 < b && g.s0 + g.len > a);
+      if (touching.some((g) => g.brg >= 30 && g.brg <= 330)) continue;
+      const inside = touching.filter((g) => g.s0 >= a - 1e-6 && g.s0 + g.len <= b + 1e-6);
+      const cover = (f) => inside.filter(f).reduce((t, g) => t + g.len, 0);
+      if (cover((g) => g.brg > 350) < MIN_COVER || cover((g) => g.brg < 10) < MIN_COVER) continue;
       found++;
+      perRoute[r.id] = (perRoute[r.id] ?? 0) + 1;
       assert.ok(angleDiffDeg(x.bearingDeg, 0) < 30, `${r.id} sM=${x.sM}: ${x.bearingDeg}`);
+      for (const d of [-10, 10]) {
+        const y = fine.get(x.sM + d);
+        if (y) assert.ok(angleDiffDeg(y.bearingDeg, 0) < 30, `${r.id} sM=${x.sM + d} (kaydırılmış): ${y.bearingDeg}`);
+      }
+      const s = segsIn(sl, a, b);
       const naive = s.reduce((t, g) => t + g.brg, 0) / s.length; // yanlış yöntem: açıların aritmetik ortalaması
       assert.ok(angleDiffDeg(naive, 0) > angleDiffDeg(x.bearingDeg, 0) + 30, `${r.id} sM=${x.sM}: naif ortalama ${naive.toFixed(0)}° kuzeyden belirgin sapmalı`);
     }
   }
-  assert.ok(found >= 3, `kuzey geçişli düz pencere bulunmalı (${found})`);
+  // 2026-11-05 geometrisi: Ege 9, Marmara 1 pencere (Nemrut güney yolunda böyle pencere yok).
+  assert.ok(found >= 5, `sağlam kuzey geçişli düz pencere bulunmalı (${found}: ${JSON.stringify(perRoute)})${revNote(EGE)}`);
+  assert.ok((perRoute['tr-ege-01'] ?? 0) >= 3, `Ege'de en az 3 sağlam pencere (${perRoute['tr-ege-01'] ?? 0})${revNote(EGE)}`);
 });
 
 test('359°/1° geçişi (ÖRNEK sentetik çizgi): 100 m 359° + 100 m 1° → 0°, R ≈ 1', () => {

@@ -3,11 +3,13 @@
 // yalnızca okunur. Simüle sürücü konumları ÖRNEKTİR: rota çizgisi üzerinde hesapla üretilmiş noktalardır.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import {
   projectOnRoute, routeLengthMeters, haversineMeters, routeLine, hazardsAheadOnRoute, buildVoiceAlert, orderAnnouncements,
 } from './hazards.js';
 import {
   photoSpotsAheadOnRoute, createPhotoAlertTracker, buildPhotoVoiceAlert, toPhotoAnnouncement, DETOUR_ANNOUNCE_MIN_KM,
+  SPOT_MAX_OFFSET_M, sameGeometryRevision,
 } from './photo-alerts.js';
 
 let passed = 0;
@@ -61,24 +63,106 @@ test('veri: 12 nokta, her biri bir rotaya bağlı, approachPoint ve detourKm var
   }
 });
 
-test('12 noktada approachPoint path üzerinde (< 5 m; Python betiğiyle JS hesabı tutarlı)', () => {
-  for (const s of SPOTS) {
-    const p = projectOnRoute(s.approachPoint, route(s.routeId).path.coordinates);
-    assert.ok(p.offsetM < 5, `${s.id}: path offset ${p.offsetM.toFixed(1)} m`);
-  }
-});
-
-test('12 noktada approachPoint bildirim çizgisine (pathFull ?? path) 100 m içinde; hiçbiri detached değil', () => {
+test('12 noktada approachPoint bildirim çizgisi (pathFull ?? path) üzerinde (< 5 m; Python betiğiyle JS hesabı tutarlı)', () => {
   for (const s of SPOTS) {
     const r = route(s.routeId);
     const { coordinates: coords, geometry: source } = routeLine(r);
     assert.equal(source, r.pathFull ? 'pathFull' : 'path');
     const p = projectOnRoute(s.approachPoint, coords);
-    assert.ok(p.offsetM < 100, `${s.id}: ${source} offset ${p.offsetM.toFixed(1)} m`);
-    // Rota başında duran sürücüye göre detached listesi boş olmalı.
-    const res = photoSpotsAheadOnRoute(pointAt(coords, 0), r, [s]);
-    assert.deepEqual(res.detached, [], s.id);
+    assert.ok(p.offsetM < 5, `${s.id}: ${source} offset ${p.offsetM.toFixed(1)} m`);
   }
+});
+
+test(`spotMaxOffsetM varsayılanı ${SPOT_MAX_OFFSET_M} m; 12 noktanın hiçbiri detached ya da stale değil`, () => {
+  assert.equal(SPOT_MAX_OFFSET_M, 50);
+  for (const s of SPOTS) {
+    const r = route(s.routeId);
+    // Rota başında duran sürücüye göre detached ve stale listeleri boş olmalı.
+    const res = photoSpotsAheadOnRoute(pointAt(routeLine(r).coordinates, 0), r, [s]);
+    assert.deepEqual(res.detached, [], s.id);
+    assert.deepEqual(res.stale, [], s.id);
+  }
+});
+
+test('geometryRevision: her nokta rotadaki nesnenin aynen kopyasını taşır; karma JS JSON.stringify ile aynı', () => {
+  const sha = (g) => (g ? createHash('sha256').update(JSON.stringify(g.coordinates), 'utf8').digest('hex') : null);
+  for (const r of ROUTES) {
+    assert.deepEqual(Object.keys(r.geometryRevision), ['date', 'pathSha256', 'pathFullSha256'], r.id);
+    assert.equal(r.geometryRevision.pathSha256, sha(r.path), r.id);
+    assert.equal(r.geometryRevision.pathFullSha256, sha(r.pathFull), r.id); // Kemaliye: null
+  }
+  for (const s of SPOTS) {
+    assert.deepEqual(s.geometryRevision, route(s.routeId).geometryRevision, s.id);
+    assert.deepEqual(Object.keys(s.geometryRevision), ['date', 'pathSha256', 'pathFullSha256'], s.id);
+    assert.ok(sameGeometryRevision(s.geometryRevision, route(s.routeId).geometryRevision), s.id);
+  }
+});
+
+test('geometryRevision eşleşmezse nokta bildirilmez, stale olarak raporlanır', () => {
+  const r = route('tr-marmara-01');
+  const s = spot('ps-tr-marmara-01-02');
+  const { coordinates: coords } = routeLine(r);
+  const apAlong = projectOnRoute(s.approachPoint, coords).distanceAlongM;
+  const d = pointAt(coords, apAlong - 300);
+  assert.deepEqual(photoSpotsAheadOnRoute(d, r, SPOTS).spots.map((e) => e.spot.id), [s.id]);
+  // Rota geometrisi değişmiş gibi: rotadaki karma farklı (ÖRNEK değer).
+  const yeni = { ...r, geometryRevision: { ...r.geometryRevision, date: '2099-01-01', pathFullSha256: 'ORNEK' } };
+  const res = photoSpotsAheadOnRoute(d, yeni, SPOTS);
+  assert.deepEqual(res.spots, []);
+  assert.deepEqual(res.ahead, []);
+  assert.deepEqual(res.stale.map((x) => x.id).sort(), ['ps-tr-marmara-01-01', 'ps-tr-marmara-01-02']);
+  assert.deepEqual(res.stale[0].routeRevision, yeni.geometryRevision);
+  // Noktada alan yoksa da stale (spotRevision: null).
+  const { geometryRevision: _g, ...alansiz } = s;
+  const res2 = photoSpotsAheadOnRoute(d, r, [alansiz]);
+  assert.deepEqual(res2.stale, [{ id: s.id, spotRevision: null, routeRevision: r.geometryRevision }]);
+  assert.deepEqual(res2.spots, []);
+  // Rota alanı taşımıyorsa kontrol yapılmaz (eski veri).
+  const { geometryRevision: _r, ...eskiRota } = r;
+  assert.deepEqual(photoSpotsAheadOnRoute(d, eskiRota, [alansiz]).spots.map((e) => e.spot.id), [s.id]);
+  // Rota dışı sürücüde de stale görünür (veri durumu sürücüye bağlı değil).
+  const off = photoSpotsAheadOnRoute(s.location, yeni, SPOTS);
+  assert.equal(off.offRoute, true);
+  assert.equal(off.stale.length, 2);
+  assert.equal(sameGeometryRevision(null, r.geometryRevision), false);
+});
+
+test('detourRoadKm (karar 6A): varsa sayı ve kuş uçuşundan kısa değil; Bozdağ kavşağı ve yol mesafesi', () => {
+  for (const s of SPOTS) {
+    if (s.detourRoadKm === undefined) continue;
+    assert.ok(Number.isFinite(s.detourRoadKm) && s.detourRoadKm >= 0, s.id);
+    // Yol, kuş uçuşundan kısa olamaz. Pay: iki yuvarlama (0,1) + OSRM'in noktayı yola bağladığı mesafe (betikte <= 150 m).
+    assert.ok(s.detourRoadKm >= s.detourKm - 0.25, `${s.id}: yol ${s.detourRoadKm} < kuş uçuşu ${s.detourKm}`);
+  }
+  const b = spot('ps-tr-ege-01-02');
+  assert.deepEqual(b.approachPoint, { lat: 38.34286, lon: 28.07658 }); // OSM node 2122980385 (35-30 kavşağı)
+  assert.equal(b.detourRoadKm, 9.4);
+  assert.equal(buildPhotoVoiceAlert(b, 1000, 'tr'),
+    'Fotoğraf noktası 1 kilometre ileride: Bozdağ Kayak Merkezi Sırtı. Rotadan yolla yaklaşık 9,4 kilometre sapma.');
+  assert.equal(buildPhotoVoiceAlert(b, 1000, 'en'),
+    'Photo spot in 1 kilometer: Bozdağ Ski Centre Ridge. About 9.4 kilometer detour off the route by road.');
+  // Ege rotasında baştan sona sürüşte Bozdağ kavşakta bir kez bildirilir.
+  const r = route('tr-ege-01');
+  const ann = drive(r, 0, routeLengthMeters(routeLine(r).coordinates), 50, createPhotoAlertTracker()).filter((a) => a.id === b.id);
+  assert.equal(ann.length, 1);
+});
+
+test('karar 2A: Cendere bu rotadan erişilmiyor (bildirilmez, unreachable); Ziyaretçi Merkezi rota üzerinde', () => {
+  const r = route('tr-guneydogu-anadolu-01');
+  const c = spot('ps-tr-guneydogu-anadolu-01-01');
+  const z = spot('ps-tr-guneydogu-anadolu-01-02');
+  assert.equal(c.reachableFromRoute, false);
+  assert.equal(z.reachableFromRoute, undefined);
+  const { coordinates: coords } = routeLine(r);
+  const cAlong = projectOnRoute(c.approachPoint, coords).distanceAlongM;
+  const res = photoSpotsAheadOnRoute(pointAt(coords, Math.max(0, cAlong - 300)), r, SPOTS);
+  assert.deepEqual(res.unreachable, [{ id: c.id }]);
+  assert.ok(!res.ahead.some((e) => e.spot.id === c.id));
+  assert.equal(buildPhotoVoiceAlert(c, 300, 'tr'), null);
+  assert.equal(toPhotoAnnouncement({ spot: c, aheadM: 300 }, 'tr'), null);
+  // Ziyaretçi merkezi: rotadan ~45 m; sapma söylenmez.
+  assert.ok(z.detourKm < DETOUR_ANNOUNCE_MIN_KM);
+  assert.equal(buildPhotoVoiceAlert(z, 400, 'tr'), 'Fotoğraf noktası 400 metre ileride: Nemrut Dağı Ziyaretçi Merkezi (Güney Girişi).');
 });
 
 test('rotası değişmiş (kopmuş) approachPoint sessizce atlanmaz, detached olarak raporlanır', () => {
@@ -215,26 +299,36 @@ test('safeStop false olan nokta önerilmez; başka rotanın noktası dönmez', (
 });
 
 test('sesli metin tr/en; detourKm >= 0,5 ise sapma eklenir', () => {
-  const sar = spot('ps-tr-marmara-01-02'); // detourKm 2.2
-  assert.equal(buildPhotoVoiceAlert(sar, 690, 'tr'), 'Fotoğraf noktası 700 metre ileride: Sarıalan Yaylası. Rotadan yaklaşık 2,2 kilometre sapma.');
-  assert.equal(buildPhotoVoiceAlert(sar, 690, 'en'), 'Photo spot in 700 meters: Sarıalan Plateau. About 2.2 kilometer detour off the route.');
+  const sar = spot('ps-tr-marmara-01-02'); // detourKm 2.2 (kuş uçuşu), detourRoadKm 2.5 (yol)
+  assert.equal(sar.detourKm, 2.2);
+  assert.equal(sar.detourRoadKm, 2.5);
+  assert.equal(buildPhotoVoiceAlert(sar, 690, 'tr'), 'Fotoğraf noktası 700 metre ileride: Sarıalan Yaylası. Rotadan yolla yaklaşık 2,5 kilometre sapma.');
+  assert.equal(buildPhotoVoiceAlert(sar, 690, 'en'), 'Photo spot in 700 meters: Sarıalan Plateau. About 2.5 kilometer detour off the route by road.');
+  // detourRoadKm yoksa kuş uçuşu detourKm söylenir (eski metin).
+  const { detourRoadKm: _y, ...sarKus } = sar;
+  assert.equal(buildPhotoVoiceAlert(sarKus, 690, 'tr'), 'Fotoğraf noktası 700 metre ileride: Sarıalan Yaylası. Rotadan yaklaşık 2,2 kilometre sapma.');
+  assert.equal(buildPhotoVoiceAlert(sarKus, 690, 'en'), 'Photo spot in 700 meters: Sarıalan Plateau. About 2.2 kilometer detour off the route.');
+  // detourRoadKm < 0,5 ise kuş uçuşu büyük olsa da sapma söylenmez (yol mesafesi esas).
+  assert.ok(!/sapma/.test(buildPhotoVoiceAlert({ ...sar, detourRoadKm: 0.3 }, 690, 'tr')));
   const kir = spot('ps-tr-marmara-01-01'); // detourKm 0.0
   assert.equal(buildPhotoVoiceAlert(kir, 20, 'tr'), 'Fotoğraf noktası hemen ileride: Kirazlıyayla – Bursa Ovası Manzarası.');
   const tek = spot('ps-tr-ic-anadolu-01-02'); // detourKm 0.2 (< 0,5)
   assert.ok(!/sapma/.test(buildPhotoVoiceAlert(tek, 500, 'tr')));
   assert.equal(DETOUR_ANNOUNCE_MIN_KM, 0.5);
-  const sak = spot('ps-tr-akdeniz-01-01'); // detourKm 0.5 (sınır dahil)
-  assert.match(buildPhotoVoiceAlert(sak, 1000, 'tr'), /1 kilometre ileride: .*Rotadan yaklaşık 0,5 kilometre sapma\.$/);
+  const sak = spot('ps-tr-akdeniz-01-01'); // detourRoadKm 0.5 (sınır dahil)
+  assert.equal(sak.detourRoadKm, 0.5);
+  assert.match(buildPhotoVoiceAlert(sak, 1000, 'tr'), /1 kilometre ileride: .*Rotadan yolla yaklaşık 0,5 kilometre sapma\.$/);
   // Bilinmeyen dil İngilizceye düşer.
   assert.match(buildPhotoVoiceAlert(sar, 300, 'de'), /^Photo spot in 300 meters/);
 });
 
-test('12 noktanın her biri kendi rotasında baştan sona sürüşte tam bir kez bildirilir', () => {
+test('rotadan erişilebilen her nokta kendi rotasında baştan sona sürüşte tam bir kez bildirilir', () => {
   for (const r of ROUTES) {
     const tracker = createPhotoAlertTracker();
     const lenM = routeLengthMeters(routeLine(r).coordinates);
     const ann = drive(r, 0, lenM, 50, tracker);
-    const beklenen = SPOTS.filter((s) => s.routeId === r.id && s.safeStop === true).map((s) => s.id).sort();
+    const beklenen = SPOTS.filter((s) => s.routeId === r.id && s.safeStop === true && s.reachableFromRoute !== false)
+      .map((s) => s.id).sort();
     assert.deepEqual(ann.map((a) => a.id).sort(), beklenen, r.id);
   }
 });

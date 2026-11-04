@@ -9,6 +9,7 @@ import {
   buildOverpassQuery, parseOverpassResponse, fetchNearbyPois,
   projectOnRoute, routeLengthMeters, hazardsAheadOnRoute, createAlertTracker,
   routeLine, defaultHazardFilter, orderAnnouncements, SKIP_REASONS,
+  SOURCE_KINDS, VERIFICATION_STATUSES, HAZARD_STATUS_UNVERIFIED, isHazardUnverified, extentRevisionStatus,
 } from './hazards.js';
 
 let passed = 0;
@@ -540,6 +541,139 @@ test('ince sarmalayıcı örneği: fotoğraf noktası benzeri ÖRNEK kayıtlar (
   // detached karşılığı: reason 'offset'
   assert.deepEqual(r.skipped.filter((x) => x.reason === 'offset').map((x) => x.item.id), ['ORNEK-kopuk']);
   assert.deepEqual(r.skipped.filter((x) => x.reason === 'filter').map((x) => x.item.id), ['ORNEK-guvensiz', 'ORNEK-baska-rota']);
+});
+
+// ---------------- Karar 7B (source/verification/extent) ve 8A (temkinli metin) ----------------
+// Kayıtlar ÖRNEKTİR (isSample: true). OSM ref/tag değerleri biçim testi içindir, bir tehlike iddiası değildir.
+const ornek7B = (over = {}) => ornekHazard({
+  id: 'ORNEK-7b',
+  source: { kind: 'osm', ref: 'way/1', tag: 'surface=gravel' },
+  verification: { status: 'doğrulanmalı', notes: 'ÖRNEK — gerçek değil' },
+  extent: {
+    fromKm: 1.2, toKm: 2.5, geometry: 'pathFull',
+    line: { type: 'LineString', coordinates: [[33.0, 40.0], [33.01, 40.01]] },
+    geometryRevision: { date: '2026-11-05', pathSha256: 'a'.repeat(64), pathFullSha256: null },
+  },
+  ...over,
+});
+
+test('şema: source/verification/extent isteğe bağlı ve modül sabitleriyle tutarlı', () => {
+  const schema = JSON.parse(readFileSync(new URL('../data/hazards.schema.json', import.meta.url), 'utf8'));
+  for (const k of ['source', 'verification', 'extent']) {
+    assert.ok(schema.properties[k], k);
+    assert.ok(!schema.required.includes(k), `${k} zorunlu olmamalı (geriye uyum)`);
+  }
+  assert.deepEqual(schema.properties.source.properties.kind.enum, [...SOURCE_KINDS]);
+  assert.deepEqual(schema.properties.verification.properties.status.enum, [...VERIFICATION_STATUSES]);
+  assert.ok(VERIFICATION_STATUSES.includes(HAZARD_STATUS_UNVERIFIED));
+  assert.deepEqual(Object.keys(schema.properties.extent.properties.geometryRevision.properties), ['date', 'pathSha256', 'pathFullSha256']);
+  // Eski biçimdeki kayıt (yeni alanlar yok) hâlâ geçerli.
+  assert.deepEqual(validateHazard(ornekHazard()), { valid: true, errors: [] });
+});
+
+test('validateHazard: geçerli source/verification/extent kabul edilir', () => {
+  assert.deepEqual(validateHazard(ornek7B()), { valid: true, errors: [] });
+  // Yalnızca km, yalnızca line, user/field kaynak, doğrulandı + checkedAt
+  const { line, ...kmOnly } = ornek7B().extent;
+  assert.ok(validateHazard(ornek7B({ extent: kmOnly })).valid);
+  assert.ok(validateHazard(ornek7B({ extent: { line } })).valid);
+  assert.ok(validateHazard(ornek7B({ source: { kind: 'user', ref: 'ornek-bildirim-1' } })).valid);
+  assert.ok(validateHazard(ornek7B({ source: { kind: 'field', ref: 'ornek-saha-1' } })).valid);
+  assert.ok(validateHazard(ornek7B({ verification: { status: 'doğrulandı', checkedAt: '2026-11-05T10:00:00Z' } })).valid);
+  const rev = { date: '2026-11-05', pathSha256: 'b'.repeat(64), pathFullSha256: 'c'.repeat(64) };
+  assert.ok(validateHazard(ornek7B({ extent: { ...kmOnly, geometryRevision: rev } })).valid);
+});
+
+test('validateHazard: hatalı source/verification/extent yakalanır', () => {
+  const errs = (over) => validateHazard(ornek7B(over)).errors.join(' | ');
+  const base = ornek7B().extent;
+  assert.match(errs({ source: { kind: 'wiki', ref: 'x' } }), /source\.kind/);
+  assert.match(errs({ source: { kind: 'osm', ref: '49055992', tag: 'surface=gravel' } }), /source\.ref: osm/);
+  assert.match(errs({ source: { kind: 'osm', ref: 'way/1' } }), /source\.tag: osm için zorunlu/);
+  assert.match(errs({ source: { kind: 'osm', ref: 'way/1', tag: 'gravel' } }), /source\.tag: anahtar=değer/);
+  assert.match(errs({ source: { kind: 'user', ref: '' } }), /source\.ref/);
+  assert.match(errs({ source: { kind: 'user', ref: 'x', extra: 1 } }), /source\.extra: bilinmeyen alan/);
+  assert.match(errs({ verification: { status: 'belki' } }), /verification\.status/);
+  assert.match(errs({ verification: { status: 'doğrulandı', checkedAt: 'dün' } }), /verification\.checkedAt/);
+  assert.match(errs({ verification: { status: 'doğrulandı', notes: '' } }), /verification\.notes/);
+  assert.match(errs({ verification: 'doğrulanmalı' }), /verification: nesne/);
+  assert.match(errs({ extent: {} }), /extent: \{fromKm, toKm\} ve\/veya line/);
+  assert.match(errs({ extent: { ...base, fromKm: 3, toKm: 2 } }), /fromKm <= toKm/);
+  assert.match(errs({ extent: { ...base, fromKm: -1 } }), /extent\.fromKm/);
+  assert.match(errs({ extent: { fromKm: 1, toKm: 2 } }), /extent\.geometry: fromKm\/toKm ile zorunlu/);
+  assert.match(errs({ extent: { fromKm: 1, geometry: 'path' } }), /extent\.toKm/);
+  assert.match(errs({ extent: { line: { type: 'LineString', coordinates: [[33, 40]] } } }), /extent\.line\.coordinates: en az 2/);
+  assert.match(errs({ extent: { line: { type: 'LineString', coordinates: [[40, 95], [33, 40]] } } }), /extent\.line\.coordinates: her nokta/);
+  assert.match(errs({ extent: { line: { type: 'Point', coordinates: [33, 40] } } }), /extent\.line: GeoJSON LineString/);
+  assert.match(errs({ extent: { ...base, geometryRevision: { date: '5 Kasım', pathSha256: 'x', pathFullSha256: 'y' } } }),
+    /geometryRevision\.date.*geometryRevision\.pathSha256.*geometryRevision\.pathFullSha256/);
+  assert.match(errs({ extent: { ...base, geometryRevision: { date: '2026-11-05', pathSha256: 'a'.repeat(64) } } }), /pathFullSha256/);
+  assert.match(errs({ extent: { ...base, kmFrom: 1 } }), /extent\.kmFrom: bilinmeyen alan/);
+  // Yeni alanlarda hata olan kayıt ileriye bakışta 'filter' ile atlanır.
+  assert.equal(defaultHazardFilter(ornek7B({ verification: { status: 'belki' } }), { includeSamples: true }), false);
+});
+
+test('8A: doğrulanmalı kayıt temkinli metinle okunur; doğrulandı ve eski kayıt aynı metinle', () => {
+  const u = ornek7B();
+  assert.equal(isHazardUnverified(u), true);
+  assert.equal(buildVoiceAlert(u, 300, 'tr', { ahead: true }), 'Dikkat, 300 metre ileride olası taşlı yol.');
+  assert.equal(buildVoiceAlert(u, 300, 'en', { ahead: true }), 'Caution, possible gravel road 300 meters ahead.');
+  assert.equal(buildVoiceAlert({ ...u, type: 'roadwork' }, 1200, 'tr', { ahead: true }), 'Dikkat, 1,2 kilometre ileride olası yol çalışması.');
+  assert.equal(buildVoiceAlert({ ...u, type: 'steep_grade' }, 600, 'en'), 'Caution, possible steep grade in 600 meters.');
+  assert.equal(buildVoiceAlert({ ...u, type: 'sharp_curve' }, 20, 'tr'), 'Dikkat, çok yakında olası keskin viraj.');
+  const v = ornek7B({ verification: { status: 'doğrulandı', checkedAt: '2026-11-05T10:00:00Z' } });
+  assert.equal(isHazardUnverified(v), false);
+  assert.equal(buildVoiceAlert(v, 300, 'tr', { ahead: true }), 'Dikkat, 300 metre ileride taşlı yol.');
+  assert.equal(isHazardUnverified(ornekHazard()), false);
+  assert.equal(buildVoiceAlert(ornekHazard(), 300, 'en', { ahead: true }), 'Caution, gravel road 300 meters ahead.');
+});
+
+test('extentRevisionStatus: rotanın geometryRevision karmasıyla eskime kontrolü (gerçek routes.json)', () => {
+  const r = ROUTES.find((x) => x.id === 'tr-guneydogu-anadolu-01');
+  assert.ok(r.geometryRevision, 'routes.json geometryRevision taşımalı (karar 5A)');
+  const kopya = { ...r.geometryRevision };
+  const h = (geometryRevision) => ornek7B({ routeId: r.id, extent: { fromKm: 1, toKm: 2, geometry: 'pathFull', geometryRevision } });
+  assert.ok(validateHazard(h(kopya)).valid, 'routes.json geometryRevision kopyası şemaya uymalı');
+  assert.equal(extentRevisionStatus(h(kopya), r), 'current');
+  assert.equal(extentRevisionStatus(h({ ...kopya, date: '2030-01-01' }), r), 'current', 'date karşılaştırılmaz');
+  assert.equal(extentRevisionStatus(h({ ...kopya, pathFullSha256: 'f'.repeat(64) }), r), 'stale');
+  assert.equal(extentRevisionStatus(h({ ...kopya, pathSha256: 'f'.repeat(64) }), r), 'stale');
+  assert.equal(extentRevisionStatus(ornekHazard(), r), 'none');
+  const { geometryRevision, ...revsiz } = r;
+  assert.equal(extentRevisionStatus(h(kopya), revsiz), 'none');
+  // pathFull olmayan rota (Kemaliye): pathFullSha256 null kopyası da 'current'
+  const k = ROUTES.find((x) => x.pathFull == null);
+  assert.equal(k.geometryRevision.pathFullSha256, null);
+  assert.equal(extentRevisionStatus(h({ ...k.geometryRevision }), k), 'current');
+});
+
+test('assertLineCoords alan adı öneki: routeLine route.<geometry>.coordinates, projectOnRoute lineCoords', () => {
+  const r = ROUTES.find((x) => x.pathFull != null);
+  assert.throws(() => routeLine({ ...r, pathFull: { type: 'LineString', coordinates: [[29.0, 40.0]] } }),
+    (e) => e instanceof TypeError && /^route\.pathFull\.coordinates: en az 2 \[lon, lat\] noktası olmalı$/.test(e.message));
+  const { pathFull, ...yalniz } = r;
+  assert.throws(() => routeLine({ ...yalniz, path: { type: 'LineString', coordinates: [[29.0, 95], [29.1, 40.1]] } }),
+    (e) => e instanceof TypeError && /^route\.path\.coordinates: her nokta \[lon, lat\] sayı çifti olmalı \(GeoJSON sırası\)$/.test(e.message));
+  assert.throws(() => projectOnRoute({ lat: 40, lon: 29 }, [[29, 40]]), /^TypeError: lineCoords: en az 2/);
+  assert.throws(() => routeLengthMeters([[29, 40], ['x', 40]]), /lineCoords: her nokta/);
+});
+
+test('data/hazards.json: tüm kayıtlar geçerli; gerçek kayıtlar source + verification taşır, rota id ve OSM kaynağı tutarlı', () => {
+  const file = JSON.parse(readFileSync(new URL('../data/hazards.json', import.meta.url), 'utf8'));
+  assert.ok(Array.isArray(file.hazards), 'hazards dizi olmalı');
+  const ids = new Set(ROUTES.map((x) => x.id));
+  const seen = new Set();
+  for (const h of file.hazards) {
+    assert.deepEqual(validateHazard(h).errors, [], h.id);
+    assert.ok(!seen.has(h.id), `yinelenen id ${h.id}`); seen.add(h.id);
+    assert.ok(ids.has(h.routeId), `${h.id}: bilinmeyen routeId`);
+    if (!h.isSample) {
+      assert.ok(h.source && h.verification, `${h.id}: gerçek kayıtta source ve verification zorunlu (7B)`);
+      if (h.extent?.geometryRevision) {
+        assert.equal(extentRevisionStatus(h, ROUTES.find((x) => x.id === h.routeId)), 'current', `${h.id}: extent eskimiş`);
+      }
+    }
+  }
 });
 
 for (const { name, fn } of tests) {

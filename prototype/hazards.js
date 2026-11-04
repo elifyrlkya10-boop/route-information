@@ -9,6 +9,16 @@ export const ROUTE_ID_PATTERN = /^[a-z]{2}-[a-z]+(-[a-z]+)*-\d{2}$/;
 export const DEFAULT_OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
 
 const HAZARD_KEYS = ['id', 'routeId', 'type', 'location', 'note', 'reportedBy', 'reportedAt', 'isSample'];
+// İsteğe bağlı alanlar (kullanıcı kararı 7B; eski kayıtlarla geriye uyumlu).
+const HAZARD_OPTIONAL_KEYS = ['source', 'verification', 'extent'];
+export const SOURCE_KINDS = Object.freeze(['osm', 'user', 'field']);
+export const VERIFICATION_STATUSES = Object.freeze(['doğrulanmalı', 'doğrulandı']);
+/** verification.status bu değerdeyse kayıt temkinli metinle okunur ("olası taşlı yol"; karar 8A). */
+export const HAZARD_STATUS_UNVERIFIED = 'doğrulanmalı';
+const OSM_REF_PATTERN = /^(node|way|relation)\/[0-9]+$/;
+const OSM_TAG_PATTERN = /^[A-Za-z0-9_:]+=.+$/;
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
 const LANG_PATTERN = /^[a-z]{2}$/;
 // RFC 3339 date-time (JSON Schema "format": "date-time").
@@ -24,6 +34,66 @@ function validateLocation(loc, path, errors) {
   if (!isNum(loc.lon) || loc.lon < -180 || loc.lon > 180) errors.push(`${path}.lon: -180..180 arası sayı olmalı`);
 }
 
+const isDateTime = (v) => typeof v === 'string' && DATE_TIME_PATTERN.test(v) && !Number.isNaN(Date.parse(v));
+const unknownKeys = (obj, allowed, path, errors) => {
+  for (const k of Object.keys(obj)) if (!allowed.includes(k)) errors.push(`${path}.${k}: bilinmeyen alan`);
+};
+
+function validateSource(src, errors) {
+  if (!isObj(src)) { errors.push('source: nesne olmalı'); return; }
+  unknownKeys(src, ['kind', 'ref', 'tag'], 'source', errors);
+  if (!SOURCE_KINDS.includes(src.kind)) errors.push(`source.kind: ${SOURCE_KINDS.join('|')} olmalı`);
+  if (typeof src.ref !== 'string' || src.ref.length === 0) errors.push('source.ref: boş olmayan metin olmalı');
+  else if (src.kind === 'osm' && !OSM_REF_PATTERN.test(src.ref)) errors.push('source.ref: osm için node|way|relation/<id> olmalı (ör. way/49055992)');
+  if ('tag' in src && (typeof src.tag !== 'string' || !OSM_TAG_PATTERN.test(src.tag))) errors.push('source.tag: anahtar=değer olmalı (ör. surface=gravel)');
+  else if (src.kind === 'osm' && !('tag' in src)) errors.push('source.tag: osm için zorunlu (ör. surface=gravel)');
+}
+
+function validateVerification(v, errors) {
+  if (!isObj(v)) { errors.push('verification: nesne olmalı'); return; }
+  unknownKeys(v, ['status', 'checkedAt', 'notes'], 'verification', errors);
+  if (!VERIFICATION_STATUSES.includes(v.status)) errors.push(`verification.status: ${VERIFICATION_STATUSES.join('|')} olmalı`);
+  if ('checkedAt' in v && !isDateTime(v.checkedAt)) errors.push('verification.checkedAt: RFC 3339 date-time olmalı');
+  if ('notes' in v && (typeof v.notes !== 'string' || v.notes.length === 0)) errors.push('verification.notes: boş olmayan metin olmalı');
+}
+
+function validateExtent(e, errors) {
+  if (!isObj(e)) { errors.push('extent: nesne olmalı'); return; }
+  unknownKeys(e, ['fromKm', 'toKm', 'geometry', 'line', 'geometryRevision'], 'extent', errors);
+  const hasKm = 'fromKm' in e || 'toKm' in e;
+  if (!hasKm && !('line' in e)) errors.push('extent: {fromKm, toKm} ve/veya line olmalı');
+  if (hasKm) {
+    const okFrom = isNum(e.fromKm) && e.fromKm >= 0;
+    const okTo = isNum(e.toKm) && e.toKm >= 0;
+    if (!okFrom) errors.push('extent.fromKm: negatif olmayan sayı olmalı');
+    if (!okTo) errors.push('extent.toKm: negatif olmayan sayı olmalı');
+    if (okFrom && okTo && e.fromKm > e.toKm) errors.push('extent: fromKm <= toKm olmalı');
+    if (e.geometry !== 'pathFull' && e.geometry !== 'path') errors.push("extent.geometry: fromKm/toKm ile zorunlu, 'pathFull' veya 'path' olmalı");
+  } else if ('geometry' in e && e.geometry !== 'pathFull' && e.geometry !== 'path') {
+    errors.push("extent.geometry: 'pathFull' veya 'path' olmalı");
+  }
+  if ('line' in e) {
+    const l = e.line;
+    if (!isObj(l) || l.type !== 'LineString') errors.push('extent.line: GeoJSON LineString olmalı');
+    else {
+      unknownKeys(l, ['type', 'coordinates'], 'extent.line', errors);
+      try { assertLineCoords(l.coordinates, 'extent.line.coordinates'); } catch (err) { errors.push(err.message); }
+    }
+  }
+  if ('geometryRevision' in e) {
+    const r = e.geometryRevision;
+    if (!isObj(r)) errors.push('extent.geometryRevision: nesne olmalı');
+    else {
+      unknownKeys(r, ['date', 'pathSha256', 'pathFullSha256'], 'extent.geometryRevision', errors);
+      if (typeof r.date !== 'string' || !DATE_PATTERN.test(r.date)) errors.push('extent.geometryRevision.date: YYYY-MM-DD olmalı');
+      if (typeof r.pathSha256 !== 'string' || !SHA256_PATTERN.test(r.pathSha256)) errors.push('extent.geometryRevision.pathSha256: 64 karakter küçük harf hex olmalı');
+      if (!('pathFullSha256' in r) || (r.pathFullSha256 !== null && (typeof r.pathFullSha256 !== 'string' || !SHA256_PATTERN.test(r.pathFullSha256)))) {
+        errors.push('extent.geometryRevision.pathFullSha256: 64 karakter hex ya da null olmalı');
+      }
+    }
+  }
+}
+
 /**
  * data/hazards.schema.json ile uyumlu basit doğrulayıcı.
  * @returns {{valid: boolean, errors: string[]}}
@@ -33,7 +103,7 @@ export function validateHazard(h) {
   if (!isObj(h)) return { valid: false, errors: ['hazard: nesne olmalı'] };
 
   for (const k of HAZARD_KEYS) if (!(k in h)) errors.push(`${k}: zorunlu alan eksik`);
-  for (const k of Object.keys(h)) if (!HAZARD_KEYS.includes(k)) errors.push(`${k}: bilinmeyen alan`);
+  for (const k of Object.keys(h)) if (!HAZARD_KEYS.includes(k) && !HAZARD_OPTIONAL_KEYS.includes(k)) errors.push(`${k}: bilinmeyen alan`);
 
   if ('id' in h && (typeof h.id !== 'string' || !ID_PATTERN.test(h.id))) errors.push('id: boş olmayan, [A-Za-z0-9._:-] karakterli metin olmalı');
   if ('routeId' in h && (typeof h.routeId !== 'string' || !ROUTE_ID_PATTERN.test(h.routeId))) errors.push('routeId: ör. tr-karadeniz-01 biçiminde olmalı');
@@ -50,10 +120,13 @@ export function validateHazard(h) {
     }
   }
   if ('reportedBy' in h && (typeof h.reportedBy !== 'string' || h.reportedBy.length === 0)) errors.push('reportedBy: boş olmayan metin olmalı');
-  if ('reportedAt' in h && (typeof h.reportedAt !== 'string' || !DATE_TIME_PATTERN.test(h.reportedAt) || Number.isNaN(Date.parse(h.reportedAt)))) {
+  if ('reportedAt' in h && !isDateTime(h.reportedAt)) {
     errors.push('reportedAt: RFC 3339 date-time olmalı (ör. 2026-11-01T09:30:00Z)');
   }
   if ('isSample' in h && typeof h.isSample !== 'boolean') errors.push('isSample: boolean olmalı');
+  if ('source' in h) validateSource(h.source, errors);
+  if ('verification' in h) validateVerification(h.verification, errors);
+  if ('extent' in h) validateExtent(h.extent, errors);
 
   return { valid: errors.length === 0, errors };
 }
@@ -93,11 +166,11 @@ export function hazardsWithinRadius(driver, hazards, radiusM, { includeSamples =
 
 export const ROUTE_STATUS_APPROXIMATE = 'doğrulanmalı';
 
-function assertLineCoords(lineCoords) {
-  if (!Array.isArray(lineCoords) || lineCoords.length < 2) throw new TypeError('lineCoords: en az 2 [lon, lat] noktası olmalı');
+function assertLineCoords(lineCoords, label = 'lineCoords') {
+  if (!Array.isArray(lineCoords) || lineCoords.length < 2) throw new TypeError(`${label}: en az 2 [lon, lat] noktası olmalı`);
   for (const c of lineCoords) {
     if (!Array.isArray(c) || !isNum(c[0]) || !isNum(c[1]) || c[1] < -90 || c[1] > 90 || c[0] < -180 || c[0] > 180) {
-      throw new TypeError('lineCoords: her nokta [lon, lat] sayı çifti olmalı (GeoJSON sırası)');
+      throw new TypeError(`${label}: her nokta [lon, lat] sayı çifti olmalı (GeoJSON sırası)`);
     }
   }
 }
@@ -158,7 +231,7 @@ export function routeLine(route) {
   const geometry = route.pathFull != null ? 'pathFull' : 'path';
   const line = route[geometry];
   if (!isObj(line) || line.type !== 'LineString') throw new TypeError(`route.${geometry}: GeoJSON LineString olmalı`);
-  assertLineCoords(line.coordinates);
+  assertLineCoords(line.coordinates, `route.${geometry}.coordinates`);
   let scale = 1;
   if (geometry === 'path' && isNum(route.lengthKm) && route.lengthKm > 0) {
     const lineM = routeLengthMeters(line.coordinates);
@@ -294,6 +367,29 @@ const HAZARD_LABELS = {
   tr: { gravel: 'taşlı yol', roadwork: 'yol çalışması', steep_grade: 'dik eğim', sharp_curve: 'keskin viraj' },
   en: { gravel: 'gravel road', roadwork: 'roadwork', steep_grade: 'steep grade', sharp_curve: 'sharp curve' },
 };
+// Doğrulanmamış (verification.status: doğrulanmalı) kayıtlar için temkinli etiketler (karar 8A).
+const HAZARD_LABELS_TENTATIVE = {
+  tr: { gravel: 'olası taşlı yol', roadwork: 'olası yol çalışması', steep_grade: 'olası dik eğim', sharp_curve: 'olası keskin viraj' },
+  en: { gravel: 'possible gravel road', roadwork: 'possible roadwork', steep_grade: 'possible steep grade', sharp_curve: 'possible sharp curve' },
+};
+
+/** true: kayıt doğrulanmamış (verification.status 'doğrulanmalı'), temkinli okunur. verification yoksa false (eski kayıtlar). */
+export function isHazardUnverified(hazard) {
+  return hazard?.verification?.status === HAZARD_STATUS_UNVERIFIED;
+}
+
+/**
+ * extent.geometryRevision'ı rotanın geometryRevision'ıyla karşılaştırır (karma eşitliği; date karşılaştırılmaz).
+ * 'none': extent ya da kopyası yok, ya da rotada geometryRevision yok (eskime anlaşılamaz);
+ * 'current': iki karma da eşit; 'stale': rota çizgisi değişmiş, fromKm/toKm/line yeniden hesaplanmalı.
+ * @returns {'none'|'current'|'stale'}
+ */
+export function extentRevisionStatus(hazard, route) {
+  const a = hazard?.extent?.geometryRevision;
+  const b = route?.geometryRevision;
+  if (!isObj(a) || !isObj(b)) return 'none';
+  return a.pathSha256 === b.pathSha256 && (a.pathFullSha256 ?? null) === (b.pathFullSha256 ?? null) ? 'current' : 'stale';
+}
 
 /**
  * Sesli okumaya uygun yuvarlanmış mesafe: <1 km için 50 m adımlar, üstü 0.1 km.
@@ -314,10 +410,12 @@ function spokenDistance(distanceM, lang, ahead) {
  * - Varsayılan (ahead=false): distanceM kuş uçuşu kabul edilir, yön yoktur -> "300 metre mesafede".
  * - { ahead: true }: distanceM rota boyunca ileride kalan mesafedir (hazardsAheadOnRoute'un aheadM'i)
  *   -> "300 metre ileride" / "300 meters ahead".
+ * - verification.status 'doğrulanmalı' ise temkinli etiket (karar 8A):
+ *   "Dikkat, 300 metre ileride olası taşlı yol." / "Caution, possible gravel road 300 meters ahead."
  */
 export function buildVoiceAlert(hazard, distanceM, lang = 'en', { ahead = false } = {}) {
   const l = lang === 'tr' ? 'tr' : 'en';
-  const label = HAZARD_LABELS[l][hazard.type];
+  const label = (isHazardUnverified(hazard) ? HAZARD_LABELS_TENTATIVE : HAZARD_LABELS)[l][hazard.type];
   if (!label) throw new TypeError(`bilinmeyen tehlike tipi: ${hazard.type}`);
   const dist = spokenDistance(distanceM, l, ahead === true);
   return l === 'tr' ? `Dikkat, ${dist} ${label}.` : `Caution, ${label} ${dist}.`;

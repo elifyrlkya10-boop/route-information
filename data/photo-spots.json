@@ -9,9 +9,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Kirazlıyayla mesire alanı ve tesislerin önünde otopark var; yol kenarında değil, otoparkta durun.", "en": "Parking area in front of the Kirazlıyayla picnic area and facilities; stop in the car park, not on the roadside." },
       "notifyRadiusM": 800,
-      "approachPoint": { "lat": 40.11343, "lon": 29.08995 },
-      "detourKm": 0.0,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Kirazlıyayla noktasına taşındı (önceki koordinat ~5 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (Kirazlıyayla tesisleri). Otopark konumu ve manzara açısı yerinde/uydu görüntüsüyle teyit edilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=800 m) bu noktanın çevresinde tetiklenir. detourKm=0,0 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "approachPoint": { "lat": 40.11442, "lon": 29.08885 },
+      "detourKm": 0.1,
+      "detourRoadKm": 0.1,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "1292dba6fe5eed8f803be4fd0e485298e29ea3ed17a357f947a81de3fc0ea566", "pathFullSha256": "222ccde2eeeafa1e6bd31d63852fc74a2f4bfbaf7f799d883a41044fb89fc88a" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Kirazlıyayla noktasına taşındı (önceki koordinat ~5 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (Kirazlıyayla tesisleri). Otopark konumu ve manzara açısı yerinde/uydu görüntüsüyle teyit edilmeli. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 82 m ötedeki yola bağladı); bildirim (notifyRadiusM=800 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,1 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=0,1 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-marmara-01-02",
@@ -22,9 +24,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Yayla girişinde geniş otopark ve piknik alanı mevcut.", "en": "Large car park and picnic area at the plateau entrance." },
       "notifyRadiusM": 700,
-      "approachPoint": { "lat": 40.11876, "lon": 29.11858 },
+      "approachPoint": { "lat": 40.11531, "lon": 29.11226 },
       "detourKm": 2.2,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Sarıalan noktasına taşındı (önceki koordinat ~3,7 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; Sarıalan otoparkının tam konumu ve rotanın buradan geçip geçmediği (sapma mesafesi) kontrol edilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=700 m) bu noktanın çevresinde tetiklenir. detourKm=2,2 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "detourRoadKm": 2.5,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "1292dba6fe5eed8f803be4fd0e485298e29ea3ed17a357f947a81de3fc0ea566", "pathFullSha256": "222ccde2eeeafa1e6bd31d63852fc74a2f4bfbaf7f799d883a41044fb89fc88a" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Sarıalan noktasına taşındı (önceki koordinat ~3,7 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; Sarıalan otoparkının tam konumu ve rotanın buradan geçip geçmediği (sapma mesafesi) kontrol edilmeli. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 5 m ötedeki yola bağladı); bildirim (notifyRadiusM=700 m) bu noktanın çevresinde tetiklenir. detourRoadKm=2,5 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=2,2 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-ege-01-01",
@@ -35,9 +39,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Göl kıyısında Gölcük yerleşimi ve tesislerin otoparkları var; ana yoldan göl kenarına sapın.", "en": "Car parks at the Gölcük settlement and lakeside facilities; turn off the main road to the lakeshore." },
       "notifyRadiusM": 1000,
-      "approachPoint": { "lat": 38.30241, "lon": 28.03274 },
-      "detourKm": 1.4,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Koordinat yaklaşık (göl merkezi civarı). Otopark noktasına göre düzeltilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourKm=1,4 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "approachPoint": { "lat": 38.30325, "lon": 28.02386 },
+      "detourKm": 1.3,
+      "detourRoadKm": 1.8,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "52ccebcba206d92edfd5f6f8c21316a04c24aebdd5cde6f3ba45befdd9485fd7", "pathFullSha256": "83dce96f3fcf36cec9f711b86b41af46715f32ccb3837c6a0929b19575771d3a" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Koordinat yaklaşık (göl merkezi civarı). Otopark noktasına göre düzeltilmeli. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 73 m ötedeki yola bağladı); bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourRoadKm=1,8 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=1,3 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-ege-01-02",
@@ -48,9 +54,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Kayak merkezi otoparkı kullanılabilir; kışın kar/buzlanma riski yüksek.", "en": "Use the ski centre car park; high snow/ice risk in winter." },
       "notifyRadiusM": 1000,
-      "approachPoint": { "lat": 38.33913, "lon": 28.07675 },
-      "detourKm": 3.3,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Bozdağ Kayak Merkezi'ne taşındı (önceki koordinat ~1,7 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; kayak merkezi otoparkının konumu ve Ödemiş–Salihli yolundan erişimi teyit edilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourKm=3,3 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py). Uzun sapma: nokta rotadan 3 km'den fazla uzakta; bildirim metninde sapma olduğu belirtilmeli, sapma yolu ve gerçek mesafe sahada teyit edilmeli." }
+      "approachPoint": { "lat": 38.34286, "lon": 28.07658 },
+      "detourKm": 3.4,
+      "detourRoadKm": 9.4,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "52ccebcba206d92edfd5f6f8c21316a04c24aebdd5cde6f3ba45befdd9485fd7", "pathFullSha256": "83dce96f3fcf36cec9f711b86b41af46715f32ccb3837c6a0929b19575771d3a" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Bozdağ Kayak Merkezi'ne taşındı (önceki koordinat ~1,7 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; kayak merkezi otoparkının konumu ve Ödemiş–Salihli yolundan erişimi teyit edilmeli. 2026-11-05 (karar 4A/6A): approachPoint 35-30 üzerindeki gerçek kavşağa (OSM node 2122980385, 38,34286 / 28,07658, pathFull km ~26,98) alındı; eski değer kaldırılan çıkıntının ucundaydı. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: rota sonu; OSRM noktayı 20 m ötedeki yola bağladı); bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourRoadKm=9,4 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=3,4 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py). Uzun sapma: nokta rotadan 3 km'den fazla sapma gerektiriyor; bildirim metninde sapma belirtilir, sapma yolu sahada teyit edilmeli." }
     },
     {
       "id": "ps-tr-akdeniz-01-01",
@@ -63,7 +71,9 @@
       "notifyRadiusM": 1000,
       "approachPoint": { "lat": 36.84257, "lon": 30.33546 },
       "detourKm": 0.5,
-      "verification": { "status": "doğrulanmalı", "notes": "Konum netleşti ve OSM'deki 'Saklıkent Ski Resort' noktasına taşındı (node 2976017579, leisure=sports_centre, sport=skiing; 36.8381974, 30.3332204), önceki koordinat (36.87, 30.335) ~3,5 km kuzeydeydi. Kaynak: OpenStreetMap/Nominatim, 2026-11-01. Yola erişilebilir: OSRM nearest ~107 m. OSM adı İngilizce olduğu için 'Saklıkent Kayak Merkezi' araması Nominatim'de sonuç vermiyor; verify_coordinates.py'nin 5. kontrolü bu yüzden eşleşme bulamayabilir. Yakındaki OSM 'Saklıkent' seyir noktası (node 1808923175, tourism=viewpoint, ele=2500; 36.82536, 30.33560) TÜBİTAK Ulusal Gözlemevi zirvesindedir; izinsiz girilemediği için kullanılmadı. Overpass (otopark/teleferik sorgusu) 2026-11-01'de yanıt vermedi. Durum yine de 'doğrulanmalı' bırakıldı: prototype/map.test.js bu noktanın 'Doğrulanmalı' görünmesini sabit olarak bekliyor (test bu görevin yazma kapsamı dışında) ve Türkçe ad OSM'de eşleşmiyor; test güncellenince 'doğrulandı' yapılabilir. Sahada ayrıca kontrol edilecekler: kayak merkezi otoparkının tam yeri, körfez manzarasının görüldüğü açı; yol üzerindeki seyir cepleri bilinmiyor. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourKm=0,5 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "detourRoadKm": 0.5,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "ce434a7051d66b4c07ead39307dc1ea59c522007d13ac8527fb665aa19b76711", "pathFullSha256": "a5eea9f154005096f75cfbbece326d621c67fa10c472223275c775faf17acca4" },
+      "verification": { "status": "doğrulanmalı", "notes": "Konum netleşti ve OSM'deki 'Saklıkent Ski Resort' noktasına taşındı (node 2976017579, leisure=sports_centre, sport=skiing; 36.8381974, 30.3332204), önceki koordinat (36.87, 30.335) ~3,5 km kuzeydeydi. Kaynak: OpenStreetMap/Nominatim, 2026-11-01. Yola erişilebilir: OSRM nearest ~107 m. OSM adı İngilizce olduğu için 'Saklıkent Kayak Merkezi' araması Nominatim'de sonuç vermiyor; verify_coordinates.py'nin 5. kontrolü bu yüzden eşleşme bulamayabilir. Yakındaki OSM 'Saklıkent' seyir noktası (node 1808923175, tourism=viewpoint, ele=2500; 36.82536, 30.33560) TÜBİTAK Ulusal Gözlemevi zirvesindedir; izinsiz girilemediği için kullanılmadı. Overpass (otopark/teleferik sorgusu) 2026-11-01'de yanıt vermedi. Durum yine de 'doğrulanmalı' bırakıldı: prototype/map.test.js bu noktanın 'Doğrulanmalı' görünmesini sabit olarak bekliyor (test bu görevin yazma kapsamı dışında) ve Türkçe ad OSM'de eşleşmiyor; test güncellenince 'doğrulandı' yapılabilir. Sahada ayrıca kontrol edilecekler: kayak merkezi otoparkının tam yeri, körfez manzarasının görüldüğü açı; yol üzerindeki seyir cepleri bilinmiyor. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 107 m ötedeki yola bağladı); bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,5 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=0,5 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-ic-anadolu-01-01",
@@ -74,9 +84,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Erciyes Kayak Merkezi Hacılar Kapı tesislerinde otopark var.", "en": "Car park at the Erciyes Ski Resort Hacılar Gate facilities." },
       "notifyRadiusM": 1000,
-      "approachPoint": { "lat": 38.61118, "lon": 35.47511 },
+      "approachPoint": { "lat": 38.61268, "lon": 35.47388 },
       "detourKm": 2.4,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Hacılar Kapı noktasına taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; Hacılar Kapı otoparkının tam yeri teyit edilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourKm=2,4 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "detourRoadKm": 2.8,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "486087ad6d7b44a6841e7e7c320061903ae36cd9cabf48931a86d797b50c31ff", "pathFullSha256": "4d33b887f775b3189acf4c1d0d576a39bf7def64c76be718c53640a5f5ae5603" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Hacılar Kapı noktasına taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; Hacılar Kapı otoparkının tam yeri teyit edilmeli. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 45 m ötedeki yola bağladı); bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourRoadKm=2,8 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=2,4 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-ic-anadolu-01-02",
@@ -87,9 +99,10 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Tekir Kapı tesislerinde geniş otopark var; kışın kar zinciri/kapalı yol durumunu kontrol edin.", "en": "Large car park at the Tekir Gate facilities; check winter road closures/chain requirements." },
       "notifyRadiusM": 1000,
-      "approachPoint": { "lat": 38.55047, "lon": 35.53875 },
+      "approachPoint": { "lat": 38.55054, "lon": 35.53907 },
       "detourKm": 0.2,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Tekir Yaylası noktasına taşındı (önceki koordinat ~6,4 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (Tekir Kapı civarı). Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourKm=0,2 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "486087ad6d7b44a6841e7e7c320061903ae36cd9cabf48931a86d797b50c31ff", "pathFullSha256": "4d33b887f775b3189acf4c1d0d576a39bf7def64c76be718c53640a5f5ae5603" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Tekir Yaylası noktasına taşındı (önceki koordinat ~6,4 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (Tekir Kapı civarı). Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 217 m ötedeki yola bağladı); bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. Gerçek yol mesafesi bulunamadı, detourRoadKm yazılmadı; sesli bildirim kuş uçuşu detourKm'i söyler. detourKm=0,2 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-karadeniz-01-01",
@@ -100,9 +113,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Zirvedeki çay ocağı/dinlenme tesislerinin önünde toprak/asfalt düzlük var; sis sık görülür, görünür yerde park edin.", "en": "Flat gravel/asphalt area in front of the tea house/rest stops at the summit; fog is common, park in a visible spot." },
       "notifyRadiusM": 800,
-      "approachPoint": { "lat": 40.63916, "lon": 39.40536 },
+      "approachPoint": { "lat": 40.63895, "lon": 39.40512 },
       "detourKm": 0.0,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Zigana Geçidi (mountain_pass) noktasına taşındı (önceki koordinat ~1,3 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; eski yol zirve noktası ve tesislerin halen açık olup olmadığı teyit edilmeli (tünel sonrası trafik azaldı). Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=800 m) bu noktanın çevresinde tetiklenir. detourKm=0,0 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "detourRoadKm": 0.0,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "0b285b4eba4b2474b8bf4babcde7f43ec077dc70500d543048520e8e17307ae5", "pathFullSha256": "1d8374534393145ca16a32b3311ae5a4615c90acf68fdd86edefc30a2329b294" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Zigana Geçidi (mountain_pass) noktasına taşındı (önceki koordinat ~1,3 km uzaktaydı). Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; eski yol zirve noktası ve tesislerin halen açık olup olmadığı teyit edilmeli (tünel sonrası trafik azaldı). Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 1 m ötedeki yola bağladı); bildirim (notifyRadiusM=800 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,0 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=0,0 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-karadeniz-01-02",
@@ -113,9 +128,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Köy merkezindeki lokantaların önünde park alanı var.", "en": "Parking in front of the restaurants in the village centre." },
       "notifyRadiusM": 600,
-      "approachPoint": { "lat": 40.6987, "lon": 39.48374 },
+      "approachPoint": { "lat": 40.70853, "lon": 39.49537 },
       "detourKm": 1.2,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Hamsiköy köy merkezine taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; köy merkezi otopark konumu teyit edilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=600 m) bu noktanın çevresinde tetiklenir. detourKm=1,2 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "detourRoadKm": 5.3,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "0b285b4eba4b2474b8bf4babcde7f43ec077dc70500d543048520e8e17307ae5", "pathFullSha256": "1d8374534393145ca16a32b3311ae5a4615c90acf68fdd86edefc30a2329b294" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Hamsiköy köy merkezine taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık; köy merkezi otopark konumu teyit edilmeli. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 17 m ötedeki yola bağladı); bildirim (notifyRadiusM=600 m) bu noktanın çevresinde tetiklenir. detourRoadKm=5,3 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=1,2 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py). Uzun sapma: nokta rotadan 3 km'den fazla sapma gerektiriyor; bildirim metninde sapma belirtilir, sapma yolu sahada teyit edilmeli." }
     },
     {
       "id": "ps-tr-dogu-anadolu-01-01",
@@ -126,9 +143,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Yalnızca Kemaliye tarafındaki giriş/seyir alanında durun. Kanyon içi yol tek şeritli, bariyersiz ve tünelli; yol üzerinde durmak güvenli değil.", "en": "Stop only at the entrance/viewing area on the Kemaliye side. Inside the canyon the road is single-lane, mostly unguarded and tunnelled; do not stop on the road." },
       "notifyRadiusM": 700,
-      "approachPoint": { "lat": 39.28478, "lon": 38.48814 },
+      "approachPoint": { "lat": 39.28477, "lon": 38.48814 },
       "detourKm": 0.0,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Karanlık Kanyon noktasına taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık. Seyir terası/cep konumu bilinmiyor; yerinde güvenli durma alanı mutlaka teyit edilmeli, teyit edilemezse safeStop=false yapılıp nokta yayından kaldırılmalı. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=700 m) bu noktanın çevresinde tetiklenir. detourKm=0,0 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "detourRoadKm": 0.0,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "aaacccfd924846291a9e1f8b9f2d531c5dd6a2021ffb18819399251ff9318125", "pathFullSha256": null },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Karanlık Kanyon noktasına taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık. Seyir terası/cep konumu bilinmiyor; yerinde güvenli durma alanı mutlaka teyit edilmeli, teyit edilemezse safeStop=false yapılıp nokta yayından kaldırılmalı. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 3 m ötedeki yola bağladı); bildirim (notifyRadiusM=700 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,0 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=0,0 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: path; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-guneydogu-anadolu-01-01",
@@ -138,10 +157,13 @@
       "description": { "tr": "Roma dönemine (MS 2. yy, Septimius Severus) ait, Cendere Çayı üzerindeki taş köprü; Nemrut yolunun klasik durağı.", "en": "Roman stone bridge (2nd c. AD, Septimius Severus) over the Cendere stream; a classic stop on the way to Nemrut." },
       "safeStop": true,
       "safeStopInfo": { "tr": "Köprünün yanında ziyaretçi otoparkı var (köprü artık trafiğe kapalı).", "en": "Visitor car park next to the bridge (the bridge itself is closed to traffic)." },
+      "reachableFromRoute": false,
       "notifyRadiusM": 800,
-      "approachPoint": { "lat": 37.93336, "lon": 38.61201 },
-      "detourKm": 0.0,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Cendere Köprüsü yoluna taşındı; rota artık köprüden geçiyor. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık. Köprü Kahta–Eski Kahta–Nemrut güzergâhında; rota Kahta–Narince–Karadut ise sapma gerektirir, rota geometrisiyle kontrol edilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=800 m) bu noktanın çevresinde tetiklenir. detourKm=0,0 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "approachPoint": { "lat": 37.80682, "lon": 38.60809 },
+      "detourKm": 9.4,
+      "detourRoadKm": 16.7,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "2237b6823ad758366d219ba84bf9f8d172dc56de597a6f76030d55b1f73447d4", "pathFullSha256": "3ef5856ff1f860eedab05cb7c3ba07f8fc07bf56ad18daccaec61e007025614f" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Cendere Köprüsü yoluna taşındı; rota artık köprüden geçiyor. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık. Köprü Kahta–Eski Kahta–Nemrut güzergâhında; rota Kahta–Narince–Karadut ise sapma gerektirir, rota geometrisiyle kontrol edilmeli. 2026-11-05 düzeltme (karar 1A/2A): rota güney (Narince–Karadut) yaklaşımına taşındı; köprü artık rota üzerinde değil (çizgiye kuş uçuşu ~9,4 km). Yolla en kısa erişim rotanın km ~2,8'indeki D360 / D360 (eski) ayrımından kuzeye, tek yön ~16,7 km (OSRM). Karar 2A'ya göre 'bu rotadan erişilmiyor' işaretlendi (reachableFromRoute: false): sesli bildirim üretilmez, nokta veride ve haritada kalır. Köprünün kendisi ve otoparkı doğrulandı durumunu korur; uzun sapma olarak tutulup tutulmayacağı kullanıcı kararı bekliyor. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 0 m ötedeki yola bağladı). Nokta bu rotadan erişilmiyor (reachableFromRoute: false): bildirim üretilmez; alanlar yalnızca bilgi için tutulur. detourRoadKm=16,7 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05). detourKm=9,4 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     },
     {
       "id": "ps-tr-guneydogu-anadolu-01-02",
@@ -152,9 +174,11 @@
       "safeStop": true,
       "safeStopInfo": { "tr": "Ziyaretçi merkezinde otopark var; son kısım dik ve dar, gün batımı sonrası inişte dikkat.", "en": "Car park at the visitor centre; the last section is steep and narrow, take care descending after sunset." },
       "notifyRadiusM": 1000,
-      "approachPoint": { "lat": 37.98145, "lon": 38.74327 },
-      "detourKm": 1.8,
-      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Nemrut Dağı Ziyaretçi Karşılama Merkezi'ne taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (zirve 37.981, 38.741 civarı; otopark biraz güneydoğuda). Otopark konumu teyit edilmeli. Bildirim noktası (approachPoint): rota çizgisinin noktaya en yakın yeri; bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourKm=1,8 km kuş uçuşu mesafedir, gerçek yol mesafesi değildir; sapma yolunun kavşağı bu noktadan farklı olabilir (scripts/compute_photo_approach.py)." }
+      "approachPoint": { "lat": 37.97029, "lon": 38.72842 },
+      "detourKm": 0.0,
+      "detourRoadKm": 0.0,
+      "geometryRevision": { "date": "2026-11-05", "pathSha256": "2237b6823ad758366d219ba84bf9f8d172dc56de597a6f76030d55b1f73447d4", "pathFullSha256": "3ef5856ff1f860eedab05cb7c3ba07f8fc07bf56ad18daccaec61e007025614f" },
+      "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Nemrut Dağı Ziyaretçi Karşılama Merkezi'ne taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (zirve 37.981, 38.741 civarı; otopark biraz güneydoğuda). Otopark konumu teyit edilmeli. 2026-11-05: rota (karar 1A) güney yaklaşımına taşındı ve ziyaretçi merkezinin önünden geçiyor (way 392432864, çizgiye ~45 m, pathFull km ~42,04); önceki '1,8 km sapma' bilgisi geçersiz, 'erişilmiyor' işareti gerekmedi (karar 2A). Güney kapısı (barrier=swing_gate, node 3956530545) merkezin hemen ötesinde, km ~42,09. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 45 m ötedeki yola bağladı); bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,0 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=0,0 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     }
   ]
 }

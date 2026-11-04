@@ -8,17 +8,17 @@ Kullanıcının cevabı: "11 hariç hepsini önerdiklerin olsun". Buna göre:
 
 | # | Konu | Karar |
 |---|---|---|
-| 1 | Nemrut güzergâhı | **A** — güney (Karadut, ziyaretçi merkezi) yaklaşımına taşınacak |
-| 2 | Nemrut Ziyaretçi Merkezi noktası | **A** — 1A ile rota üzerine gelir; gelmezse "bu rotadan erişilmiyor" işaretlenir |
+| 1 | Nemrut güzergâhı | **A** — güney (Karadut, ziyaretçi merkezi) yaklaşımına taşınacak — **uygulandı (2026-11-05)** |
+| 2 | Nemrut Ziyaretçi Merkezi noktası | **A** — 1A ile rota üzerine gelir; gelmezse "bu rotadan erişilmiyor" işaretlenir — **uygulandı (2026-11-05)**: merkez rota üzerinde |
 | 3 | Saklıkent bitişi | **B** — olduğu gibi kalır |
-| 4 | Bozdağ geri dönüşü | **A** — düzeltilecek (ara nokta gerçek kavşağa) |
-| 5 | `geometryRevision` | **A** — eklenecek |
-| 6 | `detourRoadKm` | **A** — eklenecek; sesli bildirim yol mesafesini söyleyecek |
-| 7 | Tehlike `source`/`verification`/`extent` | **B** — eklenecek; ilk kayıtlar toprak kesimler (bkz. not) |
-| 8 | Doğrulanmamış tehlikeler | **A** — temkinli metinle okunur ("olası taşlı yol") |
+| 4 | Bozdağ geri dönüşü | **A** — düzeltilecek (ara nokta gerçek kavşağa) — **uygulandı (2026-11-05)** |
+| 5 | `geometryRevision` | **A** — eklenecek — **uygulandı (2026-11-05)** |
+| 6 | `detourRoadKm` | **A** — eklenecek; sesli bildirim yol mesafesini söyleyecek — **uygulandı (2026-11-05)** |
+| 7 | Tehlike `source`/`verification`/`extent` | **B** — eklenecek; ilk kayıtlar toprak kesimler (bkz. not) — **uygulandı (2026-11-05)**: alanlar eklendi; yeni güzergâhta toprak etiketli kesim olmadığı için kayıt yok |
+| 8 | Doğrulanmamış tehlikeler | **A** — temkinli metinle okunur ("olası taşlı yol") — **uygulandı (2026-11-05)** |
 | 9 | Kapı/erişim türü | **B** — açılmaz; rota notunda kalır |
 | 10 | Hava eşikleri | **A** — şimdilik kabul; deneme sürüşlerinden sonra gözden geçirilecek |
-| 11 | Ticari kullanım | **B** — ücretli plan / kendi sunucu seçenekleri bir gece işi olarak araştırılacak |
+| 11 | Ticari kullanım | **B** — ücretli plan / kendi sunucu seçenekleri bir gece işi olarak araştırılacak — **uygulandı (2026-11-05)**: [docs/arastirma/ticari-kullanim.md](arastirma/ticari-kullanim.md) |
 
 Not (7B ile 1A birlikte): Nemrut rotası güneye taşınınca kuzeydeki iki toprak kesim artık rota üzerinde olmayacak. İlk tehlike kayıtları,
 yeni güzergâhın OSM yüzey etiketlerine göre çıkarılacak; hepsi `verification.status: doğrulanmalı` olacak.
@@ -30,6 +30,32 @@ Uygulama sırası (aynı dosyaya iki ajan yazmayacak):
 - Değişiklik notu (koordinatör, 5 Kasım): ilk planda fotoğraf ve güvenlik işleri bir sonraki geceye bırakılmıştı. Ancak rota
   geometrisi değişince fotoğraf testleri (`approachPoint` çizgiye < 5 m) yeniden hesap yapılmadan kırmızı kalır ve commit edilemez.
   Bu yüzden ikisi aynı gecenin Aşama 2'sine alındı; sıralı çalıştıkları için aynı dosyaya aynı anda yazılmıyor.
+
+## Yeni kararlar (5 Kasım 2026 gecesi çıktı, cevap bekliyor)
+
+Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
+
+**12. Cendere Köprüsü fotoğraf noktası.** Nemrut güneye taşınınca köprü rotadan çıktı: yolla tek yön 16,7 km sapma (gidiş-dönüş ~33 km, rota 43 km).
+- **A** — "bu rotadan erişilmiyor" kalsın (şu anki durum); haritada durur, sesli bildirilmez. **(önerilen)**
+- **B** — Uzun sapma olarak bildirilsin (km 2,8'de "yolla 16,7 km sapma").
+
+**13. Tekir Yaylası fotoğraf noktası.** Nokta en yakın yoldan 217 m uzakta, bu yüzden yol mesafesi hesaplanamadı.
+- **A** — Gerçek bir otopark/yol noktasına (OSM'den) taşınsın. **(önerilen)**
+- **B** — Olduğu gibi kalsın.
+
+**14. Tehlike kayıtlarında `source` ve `verification` zorunlu olsun mu?** (şu an yalnızca testle zorunlu, şemada değil)
+- **A** — Şemada da zorunlu olsun. **(önerilen)**
+- **B** — İsteğe bağlı kalsın.
+
+**15. `verification` alanı olmayan tehlike kaydı nasıl okunsun?**
+- **A** — Doğrulanmamış sayılsın, temkinli okunsun ("olası …"). **(önerilen)**
+- **B** — Kesin dille okunsun (şu anki durum).
+
+**16. Ticari kullanım için üç soru** (araştırma bunlara göre öneri yapıyor):
+- Gelir modeli: abonelik / reklam / ücretsiz?
+- Çevrimdışı harita gerekli mi?
+- Beklenen aylık kullanıcı sayısı?
+(Bu sorunun harfli seçeneği yok; kısaca yazmanız yeterli.)
 
 ---
 

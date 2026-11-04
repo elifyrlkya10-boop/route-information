@@ -8,9 +8,14 @@
 // - pathFull varsa ama GeoJSON LineString değilse sessizce path'e düşülmez, routeLine hata verir (veri hatası görünür kalır).
 // - Mesafeler routeLine(route).scale ile yol mesafesine çevrilir: pathFull'da 1; yalnız path olan rotada (Kemaliye)
 //   lengthKm / çizgi uzunluğu (~1,03).
-// - approachPoint değerleri path'ten hesaplandı, ama path'in köşe noktaları pathFull üzerinde olduğundan
-//   pathFull'a uzaklıkları 0–87 m (en büyük: Kirazlıyayla). Bu yüzden spotMaxOffsetM varsayılanı 100 m.
-//   approachPoint bu sınırın dışına düşerse nokta sessizce atlanmaz, `detached` listesinde raporlanır.
+// - approachPoint değerleri scripts/compute_photo_approach.py ile aynı çizgiden (pathFull ?? path) hesaplanır ve çizgi
+//   üzerindedir (< 5 m). spotMaxOffsetM varsayılanı 50 m; bu sınırın dışına düşen nokta sessizce atlanmaz, `detached`
+//   listesinde raporlanır.
+// - Eskime: her nokta, hesaplandığı andaki rota `geometryRevision` nesnesinin kopyasını taşır (karar 5A). Rotadaki
+//   geometryRevision ile eşit değilse (ya da noktada yoksa) nokta bildirilmez, `stale` listesinde raporlanır:
+//   rota çizgisi değişmiş, betik yeniden çalıştırılmalı. Rotada geometryRevision yoksa bu kontrol yapılmaz.
+// - reachableFromRoute === false (karar 2A, "bu rotadan erişilmiyor") olan nokta bildirilmez, `unreachable`'da döner.
+// - Sapma metni: detourRoadKm (gerçek yol mesafesi, tek yön, karar 6A) varsa o, yoksa kuş uçuşu detourKm söylenir.
 //
 // photoSpotsAheadOnRoute, hazardsAheadOnRoute üzerine ince bir sarmalayıcıdır (izdüşüm, ölçek, yön, rota dışı ve
 // atlanan kayıt kuralları tek yerde). Menzil süzgeci (notifyRadiusM) sarmalayıcıda uygulanır, çünkü izleyicinin
@@ -19,13 +24,22 @@
 import { hazardsAheadOnRoute, createAlertTracker } from './hazards.js';
 
 export const ROUTE_STATUS_APPROXIMATE = 'doğrulanmalı';
-/** detourKm bu değerin üstündeyse sesli metne "rotadan yaklaşık X kilometre sapma" eklenir. */
+/** Söylenen sapma (detourRoadKm, yoksa detourKm) bu değer ve üstündeyse sesli metne sapma cümlesi eklenir. */
 export const DETOUR_ANNOUNCE_MIN_KM = 0.5;
+/** approachPoint bildirim çizgisine bundan uzaksa nokta `detached` sayılır (varsayılan). */
+export const SPOT_MAX_OFFSET_M = 50;
+const REVISION_KEYS = ['date', 'pathSha256', 'pathFullSha256'];
 /** `ahead` listesi için "menzil yok" değeri (hazardsAheadOnRoute sonlu sayı ister; Infinity geçersiz sayılır). */
 const NO_LIMIT_M = Number.MAX_VALUE;
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+
+/** Nokta ile rota geometryRevision'ı aynı mı? (alan sırası sabit: date, pathSha256, pathFullSha256) */
+export function sameGeometryRevision(a, b) {
+  if (!isObj(a) || !isObj(b)) return false;
+  return REVISION_KEYS.every((k) => a[k] === b[k]);
+}
 
 function isUsableSpot(s) {
   return isObj(s) && typeof s.id === 'string' && isObj(s.approachPoint)
@@ -43,17 +57,23 @@ function isUsableSpot(s) {
  * - Yalnızca route.id ile aynı routeId'li noktalar değerlendirilir. isSample === true olan (örnek) nokta
  *   yalnızca includeSamples ile değerlendirilir (gerçek veride bu alan yok).
  * - Sürücü çizgiye driverMaxOffsetM'den uzaksa (ör. sapma yoluna girdi) offRoute=true ve boş liste döner.
- * - approachPoint çizgiye spotMaxOffsetM'den uzaksa nokta `detached` listesine girer (veri hatası: rota çizgisi
+ * - approachPoint çizgiye spotMaxOffsetM'den (50 m) uzaksa nokta `detached` listesine girer (veri hatası: rota çizgisi
  *   değişmiş, scripts/compute_photo_approach.py yeniden çalıştırılmalı); bildirim üretilmez.
+ * - Rotada geometryRevision varsa ve nokta aynı nesneyi taşımıyorsa nokta `stale` listesine girer (izdüşürülmez,
+ *   bildirilmez). stale/unreachable/detached yalnızca bu rotanın (routeId), kullanılabilir ve isSample kuralından
+ *   geçen noktaları içerir; offRoute=true iken de stale ve unreachable doldurulur (veri durumu sürücüye bağlı değil).
+ * - reachableFromRoute === false olan nokta `unreachable` listesine girer, bildirilmez.
  * - direction: 'forward' (çizgi başından sonuna, varsayılan) veya 'reverse'.
  * @returns {{routeId: string, routeApproximate: boolean, lineSource: 'pathFull'|'path', scale: number, offRoute: boolean,
  *   driver: {distanceAlongM: number, offsetM: number, segmentIndex: number},
- *   spots: Array<{spot: object, aheadM: number, detourKm: number|null, offsetM: number}>,
+ *   spots: Array<{spot: object, aheadM: number, detourKm: number|null, detourRoadKm: number|null, offsetM: number}>,
  *   ahead: Array<same>, // yarıçap süzgeci olmadan ileride kalan tüm noktalar (izleyicinin yeniden kurulması için)
- *   detached: Array<{id: string, offsetM: number}>}}
+ *   detached: Array<{id: string, offsetM: number}>,
+ *   stale: Array<{id: string, spotRevision: object|null, routeRevision: object}>,
+ *   unreachable: Array<{id: string}>}}
  */
 export function photoSpotsAheadOnRoute(driver, route, spots, {
-  spotMaxOffsetM = 100, driverMaxOffsetM = 100, direction = 'forward', includeSamples = false,
+  spotMaxOffsetM = SPOT_MAX_OFFSET_M, driverMaxOffsetM = 100, direction = 'forward', includeSamples = false,
 } = {}) {
   if (!driver || !isNum(driver.lat) || !isNum(driver.lon)) throw new TypeError('driver: {lat, lon} olmalı');
   if (!isNum(spotMaxOffsetM) || spotMaxOffsetM < 0) throw new TypeError('spotMaxOffsetM: negatif olmayan sayı olmalı');
@@ -61,20 +81,35 @@ export function photoSpotsAheadOnRoute(driver, route, spots, {
   if (direction !== 'forward' && direction !== 'reverse') throw new TypeError("direction: 'forward' veya 'reverse' olmalı");
 
   const routeId = isObj(route) ? route.id : undefined;
-  const res = hazardsAheadOnRoute(driver, route, spots, {
+  const routeRevision = isObj(route) && isObj(route.geometryRevision) ? route.geometryRevision : null;
+  const stale = [];
+  const unreachable = [];
+  const candidates = [];
+  for (const s of spots || []) {
+    if (!isUsableSpot(s) || s.routeId !== routeId || (s.isSample === true && !includeSamples)) continue;
+    if (routeRevision && !sameGeometryRevision(s.geometryRevision, routeRevision)) {
+      stale.push({ id: s.id, spotRevision: isObj(s.geometryRevision) ? s.geometryRevision : null, routeRevision });
+      continue;
+    }
+    if (s.reachableFromRoute === false) { unreachable.push({ id: s.id }); continue; }
+    candidates.push(s);
+  }
+  const res = hazardsAheadOnRoute(driver, route, candidates, {
     lookAheadM: NO_LIMIT_M,
     maxOffsetM: spotMaxOffsetM,
     driverMaxOffsetM,
     direction,
     includeSamples,
-    filter: (s, { includeSamples: inc }) => isUsableSpot(s) && s.routeId === routeId && s.safeStop === true
-      && (s.isSample !== true || inc),
+    filter: (s) => s.safeStop === true,
     getLocation: (s) => s.approachPoint,
     includeSkipped: true,
   });
 
   const ahead = res.hazards.map(({ hazard: s, aheadM, offsetM }) => (
-    { spot: s, aheadM, detourKm: isNum(s.detourKm) ? s.detourKm : null, offsetM }
+    {
+      spot: s, aheadM, detourKm: isNum(s.detourKm) ? s.detourKm : null,
+      detourRoadKm: isNum(s.detourRoadKm) ? s.detourRoadKm : null, offsetM,
+    }
   ));
   return {
     routeId: res.routeId,
@@ -86,6 +121,8 @@ export function photoSpotsAheadOnRoute(driver, route, spots, {
     spots: ahead.filter((e) => e.aheadM <= e.spot.notifyRadiusM),
     ahead,
     detached: res.skipped.filter((x) => x.reason === 'offset').map((x) => ({ id: x.item.id, offsetM: x.offsetM })),
+    stale,
+    unreachable,
   };
 }
 
@@ -131,12 +168,14 @@ function spokenDistance(m, lang) {
     return lang === 'tr' ? `${r} metre ileride` : `in ${r} meters`;
   }
   const km = Math.round(m / 100) / 10;
-  return lang === 'tr' ? `${String(km).replace('.', ',')} kilometre ileride` : `in ${km} kilometers`;
+  return lang === 'tr' ? `${String(km).replace('.', ',')} kilometre ileride` : `in ${km} kilometer${km === 1 ? '' : 's'}`;
 }
 
 /**
  * Kısa sesli bildirim metni (tr/en), etkileşim gerektirmez.
- * - detourKm >= 0,5 ise "rotadan yaklaşık X kilometre sapma" eklenir (kuş uçuşu; gerçek yol daha uzun olabilir).
+ * - Sapma: detourRoadKm (gerçek yol, tek yön) varsa "rotadan yolla yaklaşık X kilometre sapma"; yoksa detourKm
+ *   (kuş uçuşu) "rotadan yaklaşık X kilometre sapma". Söylenen değer >= 0,5 km ise eklenir.
+ * - reachableFromRoute === false ise null döner (bu rotadan erişilmiyor).
  * - safeStop !== true ise null döner: güvenli durulamayan nokta önerilmez.
  * - Başlık istenen dilde yoksa İngilizceye düşülür.
  * @returns {string|null}
@@ -144,17 +183,22 @@ function spokenDistance(m, lang) {
 export function buildPhotoVoiceAlert(spot, aheadM, lang = 'en') {
   if (!isObj(spot)) throw new TypeError('spot: nesne olmalı');
   if (!isNum(aheadM) || aheadM < 0) throw new TypeError('aheadM: negatif olmayan sayı olmalı');
-  if (spot.safeStop !== true) return null;
+  if (spot.safeStop !== true || spot.reachableFromRoute === false) return null;
   const l = lang === 'tr' ? 'tr' : 'en';
   const title = spot.title?.[l] ?? spot.title?.en;
   if (typeof title !== 'string' || title.length === 0) throw new TypeError('spot.title: en az en metni olmalı');
   const dist = spokenDistance(aheadM, l);
   let text = l === 'tr' ? `Fotoğraf noktası ${dist}: ${title}.` : `Photo spot ${dist}: ${title}.`;
-  if (isNum(spot.detourKm) && spot.detourKm >= DETOUR_ANNOUNCE_MIN_KM) {
-    const km = Math.round(spot.detourKm * 10) / 10;
-    text += l === 'tr'
-      ? ` Rotadan yaklaşık ${String(km).replace('.', ',')} kilometre sapma.`
-      : ` About ${km} kilometer detour off the route.`;
+  const byRoad = isNum(spot.detourRoadKm) && spot.detourRoadKm >= 0;
+  const detour = byRoad ? spot.detourRoadKm : spot.detourKm;
+  if (isNum(detour) && detour >= DETOUR_ANNOUNCE_MIN_KM) {
+    const km = Math.round(detour * 10) / 10;
+    const kmTr = String(km).replace('.', ',');
+    if (byRoad) {
+      text += l === 'tr' ? ` Rotadan yolla yaklaşık ${kmTr} kilometre sapma.` : ` About ${km} kilometer detour off the route by road.`;
+    } else {
+      text += l === 'tr' ? ` Rotadan yaklaşık ${kmTr} kilometre sapma.` : ` About ${km} kilometer detour off the route.`;
+    }
   }
   return text;
 }
@@ -162,7 +206,7 @@ export function buildPhotoVoiceAlert(spot, aheadM, lang = 'en') {
 /**
  * photoSpotsAheadOnRoute kaydını (spots/ahead öğesi) orderAnnouncements'a verilecek bildirime çevirir.
  * Tehlike bildirimleriyle aynı listede sıralanır: kind 'photo', tehlikeden (kind 'hazard') sonra okunur.
- * safeStop !== true ise null döner (buildPhotoVoiceAlert ile aynı kural).
+ * safeStop !== true ya da reachableFromRoute === false ise null döner (buildPhotoVoiceAlert ile aynı kural).
  * @param {{spot: object, aheadM: number}} entry
  * @returns {{kind: 'photo', id: string, aheadM: number, text: string}|null}
  */

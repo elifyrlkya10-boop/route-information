@@ -10,7 +10,9 @@ The source JSON files are only read, never modified. Output is deterministic
 Route fields listed in MAP_EXCLUDED_ROUTE_FIELDS (currently the optional,
 unsimplified `pathFull` geometry) are left out of map-data.js so the file stays
 small; the map draws the simplified `path`. Modules that need the full
-geometry read data/routes.json directly.
+geometry read data/routes.json directly. `geometryRevision` (small; hashes of
+`path` and `pathFull` coordinates, see scripts/geometry_revision.py) IS copied,
+so map-side code can compare it with dependent data such as photo spots.
 
 Run: python3 scripts/build_map_data.py
 """
