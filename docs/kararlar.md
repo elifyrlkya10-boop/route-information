@@ -1,6 +1,37 @@
-# Onay bekleyen kararlar
+# Kararlar
 
-Son güncelleme: 4 Kasım 2026. Ajanlar bu kararlar verilene kadar ilgili verilere dokunmuyor.
+Son güncelleme: 4 Kasım 2026.
+
+## Verilen kararlar (kullanıcı, 4 Kasım 2026)
+
+Kullanıcının cevabı: "11 hariç hepsini önerdiklerin olsun". Buna göre:
+
+| # | Konu | Karar |
+|---|---|---|
+| 1 | Nemrut güzergâhı | **A** — güney (Karadut, ziyaretçi merkezi) yaklaşımına taşınacak |
+| 2 | Nemrut Ziyaretçi Merkezi noktası | **A** — 1A ile rota üzerine gelir; gelmezse "bu rotadan erişilmiyor" işaretlenir |
+| 3 | Saklıkent bitişi | **B** — olduğu gibi kalır |
+| 4 | Bozdağ geri dönüşü | **A** — düzeltilecek (ara nokta gerçek kavşağa) |
+| 5 | `geometryRevision` | **A** — eklenecek |
+| 6 | `detourRoadKm` | **A** — eklenecek; sesli bildirim yol mesafesini söyleyecek |
+| 7 | Tehlike `source`/`verification`/`extent` | **B** — eklenecek; ilk kayıtlar toprak kesimler (bkz. not) |
+| 8 | Doğrulanmamış tehlikeler | **A** — temkinli metinle okunur ("olası taşlı yol") |
+| 9 | Kapı/erişim türü | **B** — açılmaz; rota notunda kalır |
+| 10 | Hava eşikleri | **A** — şimdilik kabul; deneme sürüşlerinden sonra gözden geçirilecek |
+| 11 | Ticari kullanım | **B** — ücretli plan / kendi sunucu seçenekleri bir gece işi olarak araştırılacak |
+
+Not (7B ile 1A birlikte): Nemrut rotası güneye taşınınca kuzeydeki iki toprak kesim artık rota üzerinde olmayacak. İlk tehlike kayıtları,
+yeni güzergâhın OSM yüzey etiketlerine göre çıkarılacak; hepsi `verification.status: doğrulanmalı` olacak.
+
+Uygulama sırası (aynı gece iki ajan aynı veriye yazmayacak):
+1. Gece: rota-uzmani 1A + 4A + 5A (rota geometrisi ve `geometryRevision`); hava-durumu 11B araştırması.
+2. Gece: fotograf-noktalari 2A + 6A ve `approachPoint` yeniden hesabı; guvenlik-ve-yakin-cevre 7B + 8A.
+
+---
+
+## Karar sırasında sunulan seçenekler
+
+Ajanlar bu kararlar verilene kadar ilgili verilere dokunmadı.
 
 **Nasıl cevaplanır:** Sohbete yalnızca numara ve harfi yazmanız yeterli, örneğin `1A 2A 3B 4A 5A 6A 7B 8A 9A 10A 11A`.
 Her karar için önerim **(önerilen)** diye işaretli. "Hepsi önerilen gibi" yazarsanız önerilenlerin hepsi uygulanır.
