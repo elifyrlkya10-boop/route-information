@@ -94,20 +94,24 @@ Route     { id, regionId, name{lang}, description{lang}, lengthKm,
             start{name, lat, lon}, end{name, lat, lon},
             path: GeoJSON LineString ([lon,lat]),
             pathFull?: GeoJSON LineString (sadeleştirilmemiş OSRM geometrisi; uzunluğu lengthKm ile ±%2; map-data.js'e taşınmaz),
+            geometryRevision{ date, pathSha256, pathFullSha256 | null },
             verification{ status: doğrulanmalı|doğrulandı, notes } }
 Hazard    { id, routeId, type: gravel|roadwork|steep_grade|sharp_curve, location{lat, lon},
-            note{lang; en zorunlu}, reportedBy, reportedAt, isSample }
+            note{lang; en zorunlu}, reportedBy, reportedAt, isSample,
+            source?{kind: osm|user|field, ref, tag?}, verification?{status, checkedAt?, notes?},
+            extent?{fromKm, toKm, geometry, line?, geometryRevision?} }
 Poi       { id: "osm:<type>/<id>", type: fuel|market|gear_shop, location{lat, lon}, name?, distanceM }
 PhotoSpot { id, routeId, location{lat, lon}, title{lang}, description{lang},
             safeStop: bool, safeStopInfo{lang}, notifyRadiusM,
-            approachPoint{lat, lon}, detourKm, verification{ status, notes } }
+            approachPoint{lat, lon}, detourKm, detourRoadKm?, reachableFromRoute?,
+            geometryRevision (rotadakinin kopyası), verification{ status, notes } }
 ChecklistItem { id, order, text{lang}, spokenText{lang}, conditional?: { key, before } }
 ```
 
 **Rota id kuralı:** `<ülke>-<bölge>-<nn>` (ör. `tr-karadeniz-01`, `tr-ic-anadolu-01`). Bölge adları: marmara, ege, akdeniz,
 ic-anadolu, karadeniz, dogu-anadolu, guneydogu-anadolu. Tehlike ve fotoğraf noktaları rotalara bu id ile bağlanır; id'ler değiştirilmez.
 
-**Veri dosyaları:** `data/routes.json`, `data/photo-spots.json`, `data/hazards.schema.json` (tehlike verisi henüz yok; uydurma veri eklenmez,
+**Veri dosyaları:** `data/routes.json`, `data/photo-spots.json`, `data/hazards.json` (şu an boş; etiketsiz yüzey tehlike sayılmaz), `data/hazards.schema.json` (tehlike verisi henüz yok; uydurma veri eklenmez,
 örnek veri `isSample: true` ile işaretlenir). Koordinatlar `scripts/verify_coordinates.py` ile OpenStreetMap'e karşı kontrol edilir (rapor: `scripts/verify_report.json`).
 2026-11-01 durumu: 7 rotanın 6'sı ve 12 fotoğraf noktasının 11'i **doğrulandı**. Hâlâ **doğrulanmalı** olanlar:
 Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara noktası (OSM'de karşılığı yok).
@@ -120,20 +124,27 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
   ürüne geçmeden önce kendi karo sunucusu ya da sağlayıcı gerekir.
 - `lengthKm` yol uzunluğudur (OSRM); `path` sadeleştirilmiş çizgidir ve %3–17,5 daha kısadır. Mesafe, varış saati, rota dışı ve
   tehlike hesapları `pathFull ?? path` kullanır; yalnızca `path` olan rotada (şu an Kemaliye) sonuç yaklaşıktır (`routeApproximate: true`).
-  Harita sadeleştirilmiş `path`'i çizer.
+  Harita sadeleştirilmiş `path`'i çizer. `path` yöntemi: `pathFull` üzerinde Douglas-Peucker, 200 m tolerans.
+- `geometryRevision`: karma = `coordinates` dizisinin `json.dumps(separators=(",",":"))` UTF-8 metninin SHA-256'sı (JS `JSON.stringify` ile aynı);
+  hesap `scripts/geometry_revision.py`. Fotoğraf noktaları kopyasını taşır; uyuşmazsa nokta `stale` olur ve bildirilmez.
+  Rota çizgisi değişince sıra: `reroute_routes.py --write` → `geometry_revision.py --write` → `build_map_data.py` → `compute_photo_approach.py --osrm`.
   Ortak kural `routeLine(route)` (`prototype/hazards.js`): çizgi `pathFull ?? path`, `scale` = çizgi mesafesini yol mesafesine çeviren çarpan
   (pathFull için 1; yalnız path varsa lengthKm / çizgi uzunluğu). Bozuk `pathFull` hata verir, sessizce `path`'e düşülmez.
 - Rota yönü: `prototype/route-geometry.js` `routeBearings` — 200 m mesafe penceresi, 50 m adım, uzunlukla ağırlıklı vektör toplamı;
   R < 0,7 ise "yön değişken" (viraj/firkete). 0,7 eşiği proje varsayımıdır. Yan rüzgâr değerlendirmesi henüz yok.
 - Fotoğraf noktası bildirimi rota üzerindeki `approachPoint` çevresinde `notifyRadiusM` ile tetiklenir; `detourKm` rotadan noktaya kuş uçuşu
   mesafedir (gerçek yol mesafesi değil). Değerler `scripts/compute_photo_approach.py` ile `data/routes.json`'dan hesaplanır; rota çizgisi değişirse betik yeniden çalıştırılır.
+- Fotoğraf noktası `approachPoint`: noktaya giden yolun rotaya katıldığı kavşak (OSRM); `detourRoadKm` tek yön yol mesafesidir ve sesli bildirim bunu söyler,
+  `detourKm` kuş uçuşudur. Nokta çizgiden 50 m'den uzaksa `detached`, `reachableFromRoute: false` ise bildirilmez.
 - Fotoğraf bildirimi: `prototype/photo-alerts.js` (`hazardsAheadOnRoute` üzerine ince sarmalayıcı; çizgiden 100 m'den uzak düşen noktalar `detached` olarak raporlanır; `toPhotoAnnouncement` ile `kind: 'photo'`). `approachPoint` rota çizgisine izdüşürülür; `aheadM` ≤ `notifyRadiusM` olunca nokta başına bir kez
   tetiklenir, `notifyRadiusM` + 500 m uzaklaşınca yeniden kurulur. `detourKm` ≥ 0,5 ise "rotadan yaklaşık X km sapma" söylenir; `safeStop` false olan nokta önerilmez.
 - Aynı anda gelen bildirimlerde tehlike, fotoğraftan önce okunur (`orderAnnouncements`). Rota boyunca hesaplanan uyarılar "X metre ileride" der.
+- `verification.status: doğrulanmalı` olan tehlikeler temkinli okunur ("olası taşlı yol").
 - Tehlike uyarıları rota boyunca ileriye bakılarak sıralanır (`hazardsAheadOnRoute`, `prototype/hazards.js`); her tehlike en fazla iki kez
   (≈1 km ön uyarı, ≈300 m yakın uyarı) sesli okunur. "doğrulanmalı" rotalarda sonuç `routeApproximate: true` taşır ve mesafeler yaklaşıktır.
 - Hava durumu: `prototype/weather.js`, Open-Meteo Forecast API (anahtarsız). Veri lisansı CC BY 4.0; arayüzde "Weather data by Open-Meteo.com"
   atfı gösterilmelidir. Ücretsiz API yalnızca ticari olmayan kullanım içindir ve istek sınırı vardır; önbellek gerekir.
+  Ticari kullanım ve karo seçenekleri: [docs/arastirma/ticari-kullanim.md](arastirma/ticari-kullanim.md) (OSM karo sunucusunda çevrimdışı kullanım yasaktır).
   Sürüş değerlendirmesi: uygun / dikkat / önerilmez. Eşikler modüldeki `THRESHOLDS` sabitindedir ve çoğu **proje varsayımıdır** (gözden geçirilmeli).
 - Koşullu ekipman maddeleri: yağmur beklenirse (rota üzerindeki herhangi bir örnek noktada, sürücünün varış saatinde yağış ≥ 0,2 mm/sa,
   yağış olasılığı ≥ %40 ya da yağışlı hava kodu) kontrol listesi `checklist.html?ek=yagmur` ile açılır; `?ek=-yagmur` maddeyi kaldırır.

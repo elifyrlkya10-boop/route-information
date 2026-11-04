@@ -57,6 +57,10 @@ Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
 - Beklenen aylık kullanıcı sayısı?
 (Bu sorunun harfli seçeneği yok; kısaca yazmanız yeterli.)
 
+**17. Nemrut'ta Cendere varyantı.** Karar 1A ile rota Narince–Karadut'tan gidiyor. Alternatif: Kâhta → Cendere Köprüsü → Eski Kâhta (Arsameia) → ziyaretçi merkezi (~39 km); Cendere ve Arsameia rotaya girer ama Karadut'tan geçilmez.
+- **A** — Şu anki Karadut güzergâhı kalsın. **(önerilen: karar 1A böyleydi; değişiklik bağlı verilerin yeniden hesaplanmasını gerektirir)**
+- **B** — Cendere varyantına geçilsin (bu durumda 12 kendiliğinden çözülür).
+
 ---
 
 ## Karar sırasında sunulan seçenekler

@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 6 | 33.0 | 5.5 | 17.7 | 666.095 |
+| rota-uzmani | 8 | 47.9 | 6.0 | 17.7 | 1.042.210 |
 | ekipman-asistani | 5 | 9.2 | 1.8 | 2.8 | 439.865 |
-| guvenlik-ve-yakin-cevre | 5 | 9.5 | 1.9 | 3.1 | 490.871 |
-| fotograf-noktalari | 5 | 14.2 | 2.8 | 5.7 | 510.552 |
-| hava-durumu | 3 | 9.6 | 3.2 | 3.9 | 280.326 |
-| **Toplam** | **24** | **75.6** | | | **2.387.709** |
+| guvenlik-ve-yakin-cevre | 6 | 13.3 | 2.2 | 3.8 | 597.711 |
+| fotograf-noktalari | 6 | 26.3 | 4.4 | 12.1 | 695.837 |
+| hava-durumu | 4 | 15.0 | 3.7 | 5.4 | 394.450 |
+| **Toplam** | **29** | **111.7** | | | **3.170.073** |
 
 ### 44. hafta: 26 Ekim – 1 Kasım 2026
 
@@ -33,17 +33,22 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 7 | 37.8 | 5.4 | 17.7 | 741.541 |
+| rota-uzmani | 9 | 52.7 | 5.9 | 17.7 | 1.117.656 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
-| guvenlik-ve-yakin-cevre | 6 | 11.5 | 1.9 | 3.1 | 552.849 |
-| fotograf-noktalari | 6 | 15.8 | 2.6 | 5.7 | 565.098 |
-| hava-durumu | 3 | 9.6 | 3.2 | 3.9 | 280.326 |
-| **Toplam** | **28** | **85.5** | | | **2.638.785** |
+| guvenlik-ve-yakin-cevre | 7 | 15.3 | 2.2 | 3.8 | 659.689 |
+| fotograf-noktalari | 7 | 27.9 | 4.0 | 12.1 | 750.383 |
+| hava-durumu | 4 | 15.0 | 3.7 | 5.4 | 394.450 |
+| **Toplam** | **33** | **121.7** | | | **3.421.149** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-05 | 02:46:34 | 02:47:13 | rota-uzmani | 0.7 | tamamlandi | Aşama 3: diğer ajanların notlarına cevap (dosya değişmedi) |
+| 2026-11-05 | 02:33:18 | 02:45:23 | fotograf-noktalari | 12.1 | tamamlandi | Karar 2A/6A: approachPoint gerçek kavşaklara, detourRoadKm, geometryRevision kopyası |
+| 2026-11-05 | 02:32:39 | 02:36:28 | guvenlik-ve-yakin-cevre | 3.8 | tamamlandi | Karar 7B/8A: tehlike şemasına source/verification/extent, temkinli okuma |
+| 2026-11-05 | 02:32:35 | 02:37:56 | hava-durumu | 5.4 | tamamlandi | Yön testleri yeni geometriye uyarlandı, karar 11B ticari kullanım araştırması |
+| 2026-11-05 | 02:17:28 | 02:31:41 | rota-uzmani | 14.2 | tamamlandi | Karar 1A/4A/5A: Nemrut güney yaklaşımı, Bozdağ düzeltmesi, geometryRevision |
 | 2026-11-04 | 02:43:42 | 02:45:17 | rota-uzmani | 1.6 | tamamlandi | Aşama 3: yön oranları, Nemrut toprak kesim tablosu, geometryRevision tanımı (dosya değişmedi) |
 | 2026-11-04 | 02:43:10 | 02:43:30 | guvenlik-ve-yakin-cevre | 0.3 | tamamlandi | Aşama 3: hata metni önerisine cevap (dosya değişmedi) |
 | 2026-11-04 | 02:39:14 | 02:42:36 | fotograf-noktalari | 3.4 | tamamlandi | Fotoğraf bildirimi: ortak routeLine, ince sarmalayıcı, toPhotoAnnouncement |
