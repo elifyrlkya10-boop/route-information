@@ -23,9 +23,13 @@ Kullanıcının cevabı: "11 hariç hepsini önerdiklerin olsun". Buna göre:
 Not (7B ile 1A birlikte): Nemrut rotası güneye taşınınca kuzeydeki iki toprak kesim artık rota üzerinde olmayacak. İlk tehlike kayıtları,
 yeni güzergâhın OSM yüzey etiketlerine göre çıkarılacak; hepsi `verification.status: doğrulanmalı` olacak.
 
-Uygulama sırası (aynı gece iki ajan aynı veriye yazmayacak):
-1. Gece: rota-uzmani 1A + 4A + 5A (rota geometrisi ve `geometryRevision`); hava-durumu 11B araştırması.
-2. Gece: fotograf-noktalari 2A + 6A ve `approachPoint` yeniden hesabı; guvenlik-ve-yakin-cevre 7B + 8A.
+Uygulama sırası (aynı dosyaya iki ajan yazmayacak):
+- 5 Kasım gecesi, Aşama 1: rota-uzmani 1A + 4A + 5A (rota geometrisi ve `geometryRevision`).
+- 5 Kasım gecesi, Aşama 2 (rota-uzmani bittikten sonra): fotograf-noktalari 2A + 6A ve `approachPoint` yeniden hesabı;
+  guvenlik-ve-yakin-cevre 7B + 8A; hava-durumu 11B araştırması.
+- Değişiklik notu (koordinatör, 5 Kasım): ilk planda fotoğraf ve güvenlik işleri bir sonraki geceye bırakılmıştı. Ancak rota
+  geometrisi değişince fotoğraf testleri (`approachPoint` çizgiye < 5 m) yeniden hesap yapılmadan kırmızı kalır ve commit edilemez.
+  Bu yüzden ikisi aynı gecenin Aşama 2'sine alındı; sıralı çalıştıkları için aynı dosyaya aynı anda yazılmıyor.
 
 ---
 
