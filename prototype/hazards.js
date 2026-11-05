@@ -378,8 +378,27 @@ export function isHazardUnverified(hazard) {
   return hazard?.verification?.status === HAZARD_STATUS_UNVERIFIED;
 }
 
+/** geometryRevision'da karşılaştırılan alanlar (date bilgi amaçlıdır, karşılaştırılmaz). */
+const REVISION_HASH_KEYS = ['pathSha256', 'pathFullSha256'];
+
 /**
- * extent.geometryRevision'ı rotanın geometryRevision'ıyla karşılaştırır (karma eşitliği; date karşılaştırılmaz).
+ * İki geometryRevision nesnesi aynı rota çizgisini mi gösteriyor? Tek eskime kuralı (tehlike extent'i ve
+ * fotoğraf noktaları için ortak).
+ * - Alan alan katı eşitlik: pathSha256 ve pathFullSha256. null === null eşittir (pathFull olmayan rota, ör. Kemaliye).
+ * - date karşılaştırılmaz: scripts/geometry_revision.py date'i yalnızca karma değişince günceller; karmalar aynıysa
+ *   çizgi aynıdır.
+ * - Geriye uyum: pathFullSha256 alanı hiç yoksa null sayılır (önceki extentRevisionStatus davranışı).
+ * - İki taraftan biri nesne değilse ya da pathSha256 metin değilse false (bozuk/boş kopya "aynı" sayılmaz).
+ * @returns {boolean}
+ */
+export function sameGeometryRevision(a, b) {
+  if (!isObj(a) || !isObj(b)) return false;
+  if (typeof a.pathSha256 !== 'string' || typeof b.pathSha256 !== 'string') return false;
+  return REVISION_HASH_KEYS.every((k) => (a[k] ?? null) === (b[k] ?? null));
+}
+
+/**
+ * extent.geometryRevision'ı rotanın geometryRevision'ıyla karşılaştırır (sameGeometryRevision; date karşılaştırılmaz).
  * 'none': extent ya da kopyası yok, ya da rotada geometryRevision yok (eskime anlaşılamaz);
  * 'current': iki karma da eşit; 'stale': rota çizgisi değişmiş, fromKm/toKm/line yeniden hesaplanmalı.
  * @returns {'none'|'current'|'stale'}
@@ -388,7 +407,7 @@ export function extentRevisionStatus(hazard, route) {
   const a = hazard?.extent?.geometryRevision;
   const b = route?.geometryRevision;
   if (!isObj(a) || !isObj(b)) return 'none';
-  return a.pathSha256 === b.pathSha256 && (a.pathFullSha256 ?? null) === (b.pathFullSha256 ?? null) ? 'current' : 'stale';
+  return sameGeometryRevision(a, b) ? 'current' : 'stale';
 }
 
 /**

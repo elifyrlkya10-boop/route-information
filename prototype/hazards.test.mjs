@@ -10,6 +10,7 @@ import {
   projectOnRoute, routeLengthMeters, hazardsAheadOnRoute, createAlertTracker,
   routeLine, defaultHazardFilter, orderAnnouncements, SKIP_REASONS,
   SOURCE_KINDS, VERIFICATION_STATUSES, HAZARD_STATUS_UNVERIFIED, isHazardUnverified, extentRevisionStatus,
+  sameGeometryRevision,
 } from './hazards.js';
 
 let passed = 0;
@@ -645,6 +646,39 @@ test('extentRevisionStatus: rotanın geometryRevision karmasıyla eskime kontrol
   const k = ROUTES.find((x) => x.pathFull == null);
   assert.equal(k.geometryRevision.pathFullSha256, null);
   assert.equal(extentRevisionStatus(h({ ...k.geometryRevision }), k), 'current');
+});
+
+test('sameGeometryRevision: alan alan karma eşitliği, null === null, date karşılaştırılmaz (gerçek routes.json)', () => {
+  const r = ROUTES.find((x) => x.pathFull != null);
+  const k = ROUTES.find((x) => x.pathFull == null); // Kemaliye: pathFullSha256 null
+  const rev = r.geometryRevision;
+  assert.equal(sameGeometryRevision(rev, { ...rev }), true);
+  assert.equal(sameGeometryRevision({ ...rev, date: '2030-01-01' }, rev), true, 'date karşılaştırılmaz');
+  assert.equal(sameGeometryRevision({ ...rev, pathSha256: 'f'.repeat(64) }, rev), false);
+  assert.equal(sameGeometryRevision({ ...rev, pathFullSha256: 'f'.repeat(64) }, rev), false);
+  assert.equal(sameGeometryRevision({ ...rev, pathFullSha256: null }, rev), false, 'null ile karma eşit değil');
+  assert.equal(k.geometryRevision.pathFullSha256, null);
+  assert.equal(sameGeometryRevision({ ...k.geometryRevision }, k.geometryRevision), true, 'null === null');
+  assert.equal(sameGeometryRevision(k.geometryRevision, rev), false, 'farklı rotalar');
+  // Geriye uyum: pathFullSha256 alanı yoksa null sayılır.
+  const { pathFullSha256: _p, ...eksik } = k.geometryRevision;
+  assert.equal(sameGeometryRevision(eksik, k.geometryRevision), true);
+  // Simetrik
+  for (const [a, b] of [[rev, { ...rev, date: '2030-01-01' }], [rev, k.geometryRevision], [eksik, k.geometryRevision]]) {
+    assert.equal(sameGeometryRevision(a, b), sameGeometryRevision(b, a));
+  }
+  // Nesne olmayan ya da bozuk girdiler false (hata fırlatmaz).
+  for (const bad of [null, undefined, 'x', 1, [], [rev]]) {
+    assert.equal(sameGeometryRevision(bad, rev), false, String(bad));
+    assert.equal(sameGeometryRevision(rev, bad), false, String(bad));
+  }
+  assert.equal(sameGeometryRevision({}, {}), false, 'boş kopya aynı sayılmaz');
+  assert.equal(sameGeometryRevision({ pathSha256: 1 }, { pathSha256: 1 }), false);
+  // extentRevisionStatus aynı kuralı kullanır.
+  const h = (geometryRevision) => ({ extent: { fromKm: 0, toKm: 1, geometry: 'pathFull', geometryRevision } });
+  for (const cand of [{ ...rev }, { ...rev, date: '2030-01-01' }, { ...rev, pathSha256: 'f'.repeat(64) }, k.geometryRevision]) {
+    assert.equal(extentRevisionStatus(h(cand), r), sameGeometryRevision(cand, rev) ? 'current' : 'stale');
+  }
 });
 
 test('assertLineCoords alan adı öneki: routeLine route.<geometry>.coordinates, projectOnRoute lineCoords', () => {
