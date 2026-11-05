@@ -26,6 +26,14 @@ const SRC_SPOTS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../data/ph
 const STATUS_TR = { "doğrulandı": "Doğrulandı", "doğrulanmalı": "Doğrulanmalı" };
 const STATUS_EN = { "doğrulandı": "Verified", "doğrulanmalı": "Needs verification" };
 const KEMALIYE = SRC_ROUTES.find((r) => r.id === "tr-dogu-anadolu-01");
+// reachableFromRoute: missing field = reachable; only an explicit false is "not reachable".
+const CENDERE_ID = "ps-tr-guneydogu-anadolu-01-01";
+const UNREACHABLE_IDS = SRC_SPOTS.filter((s) => s.reachableFromRoute === false).map((s) => s.id);
+const UNREACHABLE_TXT = { tr: "Bu rotadan erişilmiyor", en: "Not reachable from this route" };
+// detourRoadKm (one way, by road) is shown when present and > 0; page formats with TR comma / EN dot.
+const fmtKm = (x, lang) => { const v = x.toFixed(1); return lang === "tr" ? v.replace(".", ",") : v; };
+const ROAD_TXT = { tr: (km) => `yolla ~${fmtKm(km, "tr")} km`, en: (km) => `~${fmtKm(km, "en")} km by road` };
+const ROAD_WORD = { tr: "yolla ~", en: "km by road" };
 
 const results = [];
 async function step(name, fn) {
@@ -166,6 +174,47 @@ async function step(name, fn) {
       assert.ok(txt.includes(want), `${s.id}: expected status '${want}' in popup`);
       for (const other of Object.values(STATUS_TR)) if (other !== want) assert.ok(!txt.includes(other), `${s.id}: wrong status '${other}'`);
     }
+    await page.evaluate(() => mapApp.map.closePopup());
+  });
+
+  await step("reachableFromRoute: false noktası soluk işaretçi + lejant; pencerede TR/EN ibare ve detourRoadKm", async () => {
+    // Karar 12 (Cendere) henüz cevaplanmadı; veri değişirse bu beklenti de güncellenmeli.
+    assert.deepStrictEqual(UNREACHABLE_IDS, [CENDERE_ID], "unexpected unreachable set: " + UNREACHABLE_IDS);
+    assert.strictEqual(SRC_SPOTS.length - UNREACHABLE_IDS.length, 11);
+    const popupText = (id) => page.evaluate((sid) => {
+      const m = mapApp.spotLayers[sid]; m.openPopup();
+      const el = m.getPopup().getElement();
+      return el && el.isConnected ? el.querySelector(".leaflet-popup-content").textContent : "";
+    }, id);
+    for (const s of SRC_SPOTS) {
+      const unr = s.reachableFromRoute === false;
+      const el = page.locator(`path.photo-spot[data-spot-id="${s.id}"]`);
+      const cls = (await el.getAttribute("class")) || "";
+      assert.strictEqual(cls.includes("unreachable"), unr, `${s.id}: unreachable class ${cls}`);
+      const fo = Number(await el.getAttribute("fill-opacity"));
+      if (unr) assert.ok(fo < 0.5, `${s.id}: should be faded, fill-opacity ${fo}`);
+      else assert.strictEqual(fo, 1, `${s.id}: should not be faded, fill-opacity ${fo}`);
+    }
+    for (const lang of ["tr", "en"]) {
+      await page.locator("#lang-" + lang).click();
+      assert.match(await page.textContent("#legend-unreachable"), lang === "tr" ? /Bu rotadan erişilmeyen/ : /Not reachable from this route/);
+      for (const s of SRC_SPOTS) {
+        const txt = await popupText(s.id);
+        assert.ok(txt.includes(s.title[lang]), `${s.id}/${lang}: popup not rendered: ${txt.slice(0, 60)}`);
+        const has = txt.includes(UNREACHABLE_TXT[lang]);
+        assert.strictEqual(has, s.reachableFromRoute === false, `${s.id}/${lang}: unreachable note shown=${has}`);
+        for (const other of Object.values(UNREACHABLE_TXT)) if (other !== UNREACHABLE_TXT[lang]) assert.ok(!txt.includes(other), `${s.id}/${lang}: wrong-language note`);
+        if (typeof s.detourRoadKm === "number" && s.detourRoadKm > 0) {
+          assert.ok(txt.includes(ROAD_TXT[lang](s.detourRoadKm)), `${s.id}/${lang}: expected '${ROAD_TXT[lang](s.detourRoadKm)}' in: ${txt}`);
+        } else {
+          assert.ok(!txt.includes(ROAD_WORD[lang]), `${s.id}/${lang}: road detour shown without detourRoadKm > 0`);
+        }
+      }
+      await page.evaluate(() => mapApp.map.closePopup());
+    }
+    await page.locator("#lang-tr").click();
+    const c = await popupText(CENDERE_ID);
+    assert.ok(c.includes("yolla ~16,7 km"), "Cendere TR road detour: " + c);
     await page.evaluate(() => mapApp.map.closePopup());
   });
 

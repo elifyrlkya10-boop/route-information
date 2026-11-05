@@ -52,6 +52,7 @@
   .leaflet-container a.leaflet-popup-close-button { width: 48px; height: 48px; font-size: 32px; line-height: 44px; }
   .leaflet-popup-content { font-size: 16px; line-height: 1.4; margin: 14px 40px 14px 16px; }
   .leaflet-control-attribution { font-size: 13px; }
+  .leaflet-popup-content .unreachable-note { color: #b3261e; }
   .reset-view { display: block; width: var(--tap); height: var(--tap); font-size: 26px; line-height: var(--tap);
                 text-align: center; background: #fff; color: #222; cursor: pointer; border: 0; padding: 0; }
   @media (min-width: 900px) {
@@ -94,6 +95,8 @@ const UI = {
     diff: { easy: "Kolay", moderate: "Orta", hard: "Zor" },
     st: { "doğrulandı": "Doğrulandı", "doğrulanmalı": "Doğrulanmalı" },
     legendOk: "Doğrulandı", legendWarn: "Doğrulanmalı (kesikli)", legendSpot: "Fotoğraf noktası",
+    legendUnreachable: "Bu rotadan erişilmeyen nokta (soluk)",
+    unreachable: "Bu rotadan erişilmiyor", detourRoad: (km) => `Sapma: yolla ~${km} km (tek yön)`,
     safeStop: "Güvenli durma", photoSpots: "Fotoğraf noktaları",
     allRoutes: "Tüm rotaları göster",
     noLeaflet: "Harita kütüphanesi (Leaflet) yüklenemedi. İnternet bağlantısını kontrol edin.",
@@ -107,6 +110,8 @@ const UI = {
     diff: { easy: "Easy", moderate: "Moderate", hard: "Hard" },
     st: { "doğrulandı": "Verified", "doğrulanmalı": "Needs verification" },
     legendOk: "Verified", legendWarn: "Needs verification (dashed)", legendSpot: "Photo spot",
+    legendUnreachable: "Not reachable from this route (faded)",
+    unreachable: "Not reachable from this route", detourRoad: (km) => `Detour: ~${km} km by road (one way)`,
     safeStop: "Safe stop", photoSpots: "Photo spots",
     allRoutes: "Show all routes",
     noLeaflet: "The map library (Leaflet) could not be loaded. Check your internet connection.",
@@ -123,6 +128,11 @@ const t = (k) => UI[lang][k];
 const tx = (obj) => (obj && (obj[lang] || obj.en || obj.tr)) || "";
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const isUnverified = (v) => !v || v.status !== "doğrulandı";
+// A spot is reachable unless the data says reachableFromRoute: false (missing field = reachable).
+const isUnreachable = (s) => s && s.reachableFromRoute === false;
+// detourRoadKm is one-way road distance; shown only when present and > 0 (0 = on the route).
+const hasRoadDetour = (s) => s && typeof s.detourRoadKm === "number" && s.detourRoadKm > 0;
+const fmtKm = (x) => { const v = x.toFixed(1); return lang === "tr" ? v.replace(".", ",") : v; };
 const statusLabel = (v) => UI[lang].st[v && v.status] || (v && v.status) || UI[lang].st[UNVERIFIED];
 
 const app = { lang: () => lang, selected: null, routeLayers: {}, spotLayers: {}, map: null };
@@ -168,11 +178,13 @@ function init() {
 
   D.photoSpots.forEach((s) => {
     const unv = isUnverified(s.verification);
+    const unr = isUnreachable(s);
     const route = D.routes.find((r) => r.id === s.routeId);
     const m = L.circleMarker([s.location.lat, s.location.lon], {
       radius: 11, weight: 4, color: unv ? "#ffb020" : "#fff", fillColor: (route && route._color) || "#888",
-      fillOpacity: 1, dashArray: unv ? "4 4" : null,
-      className: "photo-spot" + (unv ? " unverified" : " verified"),
+      // Unreachable spots are faded (dashes already mean "needs verification").
+      fillOpacity: unr ? 0.25 : 1, opacity: unr ? 0.5 : 1, dashArray: unv ? "4 4" : null,
+      className: "photo-spot" + (unv ? " unverified" : " verified") + (unr ? " unreachable" : ""),
     }).addTo(map);
     m.getElement().setAttribute("data-spot-id", s.id);
     m.bindPopup(() => spotPopup(s));
@@ -200,6 +212,8 @@ function init() {
 function spotPopup(s) {
   const unv = isUnverified(s.verification);
   return `<strong>${esc(tx(s.title))}</strong><br>${esc(tx(s.description))}` +
+    (isUnreachable(s) ? `<br><strong class="unreachable-note">${esc(t("unreachable"))}</strong>` : "") +
+    (hasRoadDetour(s) ? `<br><span class="road-detour">${esc(t("detourRoad")(fmtKm(s.detourRoadKm)))}</span>` : "") +
     (s.safeStop ? `<br><em>${esc(t("safeStop"))}:</em> ${esc(tx(s.safeStopInfo))}` : "") +
     `<br><span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(s.verification))}</span>`;
 }
@@ -221,7 +235,8 @@ function renderText() {
   document.getElementById("legend").innerHTML =
     `<span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#ccc" stroke-width="5"/></svg>${esc(t("legendOk"))}</span>` +
     `<span><svg width="36" height="10"><line x1="0" y1="5" x2="36" y2="5" stroke="#ccc" stroke-width="5" stroke-dasharray="8 6"/></svg>${esc(t("legendWarn"))}</span>` +
-    `<span><svg width="22" height="22"><circle cx="11" cy="11" r="8" fill="#888" stroke="#fff" stroke-width="3"/></svg>${esc(t("legendSpot"))}</span>`;
+    `<span><svg width="22" height="22"><circle cx="11" cy="11" r="8" fill="#888" stroke="#fff" stroke-width="3"/></svg>${esc(t("legendSpot"))}</span>` +
+    `<span id="legend-unreachable"><svg width="22" height="22"><circle cx="11" cy="11" r="8" fill="#888" fill-opacity="0.25" stroke="#fff" stroke-opacity="0.5" stroke-width="3"/></svg>${esc(t("legendUnreachable"))}</span>`;
 
   const list = document.getElementById("list");
   list.innerHTML = "";
