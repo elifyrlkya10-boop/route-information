@@ -126,7 +126,9 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
   tehlike hesapları `pathFull ?? path` kullanır; yalnızca `path` olan rotada (şu an Kemaliye) sonuç yaklaşıktır (`routeApproximate: true`).
   Harita sadeleştirilmiş `path`'i çizer. `path` yöntemi: `pathFull` üzerinde Douglas-Peucker, 200 m tolerans.
 - `geometryRevision`: karma = `coordinates` dizisinin `json.dumps(separators=(",",":"))` UTF-8 metninin SHA-256'sı (JS `JSON.stringify` ile aynı);
-  hesap `scripts/geometry_revision.py`. Fotoğraf noktaları kopyasını taşır; uyuşmazsa nokta `stale` olur ve bildirilmez.
+  hesap `scripts/geometry_revision.py`. Fotoğraf noktaları ve tehlike `extent` kayıtları kopyasını taşır;
+  eşitlik kuralı tek yerde, `sameGeometryRevision` (`prototype/hazards.js`): iki karma karşılaştırılır, `date` karşılaştırılmaz.
+  Uyuşmazsa nokta `stale` olur ve bildirilmez.
   Rota çizgisi değişince sıra: `reroute_routes.py --write` → `geometry_revision.py --write` → `build_map_data.py` → `compute_photo_approach.py --osrm`.
   Ortak kural `routeLine(route)` (`prototype/hazards.js`): çizgi `pathFull ?? path`, `scale` = çizgi mesafesini yol mesafesine çeviren çarpan
   (pathFull için 1; yalnız path varsa lengthKm / çizgi uzunluğu). Bozuk `pathFull` hata verir, sessizce `path`'e düşülmez.
@@ -138,6 +140,7 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
   `detourKm` kuş uçuşudur. Nokta çizgiden 50 m'den uzaksa `detached`, `reachableFromRoute: false` ise bildirilmez.
 - Fotoğraf bildirimi: `prototype/photo-alerts.js` (`hazardsAheadOnRoute` üzerine ince sarmalayıcı; çizgiden 100 m'den uzak düşen noktalar `detached` olarak raporlanır; `toPhotoAnnouncement` ile `kind: 'photo'`). `approachPoint` rota çizgisine izdüşürülür; `aheadM` ≤ `notifyRadiusM` olunca nokta başına bir kez
   tetiklenir, `notifyRadiusM` + 500 m uzaklaşınca yeniden kurulur. `detourKm` ≥ 0,5 ise "rotadan yaklaşık X km sapma" söylenir; `safeStop` false olan nokta önerilmez.
+  Harita, `reachableFromRoute: false` noktayı soluk işaretçi ve "Bu rotadan erişilmiyor" ibaresiyle gösterir; `detourRoadKm` > 0 ise "yolla ~X km (tek yön)" yazar.
 - Aynı anda gelen bildirimlerde tehlike, fotoğraftan önce okunur (`orderAnnouncements`). Rota boyunca hesaplanan uyarılar "X metre ileride" der.
 - `verification.status: doğrulanmalı` olan tehlikeler temkinli okunur ("olası taşlı yol").
 - Tehlike uyarıları rota boyunca ileriye bakılarak sıralanır (`hazardsAheadOnRoute`, `prototype/hazards.js`); her tehlike en fazla iki kez
@@ -145,6 +148,8 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
 - Hava durumu: `prototype/weather.js`, Open-Meteo Forecast API (anahtarsız). Veri lisansı CC BY 4.0; arayüzde "Weather data by Open-Meteo.com"
   atfı gösterilmelidir. Ücretsiz API yalnızca ticari olmayan kullanım içindir ve istek sınırı vardır; önbellek gerekir.
   Ticari kullanım ve karo seçenekleri: [docs/arastirma/ticari-kullanim.md](arastirma/ticari-kullanim.md) (OSM karo sunucusunda çevrimdışı kullanım yasaktır).
+  Yan/karşı rüzgâr: `wind_direction_10m` + `routeBearings`; `crosswindKmh` / `headwindKmh` (+ karşı, − arka) yalnız bilgi alanıdır, sürüş seviyesini
+  etkilemez; yön değişken (R < 0,7) noktalarda hesaplanmaz. Yan rüzgâr eşiği kullanıcı onayı bekliyor (docs/kararlar.md, 18).
   Sürüş değerlendirmesi: uygun / dikkat / önerilmez. Eşikler modüldeki `THRESHOLDS` sabitindedir ve çoğu **proje varsayımıdır** (gözden geçirilmeli).
 - Koşullu ekipman maddeleri: yağmur beklenirse (rota üzerindeki herhangi bir örnek noktada, sürücünün varış saatinde yağış ≥ 0,2 mm/sa,
   yağış olasılığı ≥ %40 ya da yağışlı hava kodu) kontrol listesi `checklist.html?ek=yagmur` ile açılır; `?ek=-yagmur` maddeyi kaldırır.
