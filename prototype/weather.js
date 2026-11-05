@@ -4,11 +4,13 @@
 // Lisans/atıf: Open-Meteo verisi CC BY 4.0 — arayüzde "Weather data by Open-Meteo.com" (bağlantılı) atfı gösterilmeli.
 // Ücretsiz API ticari olmayan kullanım içindir (günlük/saatlik istek sınırı var); ticari kullanım için Open-Meteo aboneliği gerekir.
 // Bu modül hiçbir hava verisi içermez; veri dışarıdan (API ya da test örneği) gelir.
+import { routeBearings, DEFAULT_BEARING_WINDOW_M } from './route-geometry.js';
 
 export const OPEN_METEO_ENDPOINT = 'https://api.open-meteo.com/v1/forecast';
 export const HOURLY_VARS = Object.freeze([
   'temperature_2m', 'precipitation', 'precipitation_probability',
   'wind_speed_10m', 'wind_gusts_10m', 'visibility', 'weather_code',
+  'wind_direction_10m', // derece, rüzgârın GELDİĞİ yön (meteorolojik); yalnız yan/karşı rüzgâr bilgi alanları için
 ]);
 export const LEVELS = Object.freeze(['uygun', 'dikkat', 'önerilmez']);
 export const DEFAULT_SPEED_KMH = 40;   // varsayım: virajlı dağ yolunda ortalama hız
@@ -126,6 +128,68 @@ export function sampleRoutePoints(route, n = DEFAULT_SAMPLE_COUNT, { geometry: g
   return out;
 }
 
+// ---- Rüzgâr bileşenleri (yalnızca BİLGİ; sürüş seviyesine etki etmez — yan rüzgâr eşiği kullanıcı onayı bekliyor) ----
+/**
+ * Rüzgârın rota yönüne göre bileşenleri.
+ * @param {number} speedKmh rüzgâr hızı (10 m)
+ * @param {number} fromDeg rüzgârın geldiği yön (meteorolojik, 0 = kuzeyden)
+ * @param {number} bearingDeg sürüş yönü (pusula, 0 = kuzeye)
+ * @returns {{crosswindKmh:number, crosswindSide:'right'|'left'|null, headwindKmh:number}|null}
+ *   crosswindKmh: yan bileşenin büyüklüğü (≥ 0). crosswindSide: rüzgârın sürücünün hangi yanından geldiği (≈0 ise null).
+ *   headwindKmh: + karşı rüzgâr, − arka rüzgâr.
+ */
+export function windComponents(speedKmh, fromDeg, bearingDeg) {
+  if (![speedKmh, fromDeg, bearingDeg].every(isNum)) return null;
+  const a = ((fromDeg - bearingDeg) * Math.PI) / 180;
+  const cross = speedKmh * Math.sin(a);
+  const head = speedKmh * Math.cos(a);
+  const tidy = (x) => (Math.abs(x) < 1e-9 ? 0 : x);
+  return {
+    crosswindKmh: tidy(Math.abs(cross)),
+    crosswindSide: Math.abs(cross) < 1e-9 ? null : cross > 0 ? 'right' : 'left',
+    headwindKmh: tidy(head),
+  };
+}
+
+/**
+ * Örnek noktaların her birine rota yönü ve rüzgâr bileşenlerini ekler (yeni dizi döner; girdi değişmez).
+ * Yön: route-geometry.js routeBearings (aynı çizgi: points[0].geometry; 200 m pencere), merkezi noktaya en yakın pencere.
+ * Yön değişken (R < 0,7; viraj/firkete) ya da tanımsızsa crosswindKmh/headwindKmh/crosswindSide null, bearingVariable true.
+ * Rüzgâr hızı ya da yönü yoksa bileşenler null (bearingVariable yine geometriden gelir).
+ * Eklenen alanlar: bearingDeg, bearingR, bearingVariable, crosswindKmh, crosswindSide, headwindKmh.
+ */
+export function addWindComponents(route, points, { windowM = DEFAULT_BEARING_WINDOW_M } = {}) {
+  if (!Array.isArray(points) || points.length === 0) return [];
+  const { geometry, pts } = routeLine(route, points[0].geometry ?? 'auto');
+  const coords = pts.map((p) => [p.lon, p.lat]);
+  const cum = cumulativeKm(pts);
+  const scale = distanceScaleFor(route, geometry, cum[cum.length - 1]);
+  const bearings = routeBearings(coords, { windowM });
+  const half = Math.min(windowM, cum[cum.length - 1] * 1000) / 2;
+  const at = (lineM) => {
+    // pencereler sM = 0, 50, 100 ... (adım sabit) → merkezi lineM'e en yakın olanı ikili aramayla bul
+    let lo = 0, hi = bearings.length - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (bearings[mid].sM + half < lineM) lo = mid + 1; else hi = mid; }
+    if (lo > 0 && Math.abs(bearings[lo - 1].sM + half - lineM) <= Math.abs(bearings[lo].sM + half - lineM)) lo--;
+    return bearings[lo];
+  };
+  return points.map((p) => {
+    const b = at(((p.distanceKm ?? 0) / scale) * 1000);
+    const variable = b.variable || b.bearingDeg === null;
+    const f = p.forecast;
+    const c = variable ? null : windComponents(f?.wind_speed_10m, f?.wind_direction_10m, b.bearingDeg);
+    return {
+      ...p,
+      bearingDeg: b.bearingDeg,
+      bearingR: b.R,
+      bearingVariable: variable,
+      crosswindKmh: c ? c.crosswindKmh : null,
+      crosswindSide: c ? c.crosswindSide : null,
+      headwindKmh: c ? c.headwindKmh : null,
+    };
+  });
+}
+
 // ---- Open-Meteo ----
 /**
  * Birden çok nokta için tek istek URL'si. Zaman UTC + unix saniye; birimler Open-Meteo varsayılanı
@@ -202,13 +266,14 @@ export async function fetchRouteForecast(route, {
     speedKmh,
     lineLengthKm: lineKm,
     routeKm: samples[samples.length - 1].distanceKm,
-    points: samples.map((p, i) => ({
+    // Her noktada bilgi alanları: bearingDeg, bearingVariable, crosswindKmh, headwindKmh (bkz. addWindComponents).
+    points: addWindComponents(route, samples.map((p, i) => ({
       ...p,
       arrival: new Date(arrivals[i]).toISOString(),
       // Open-Meteo'nun kullandığı arazi yüksekliği (90 m DEM); rota verisinde doğrulanmış rakım yok.
       elevationM: isNum(locations[i]?.elevation) ? locations[i].elevation : null,
       forecast: pickHour(locations[i], arrivals[i]),
-    })),
+    }))),
   };
 }
 

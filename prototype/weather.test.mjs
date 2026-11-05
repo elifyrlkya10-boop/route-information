@@ -6,7 +6,9 @@ import { readFileSync } from 'node:fs';
 import {
   OPEN_METEO_ENDPOINT, HOURLY_VARS, THRESHOLDS, lineLengthKm, sampleRoutePoints, buildForecastUrl, pickHour,
   fetchRouteForecast, assessRide, rainGearNeeded, gearConditions, checklistUrl, buildWeatherAlert,
+  windComponents, addWindComponents,
 } from './weather.js';
+import { routeBearings } from './route-geometry.js';
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
@@ -276,6 +278,95 @@ test('checklistUrl: üç koşul açıkça yazılır (?ek=yagmur,-soguk,sis), sor
   // eski çağrı aynen çalışır
   assert.equal(checklistUrl('checklist.html', true), 'checklist.html?ek=yagmur');
   assert.equal(checklistUrl('checklist.html'), 'checklist.html');
+});
+
+// ---- Yan / karşı rüzgâr (yalnız bilgi alanı). Rüzgâr değerleri ÖRNEKTİR; rota geometrisi gerçek pathFull. ----
+const BEARINGS = routeBearings(ROUTE.pathFull.coordinates);
+// Gerçek pathFull üzerinde düz (R > 0,999) ve değişken (R < 0,7) birer pencere; nokta pencerenin ortasına konur.
+const DUZ = BEARINGS.find((b) => b.R > 0.999 && b.sM > 5000);
+const DEGISKEN = BEARINGS.find((b) => b.variable);
+const noktaPencerede = (b, forecast, index = 1) => ({ ...ornekNokta(forecast, (b.sM + 100) / 1000, index), geometry: 'pathFull' });
+
+test('windComponents: yön kuralı (rüzgârın geldiği yön; + karşı, − arka) — ÖRNEK değerler', () => {
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  let c = windComponents(30, 0, 0); // kuzeye giderken kuzeyden
+  assert.ok(near(c.headwindKmh, 30) && near(c.crosswindKmh, 0) && c.crosswindSide === null);
+  c = windComponents(30, 180, 0); // arkadan
+  assert.ok(near(c.headwindKmh, -30) && near(c.crosswindKmh, 0));
+  c = windComponents(30, 90, 0); // kuzeye giderken doğudan → sağdan
+  assert.ok(near(c.crosswindKmh, 30) && near(c.headwindKmh, 0) && c.crosswindSide === 'right');
+  c = windComponents(30, 270, 0);
+  assert.equal(c.crosswindSide, 'left');
+  c = windComponents(20, 45, 0);
+  assert.ok(near(c.crosswindKmh, 20 * Math.SQRT1_2) && near(c.headwindKmh, 20 * Math.SQRT1_2));
+  c = windComponents(30, 5, 355); // 359°/1° sarması
+  assert.ok(near(c.crosswindKmh, 30 * Math.sin(Math.PI / 18)) && c.crosswindSide === 'right');
+  assert.equal(windComponents(null, 90, 0), null);
+  assert.equal(windComponents(30, null, 0), null);
+});
+
+test('addWindComponents: gerçek pathFull düz kesimde yola dik 30 km/sa ≈ 30 yan, ≈ 0 karşı (ÖRNEK rüzgâr)', () => {
+  assert.ok(DUZ, 'İç Anadolu pathFull\'da düz pencere olmalı');
+  const dik = (DUZ.bearingDeg + 90) % 360;
+  const [p] = addWindComponents(ROUTE, [noktaPencerede(DUZ, { wind_speed_10m: 30, wind_direction_10m: dik })]);
+  assert.equal(p.bearingVariable, false);
+  assert.ok(Math.abs(p.bearingDeg - DUZ.bearingDeg) < 2, `yön ${p.bearingDeg} ≈ ${DUZ.bearingDeg}`);
+  assert.ok(Math.abs(p.crosswindKmh - 30) < 0.1, `yan ${p.crosswindKmh}`);
+  assert.ok(Math.abs(p.headwindKmh) < 1, `karşı ${p.headwindKmh}`);
+  assert.equal(p.crosswindSide, 'right');
+  const [q] = addWindComponents(ROUTE, [noktaPencerede(DUZ, { wind_speed_10m: 30, wind_direction_10m: DUZ.bearingDeg })]);
+  assert.ok(Math.abs(q.headwindKmh - 30) < 0.1 && q.crosswindKmh < 1, 'önden gelen rüzgâr karşı bileşen');
+  // rüzgâr yönü yoksa bileşen yok ama yön bilgisi var
+  const [r] = addWindComponents(ROUTE, [noktaPencerede(DUZ, { wind_speed_10m: 30 })]);
+  assert.equal(r.bearingVariable, false);
+  assert.equal(r.crosswindKmh, null);
+  assert.equal(r.headwindKmh, null);
+});
+
+test('addWindComponents: değişken kesimde (R < 0,7) bileşenler null, bearingVariable true (ÖRNEK rüzgâr)', () => {
+  assert.ok(DEGISKEN, 'İç Anadolu pathFull\'da değişken pencere olmalı');
+  const [p] = addWindComponents(ROUTE, [noktaPencerede(DEGISKEN, { wind_speed_10m: 30, wind_direction_10m: 90 })]);
+  assert.equal(p.bearingVariable, true);
+  assert.ok(p.bearingR < 0.7);
+  assert.equal(p.crosswindKmh, null);
+  assert.equal(p.headwindKmh, null);
+  assert.equal(p.crosswindSide, null);
+});
+
+test('fetchRouteForecast: wind_direction_10m istenir, her noktada bilgi alanları; yalnız path (Kemaliye) da çalışır (sahte fetch)', async () => {
+  assert.ok(HOURLY_VARS.includes('wind_direction_10m'));
+  const opt = { startTime: Date.parse('2026-11-02T08:00:00Z'), now: ORNEK_BASLANGIC_SAATI, speedKmh: 40, n: 6 };
+  const body = (pts) => ornekOpenMeteoYaniti(pts, { hourValues: () => ({ wind_direction_10m: 90 }) }); // ÖRNEK
+  for (const route of [ROUTE, data.routes.find((r) => !r.pathFull)]) {
+    const f = sahteFetch(body);
+    const r = await fetchRouteForecast(route, { ...opt, fetchImpl: f });
+    assert.ok(new URL(f.calls[0]).searchParams.get('hourly').split(',').includes('wind_direction_10m'));
+    for (const p of r.points) {
+      assert.equal(p.forecast.wind_direction_10m, 90);
+      assert.equal(typeof p.bearingVariable, 'boolean');
+      if (p.bearingVariable) assert.equal(p.crosswindKmh, null);
+      else {
+        assert.ok(p.crosswindKmh >= 0 && p.crosswindKmh <= 10 + 1e-9, `${route.id} nokta ${p.index}`);
+        assert.ok(Math.abs(Math.hypot(p.crosswindKmh, p.headwindKmh) - 10) < 1e-9);
+      }
+    }
+  }
+});
+
+test('assessRide: yan rüzgâr alanları seviyeyi ve gerekçeleri değiştirmez (ÖRNEK değerler)', () => {
+  const durumlar = [
+    {}, { wind_speed_10m: 35 }, { wind_speed_10m: 45 }, { wind_speed_10m: 65, wind_gusts_10m: 80 },
+    { temperature_2m: 2, precipitation: 0.3, weather_code: 61 },
+  ];
+  for (const f of durumlar) {
+    const eski = [noktaPencerede(DUZ, f, 0), noktaPencerede(DEGISKEN, f, 1)];
+    const yeni = addWindComponents(ROUTE, eski.map((p) => ({ ...p, forecast: { ...p.forecast,
+      wind_direction_10m: (DUZ.bearingDeg + 90) % 360 } })));
+    assert.equal(yeni[0].bearingVariable, false);
+    assert.equal(yeni[1].bearingVariable, true);
+    const a = assessRide(eski), b = assessRide(yeni);
+    assert.deepEqual(b, a, JSON.stringify(f));
+  }
 });
 
 let failed = 0;
