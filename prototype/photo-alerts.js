@@ -12,7 +12,8 @@
 //   üzerindedir (< 5 m). spotMaxOffsetM varsayılanı 50 m; bu sınırın dışına düşen nokta sessizce atlanmaz, `detached`
 //   listesinde raporlanır.
 // - Eskime: her nokta, hesaplandığı andaki rota `geometryRevision` nesnesinin kopyasını taşır (karar 5A). Rotadaki
-//   geometryRevision ile eşit değilse (ya da noktada yoksa) nokta bildirilmez, `stale` listesinde raporlanır:
+//   geometryRevision ile eşit değilse (hazards.js > sameGeometryRevision: iki karma karşılaştırılır, date
+//   karşılaştırılmaz; ya da noktada yoksa) nokta bildirilmez, `stale` listesinde raporlanır:
 //   rota çizgisi değişmiş, betik yeniden çalıştırılmalı. Rotada geometryRevision yoksa bu kontrol yapılmaz.
 // - reachableFromRoute === false (karar 2A, "bu rotadan erişilmiyor") olan nokta bildirilmez, `unreachable`'da döner.
 // - Sapma metni: detourRoadKm (gerçek yol mesafesi, tek yön, karar 6A) varsa o, yoksa kuş uçuşu detourKm söylenir.
@@ -21,25 +22,22 @@
 // atlanan kayıt kuralları tek yerde). Menzil süzgeci (notifyRadiusM) sarmalayıcıda uygulanır, çünkü izleyicinin
 // uzaklaşan noktayı yeniden kurabilmesi için yarıçap dışındaki `ahead` listesine de ihtiyaç var.
 
-import { hazardsAheadOnRoute, createAlertTracker } from './hazards.js';
+import { hazardsAheadOnRoute, createAlertTracker, sameGeometryRevision } from './hazards.js';
+
+// Eskime kuralı tek yerde: hazards.js > sameGeometryRevision (pathSha256 + pathFullSha256; date karşılaştırılmaz).
+// Dışa açık API korunur: bu modülden içe aktaran kod (ör. photo-alerts.test.mjs) aynı fonksiyonu alır.
+export { sameGeometryRevision };
 
 export const ROUTE_STATUS_APPROXIMATE = 'doğrulanmalı';
 /** Söylenen sapma (detourRoadKm, yoksa detourKm) bu değer ve üstündeyse sesli metne sapma cümlesi eklenir. */
 export const DETOUR_ANNOUNCE_MIN_KM = 0.5;
 /** approachPoint bildirim çizgisine bundan uzaksa nokta `detached` sayılır (varsayılan). */
 export const SPOT_MAX_OFFSET_M = 50;
-const REVISION_KEYS = ['date', 'pathSha256', 'pathFullSha256'];
 /** `ahead` listesi için "menzil yok" değeri (hazardsAheadOnRoute sonlu sayı ister; Infinity geçersiz sayılır). */
 const NO_LIMIT_M = Number.MAX_VALUE;
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
-
-/** Nokta ile rota geometryRevision'ı aynı mı? (alan sırası sabit: date, pathSha256, pathFullSha256) */
-export function sameGeometryRevision(a, b) {
-  if (!isObj(a) || !isObj(b)) return false;
-  return REVISION_KEYS.every((k) => a[k] === b[k]);
-}
 
 function isUsableSpot(s) {
   return isObj(s) && typeof s.id === 'string' && isObj(s.approachPoint)

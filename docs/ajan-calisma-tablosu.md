@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 8 | 47.9 | 6.0 | 17.7 | 1.042.210 |
+| rota-uzmani | 9 | 49.5 | 5.5 | 17.7 | 1.137.283 |
 | ekipman-asistani | 5 | 9.2 | 1.8 | 2.8 | 439.865 |
-| guvenlik-ve-yakin-cevre | 6 | 13.3 | 2.2 | 3.8 | 597.711 |
-| fotograf-noktalari | 6 | 26.3 | 4.4 | 12.1 | 695.837 |
-| hava-durumu | 4 | 15.0 | 3.7 | 5.4 | 394.450 |
-| **Toplam** | **29** | **111.7** | | | **3.170.073** |
+| guvenlik-ve-yakin-cevre | 7 | 14.9 | 2.1 | 3.8 | 694.531 |
+| fotograf-noktalari | 7 | 27.1 | 3.9 | 12.1 | 778.863 |
+| hava-durumu | 5 | 17.0 | 3.4 | 5.4 | 497.427 |
+| **Toplam** | **33** | **117.7** | | | **3.547.969** |
 
 ### 44. hafta: 26 Ekim – 1 Kasım 2026
 
@@ -33,17 +33,21 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 9 | 52.7 | 5.9 | 17.7 | 1.117.656 |
+| rota-uzmani | 10 | 54.3 | 5.4 | 17.7 | 1.212.729 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
-| guvenlik-ve-yakin-cevre | 7 | 15.3 | 2.2 | 3.8 | 659.689 |
-| fotograf-noktalari | 7 | 27.9 | 4.0 | 12.1 | 750.383 |
-| hava-durumu | 4 | 15.0 | 3.7 | 5.4 | 394.450 |
-| **Toplam** | **33** | **121.7** | | | **3.421.149** |
+| guvenlik-ve-yakin-cevre | 8 | 16.9 | 2.1 | 3.8 | 756.509 |
+| fotograf-noktalari | 8 | 28.7 | 3.6 | 12.1 | 833.409 |
+| hava-durumu | 5 | 17.0 | 3.4 | 5.4 | 497.427 |
+| **Toplam** | **37** | **127.7** | | | **3.799.045** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-06 | 02:20:02 | 02:20:49 | fotograf-noktalari | 0.8 | tamamlandi | Fotoğraf bildirimi ortak eskime kontrolüne bağlandı |
+| 2026-11-06 | 02:18:20 | 02:19:56 | guvenlik-ve-yakin-cevre | 1.6 | tamamlandi | Ortak eskime kontrolü sameGeometryRevision (hazards.js) |
+| 2026-11-06 | 02:17:55 | 02:19:56 | hava-durumu | 2.0 | tamamlandi | Yan/karşı rüzgâr bilgi alanları (sürüş seviyesi değişmedi) |
+| 2026-11-06 | 02:15:24 | 02:17:01 | rota-uzmani | 1.6 | tamamlandi | Haritada erişilmeyen fotoğraf noktasının ayrı gösterimi |
 | 2026-11-05 | 02:46:34 | 02:47:13 | rota-uzmani | 0.7 | tamamlandi | Aşama 3: diğer ajanların notlarına cevap (dosya değişmedi) |
 | 2026-11-05 | 02:33:18 | 02:45:23 | fotograf-noktalari | 12.1 | tamamlandi | Karar 2A/6A: approachPoint gerçek kavşaklara, detourRoadKm, geometryRevision kopyası |
 | 2026-11-05 | 02:32:39 | 02:36:28 | guvenlik-ve-yakin-cevre | 3.8 | tamamlandi | Karar 7B/8A: tehlike şemasına source/verification/extent, temkinli okuma |

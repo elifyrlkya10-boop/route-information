@@ -61,6 +61,10 @@ Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
 - **A** — Şu anki Karadut güzergâhı kalsın. **(önerilen: karar 1A böyleydi; değişiklik bağlı verilerin yeniden hesaplanmasını gerektirir)**
 - **B** — Cendere varyantına geçilsin (bu durumda 12 kendiliğinden çözülür).
 
+**18. Yan rüzgâr uyarısı** (6 Kasım gecesi eklendi; hava-durumu'nun önerisi, proje varsayımı). Yan ve karşı rüzgâr artık hesaplanıyor ama yalnızca bilgi olarak duruyor; sürüş değerlendirmesini etkilemiyor.
+- **A** — Yan rüzgâr ≥ 30 km/sa ya da hamlenin yan bileşeni ≥ 45 km/sa ise "dikkat" verilsin ve sesli uyarıda söylensin ("28. km'de sağdan yan rüzgâr, 32 km/sa"). Deneme sürüşlerinden sonra gözden geçirilsin. **(önerilen)**
+- **B** — Yalnızca bilgi olarak kalsın; uyarı olmasın.
+
 ---
 
 ## Karar sırasında sunulan seçenekler

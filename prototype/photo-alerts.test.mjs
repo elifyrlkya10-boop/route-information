@@ -339,7 +339,7 @@ test('bozuk pathFull: sessizce path\'e düşülmez, hata verilir (ortak routeLin
   for (const pathFull of [{ type: 'Point', coordinates: [29.0, 40.0] }, 'bozuk']) {
     assert.throws(() => photoSpotsAheadOnRoute(d, { ...r, pathFull }, SPOTS), /route\.pathFull/, JSON.stringify(pathFull));
   }
-  // Tek noktalı LineString de reddedilir (hata metni hazards.js'te 'lineCoords: ...').
+  // Tek noktalı LineString de reddedilir (hata metni routeLine'da 'route.pathFull.coordinates: ...').
   assert.throws(() => photoSpotsAheadOnRoute(d, { ...r, pathFull: { type: 'LineString', coordinates: [[29.0, 40.0]] } }, SPOTS), TypeError);
   // Sağlam pathFull'da çizgi kaynağı ve ölçek sonuçta görünür.
   const ok = photoSpotsAheadOnRoute(d, r, SPOTS);

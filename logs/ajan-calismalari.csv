@@ -35,3 +35,4 @@ tarih,baslangic,bitis,ajan,sure_sn,arac_kullanimi,token,durum,is
 2026-11-06,02:15:24,02:17:01,rota-uzmani,96.3,10,95073,tamamlandi,Haritada erişilmeyen fotoğraf noktasının ayrı gösterimi
 2026-11-06,02:18:20,02:19:56,guvenlik-ve-yakin-cevre,96.1,9,96820,tamamlandi,"Ortak eskime kontrolü sameGeometryRevision (hazards.js)"
 2026-11-06,02:17:55,02:19:56,hava-durumu,121.5,12,102977,tamamlandi,"Yan/karşı rüzgâr bilgi alanları (sürüş seviyesi değişmedi)"
+2026-11-06,02:20:02,02:20:49,fotograf-noktalari,47.9,6,83026,tamamlandi,Fotoğraf bildirimi ortak eskime kontrolüne bağlandı
