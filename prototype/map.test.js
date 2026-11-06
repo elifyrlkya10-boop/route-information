@@ -19,7 +19,8 @@ const TILE_HOST = "tile.openstreetmap.org";
 const sandbox = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, "map-data.js"), "utf8"), sandbox);
 const DATA = JSON.parse(JSON.stringify(sandbox.window.MAP_DATA)); // drop cross-realm prototypes
-const SRC_ROUTES = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../data/routes.json"), "utf8")).routes;
+const SRC_DOC = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../data/routes.json"), "utf8"));
+const SRC_ROUTES = SRC_DOC.routes;
 const SRC_SPOTS = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../data/photo-spots.json"), "utf8")).photoSpots;
 
 // Labels the page shows for each source verification status.
@@ -34,6 +35,16 @@ const UNREACHABLE_TXT = { tr: "Bu rotadan erişilmiyor", en: "Not reachable from
 const fmtKm = (x, lang) => { const v = x.toFixed(1); return lang === "tr" ? v.replace(".", ",") : v; };
 const ROAD_TXT = { tr: (km) => `yolla ~${fmtKm(km, "tr")} km`, en: (km) => `~${fmtKm(km, "en")} km by road` };
 const ROAD_WORD = { tr: "yolla ~", en: "km by road" };
+// Expected list structure, derived from data/routes.json: countries (data order) -> regions -> routes.
+const regionOf = (r) => SRC_DOC.regions.find((g) => g.id === r.regionId);
+const countryOf = (r) => SRC_DOC.countries.find((c) => c.code === regionOf(r).countryCode);
+const USED_REGIONS = SRC_DOC.regions.filter((g) => SRC_ROUTES.some((r) => r.regionId === g.id));
+const USED_COUNTRIES = SRC_DOC.countries.filter((c) => USED_REGIONS.some((g) => g.countryCode === c.code));
+// Same fallback rule as the page: UI language, else English, else first language present.
+const pickText = (obj, lang) => { for (const l of [lang, "en", ...Object.keys(obj)]) if (obj[l]) return { text: obj[l], lang: l }; return null; };
+// Routes whose texts have no Turkish (e.g. Greek routes: el + en) must fall back to English in the TR UI.
+const NO_TR_ROUTES = SRC_ROUTES.filter((r) => !r.name.tr);
+const DIFF = { tr: { easy: "Kolay", moderate: "Orta", hard: "Zor" }, en: { easy: "Easy", moderate: "Moderate", hard: "Hard" } };
 
 const results = [];
 async function step(name, fn) {
@@ -61,8 +72,13 @@ async function step(name, fn) {
 
   await page.goto(URL, { waitUntil: "load" });
 
-  await step("map-data.js kaynak JSON ile birebir aynı (7 rota)", async () => {
-    assert.strictEqual(SRC_ROUTES.length, 7);
+  await step(`map-data.js kaynak JSON ile birebir aynı (${SRC_ROUTES.length} rota, ${SRC_DOC.countries.length} ülke, ${SRC_DOC.regions.length} bölge)`, async () => {
+    assert.ok(SRC_ROUTES.length >= 1, "no routes in data/routes.json");
+    assert.strictEqual(DATA.routes.length, SRC_ROUTES.length);
+    assert.deepStrictEqual(DATA.countries, SRC_DOC.countries);
+    assert.deepStrictEqual(DATA.regions, SRC_DOC.regions);
+    // Every route belongs to a known region and country (the list groups by them).
+    for (const r of SRC_ROUTES) assert.ok(regionOf(r) && countryOf(r), r.id + ": unknown region/country");
     // pathFull bilerek map-data.js'e taşınmaz; diğer tüm rota alanları birebir aynı olmalı.
     assert.deepStrictEqual(DATA.routes, SRC_ROUTES.map(({ pathFull, ...r }) => r));
     assert.deepStrictEqual(DATA.photoSpots, SRC_SPOTS);
@@ -74,7 +90,7 @@ async function step(name, fn) {
     assert.strictEqual(await page.locator("#notice").isHidden(), true, "error notice is visible");
   });
 
-  await step("7 rota çizgisi SVG'de çizildi; doğrulanmalı olan kesikli", async () => {
+  await step(`${SRC_ROUTES.length} rota çizgisi SVG'de çizildi, her biri farklı renkte; doğrulanmalı olan kesikli`, async () => {
     assert.strictEqual(await page.locator("path.route-line").count(), SRC_ROUTES.length);
     for (const r of SRC_ROUTES) {
       const el = page.locator(`path.route-line[data-route-id="${r.id}"]`);
@@ -86,6 +102,8 @@ async function step(name, fn) {
       if (r.verification.status === "doğrulanmalı") assert.ok(dash, r.id + " should be dashed");
       else assert.ok(!dash, r.id + " should be solid");
     }
+    const strokes = await page.locator("path.route-line").evaluateAll((els) => els.map((e) => e.getAttribute("stroke")));
+    assert.strictEqual(new Set(strokes).size, SRC_ROUTES.length, "route colours repeat: " + strokes.join(","));
   });
 
   await step(`tüm fotoğraf noktaları (${SRC_SPOTS.length}) çizildi; doğrulanmalı olan farklı`, async () => {
@@ -106,9 +124,21 @@ async function step(name, fn) {
     assert.strictEqual(await attr.locator('a[href="https://www.openstreetmap.org/copyright"]').count(), 1);
   });
 
-  await step("liste bölgelere göre gruplu, her rota için ad/uzunluk/zorluk/sezon/durum", async () => {
-    assert.strictEqual(await page.locator("#list h2").count(), 7);
-    assert.strictEqual(await page.locator("#list .route").count(), 7);
+  await step("liste ülke ve bölgelere göre gruplu, her rota için ad/uzunluk/zorluk/sezon/durum", async () => {
+    assert.strictEqual(await page.locator("#list h2.country").count(), USED_COUNTRIES.length);
+    assert.strictEqual(await page.locator("#list h3.region").count(), USED_REGIONS.length);
+    assert.strictEqual(await page.locator("#list .route").count(), SRC_ROUTES.length);
+    // Document order: country heading -> its region headings -> their routes.
+    const seq = await page.locator("#list > *").evaluateAll((els) => els.map((e) =>
+      e.matches("h2.country") ? ["c", e.dataset.country, e.textContent] : e.matches("h3.region") ? ["g", e.dataset.region, e.textContent] : ["r", e.dataset.routeId]));
+    let curC = null, curG = null;
+    const seenRoutes = [];
+    for (const [kind, id, text] of seq) {
+      if (kind === "c") { curC = id; curG = null; assert.strictEqual(text, pickText(SRC_DOC.countries.find((c) => c.code === id).name, "tr").text); }
+      else if (kind === "g") { curG = id; const g = SRC_DOC.regions.find((x) => x.id === id); assert.strictEqual(g.countryCode, curC, id + " under wrong country"); assert.strictEqual(text, pickText(g.name, "tr").text); }
+      else { const r = SRC_ROUTES.find((x) => x.id === id); assert.strictEqual(r.regionId, curG, id + " under wrong region"); assert.strictEqual(countryOf(r).code, curC, id + " under wrong country"); seenRoutes.push(id); }
+    }
+    assert.deepStrictEqual(seenRoutes.sort(), SRC_ROUTES.map((r) => r.id).sort());
     const b = page.locator('.route[data-route-id="tr-dogu-anadolu-01"]');
     const txt = await b.textContent();
     for (const s of ["Kemaliye Taş Yol", "11.1 km", "Zor", "Mayıs–Ekim", STATUS_TR[KEMALIYE.verification.status]]) assert.ok(txt.includes(s), "missing '" + s + "' in: " + txt);
@@ -128,7 +158,40 @@ async function step(name, fn) {
     assert.ok(sw <= cw, `scrollWidth ${sw} > clientWidth ${cw}`);
   });
 
+  await step("her rota TR ve EN arayüzde doğru dilde; Türkçe metni olmayan rota TR'de İngilizceye düşer (lang=\"en\")", async () => {
+    assert.ok(NO_TR_ROUTES.length >= 1, "expected at least one route without Turkish text (e.g. Greece)");
+    for (const lang of ["tr", "en"]) {
+      await page.locator("#lang-" + lang).click();
+      for (const r of SRC_ROUTES) {
+        const b = page.locator(`.route[data-route-id="${r.id}"]`);
+        const name = pickText(r.name, lang), season = pickText(r.bestSeason, lang);
+        assert.strictEqual(await b.locator(".name").textContent(), name.text, `${r.id}/${lang}: name`);
+        const meta = await b.locator(".meta").textContent();
+        for (const s of [`${r.lengthKm} km`, DIFF[lang][r.difficulty], season.text]) assert.ok(meta.includes(s), `${r.id}/${lang}: missing '${s}' in meta: ${meta}`);
+        // Fallback text carries its own language; text in the UI language does not.
+        const nameLang = await b.locator(".name > span[lang]").evaluateAll((els) => els.map((e) => e.getAttribute("lang")));
+        assert.deepStrictEqual(nameLang, name.lang === lang ? [] : [name.lang], `${r.id}/${lang}: lang attr`);
+      }
+      for (const c of USED_COUNTRIES) assert.strictEqual(await page.textContent(`#list h2.country[data-country="${c.code}"]`), pickText(c.name, lang).text);
+    }
+    await page.locator("#lang-tr").click();
+    for (const r of NO_TR_ROUTES) {
+      assert.ok(r.name.en && r.description.en && r.bestSeason.en, r.id + ": English text required as fallback");
+      await page.locator(`.route[data-route-id="${r.id}"]`).click();
+      await page.waitForTimeout(400);
+      const d = await page.textContent("#detail");
+      for (const s of [r.name.en, r.description.en, r.bestSeason.en, `${r.lengthKm} km`, "Ülke", countryOf(r).name.en, "Bölge", regionOf(r).name.en, r.start.name, r.end.name]) {
+        assert.ok(d.includes(s), `${r.id}: detail missing '${s}'`);
+      }
+      assert.strictEqual(await page.getAttribute("#detail h3 > span", "lang"), "en");
+      const inView = await page.evaluate((rid) => mapApp.map.getBounds().contains(mapApp.routeLayers[rid].getBounds()), r.id);
+      assert.ok(inView, r.id + ": route not in view after click");
+    }
+  });
+
   await step("listede rotaya tıklayınca harita o rotaya yakınlaşır", async () => {
+    await page.locator("#reset-view").click();
+    await page.waitForTimeout(600);
     const before = await page.evaluate(() => mapApp.map.getZoom());
     for (const id of ["tr-dogu-anadolu-01", "tr-marmara-01"]) {
       await page.locator(`.route[data-route-id="${id}"]`).click();
@@ -153,7 +216,7 @@ async function step(name, fn) {
     assert.strictEqual(await page.getAttribute("html", "lang"), "en");
     const txt = await page.locator('.route[data-route-id="tr-dogu-anadolu-01"]').textContent();
     for (const s of ["Kemaliye Stone Road", "Hard", "May–October", STATUS_EN[KEMALIYE.verification.status]]) assert.ok(txt.includes(s), "missing '" + s + "'");
-    assert.ok((await page.locator("#list h2").allTextContents()).includes("Black Sea"));
+    assert.ok((await page.locator("#list h3.region").allTextContents()).includes("Black Sea"));
     assert.match(await page.textContent("#detail"), /Uludağ Road/);
     assert.match(await page.textContent("#legend"), /Needs verification/);
     await page.locator("#lang-tr").click();
@@ -168,7 +231,15 @@ async function step(name, fn) {
         const el = m.getPopup().getElement();
         return el && el.isConnected ? el.querySelector(".leaflet-popup-content").textContent : "";
       }, s.id);
-      assert.ok(txt.includes(s.title.tr), `${s.id}: title missing in popup: ${txt.slice(0, 80)}`);
+      // Same fallback rule as the page (tr -> en -> first language); fallback text carries its own lang attribute.
+      const title = pickText(s.title, "tr");
+      assert.ok(title && txt.includes(title.text), `${s.id}: title missing in popup: ${txt.slice(0, 80)}`);
+      const titleLang = await page.evaluate((id) => {
+        const el = mapApp.spotLayers[id].getPopup().getElement();
+        const sp = el && el.querySelector(".leaflet-popup-content strong > span[lang]");
+        return sp ? sp.getAttribute("lang") : null;
+      }, s.id);
+      assert.strictEqual(titleLang, title.lang === "tr" ? null : title.lang, `${s.id}: popup title lang attr`);
       const want = STATUS_TR[s.verification.status];
       assert.ok(want, `${s.id}: unknown status ${s.verification.status}`);
       assert.ok(txt.includes(want), `${s.id}: expected status '${want}' in popup`);
@@ -180,7 +251,11 @@ async function step(name, fn) {
   await step("reachableFromRoute: false noktası soluk işaretçi + lejant; pencerede TR/EN ibare ve detourRoadKm", async () => {
     // Karar 12 (Cendere) henüz cevaplanmadı; veri değişirse bu beklenti de güncellenmeli.
     assert.deepStrictEqual(UNREACHABLE_IDS, [CENDERE_ID], "unexpected unreachable set: " + UNREACHABLE_IDS);
-    assert.strictEqual(SRC_SPOTS.length - UNREACHABLE_IDS.length, 11);
+    const reachableIds = SRC_SPOTS.filter((s) => s.reachableFromRoute !== false).map((s) => s.id);
+    assert.ok(reachableIds.length >= 1, "no reachable photo spots");
+    assert.strictEqual(reachableIds.length + UNREACHABLE_IDS.length, SRC_SPOTS.length);
+    const drawnReachable = await page.locator("path.photo-spot:not(.unreachable)").evaluateAll((els) => els.map((e) => e.getAttribute("data-spot-id")));
+    assert.deepStrictEqual(drawnReachable.sort(), [...reachableIds].sort(), "reachable markers differ from data");
     const popupText = (id) => page.evaluate((sid) => {
       const m = mapApp.spotLayers[sid]; m.openPopup();
       const el = m.getPopup().getElement();
@@ -200,7 +275,7 @@ async function step(name, fn) {
       assert.match(await page.textContent("#legend-unreachable"), lang === "tr" ? /Bu rotadan erişilmeyen/ : /Not reachable from this route/);
       for (const s of SRC_SPOTS) {
         const txt = await popupText(s.id);
-        assert.ok(txt.includes(s.title[lang]), `${s.id}/${lang}: popup not rendered: ${txt.slice(0, 60)}`);
+        assert.ok(txt.includes(pickText(s.title, lang).text), `${s.id}/${lang}: popup not rendered: ${txt.slice(0, 60)}`);
         const has = txt.includes(UNREACHABLE_TXT[lang]);
         assert.strictEqual(has, s.reachableFromRoute === false, `${s.id}/${lang}: unreachable note shown=${has}`);
         for (const other of Object.values(UNREACHABLE_TXT)) if (other !== UNREACHABLE_TXT[lang]) assert.ok(!txt.includes(other), `${s.id}/${lang}: wrong-language note`);

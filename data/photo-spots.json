@@ -179,6 +179,51 @@
       "detourRoadKm": 0.0,
       "geometryRevision": { "date": "2026-11-05", "pathSha256": "2237b6823ad758366d219ba84bf9f8d172dc56de597a6f76030d55b1f73447d4", "pathFullSha256": "3ef5856ff1f860eedab05cb7c3ba07f8fc07bf56ad18daccaec61e007025614f" },
       "verification": { "status": "doğrulandı", "notes": "Koordinat OpenStreetMap'teki adlı yerle eşleşiyor ve yola erişilebilir (OSRM nearest), 2026-11-01. Sahada ayrıca kontrol edilecekler: otopark/güvenli durma yeri ve manzara açısı. Önceki not: Konum OSM'deki Nemrut Dağı Ziyaretçi Karşılama Merkezi'ne taşındı. Kaynak: OpenStreetMap/Nominatim (2026-11-01). Koordinat yaklaşık (zirve 37.981, 38.741 civarı; otopark biraz güneydoğuda). Otopark konumu teyit edilmeli. 2026-11-05: rota (karar 1A) güney yaklaşımına taşındı ve ziyaretçi merkezinin önünden geçiyor (way 392432864, çizgiye ~45 m, pathFull km ~42,04); önceki '1,8 km sapma' bilgisi geçersiz, 'erişilmiyor' işareti gerekmedi (karar 2A). Güney kapısı (barrier=swing_gate, node 3956530545) merkezin hemen ötesinde, km ~42,09. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 45 m ötedeki yola bağladı); bildirim (notifyRadiusM=1000 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,0 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-05); sesli bildirim bunu söyler. detourKm=0,0 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
+    },
+    {
+      "id": "ps-gr-thessalia-01-01",
+      "routeId": "gr-thessalia-01",
+      "location": { "lat": 39.3881, "lon": 22.99405 },
+      "title": { "el": "Πορταριά – Θέα προς τον Βόλο και τον Παγασητικό", "en": "Portaria – View over Volos and the Pagasetic Gulf" },
+      "description": { "el": "Σημείο θέας στη νοτιοδυτική άκρη της Πορταριάς (περίπου 600 μ.), στην ανάβαση από τον Βόλο· από κάτω ο Βόλος και ο Παγασητικός κόλπος.", "en": "Viewpoint at the south-western edge of Portaria (about 600 m) on the climb from Volos, looking down over Volos and the Pagasetic Gulf." },
+      "safeStop": true,
+      "safeStopInfo": { "el": "Μικρό πάρκινγκ περίπου 70 μ. από το σημείο θέας, δίπλα στην πλατεία Ταξιαρχών, έξω από τον κεντρικό δρόμο. Μη σταματάτε στις στροφές της ΕΟ34α. Περισσότερα δωρεάν πάρκινγκ στο κέντρο του χωριού, λίγο πιο πέρα στη διαδρομή.", "en": "Small car park about 70 m from the viewpoint, beside Taxiarches square and off the main road. Do not stop on the EO34a bends. More free car parks in the village centre, a little further along the route." },
+      "notifyRadiusM": 700,
+      "approachPoint": { "lat": 39.38832, "lon": 22.99621 },
+      "detourKm": 0.1,
+      "detourRoadKm": 0.2,
+      "geometryRevision": { "date": "2026-11-07", "pathSha256": "df018fcf9db7d867a57d511419e01f9afa8a257a716090d8db26004799f2c7d9", "pathFullSha256": "f99601b5bd00e850fff466e1d0f8f548c476c57dc2d0215800d87f98081cec7f" },
+      "verification": { "status": "doğrulanmalı", "notes": "Konum: OSM node 3657571591 (tourism=viewpoint, adsız; 39.3880999, 22.9940485), rotadan kuş uçuşu 111 m, km ~12,1. Güvenli durma: OSM way 874831484 (amenity=parking, parking=surface; fee etiketi yok), manzara noktasına 68 m, residential way 304085315 üzerinden erişiliyor. Köy merkezindeki otoparklar (node 3657541674, way 256715285, 874831478, 874831479; hepsi fee=no) rotada km 13,1–13,4'te; metindeki 'ücretsiz' yalnızca bunlar için ve OSM etiketine dayanıyor. Yakında: Veranda kafe (node 5824197629), Domotel Xenia Portaria (way 361251366), Πλατεία Ταξιαρχών (way 874836192). Rakım ~600 m: yakındaki OSM pınar düğümü 5653163623 ele=601. Kaynak: OpenStreetMap (OSM API 0.6, 2026-11-07 erişim; rota-uzmani'nın Overpass listesi aynı API ile yeniden okundu). Doğrulanmalı (sahada/uydu ile): manzaranın Volos ve Pagasitikos Körfezi'ne açık olduğu (OSM'de yön bilgisi yok), way 874831484 otoparkının kamuya açık olup olmadığı ve kapasitesi, motosikletle girişin uygunluğu. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: rota başı; OSRM noktayı 27 m ötedeki yola bağladı); bildirim (notifyRadiusM=700 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,2 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-07); sesli bildirim bunu söyler. detourKm=0,1 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
+    },
+    {
+      "id": "ps-gr-thessalia-01-02",
+      "routeId": "gr-thessalia-01",
+      "location": { "lat": 39.39595, "lon": 23.06395 },
+      "title": { "el": "Διάσελο των Χανίων (περίπου 1.190 μ.)", "en": "Hania Pass (about 1,190 m)" },
+      "description": { "el": "Ορεινό διάσελο του Πηλίου, περίπου 1.190 μ., με τον μικρό οικισμό Χάνια· εδώ η διαδρομή περνά από την πλευρά του Βόλου στην πλευρά του Αιγαίου.", "en": "Mountain pass on Pelion, about 1,190 m, with the small settlement of Hania; here the route crosses from the Volos side to the Aegean side." },
+      "safeStop": true,
+      "safeStopInfo": { "el": "Πάρκινγκ στα Χάνια, περίπου 60 μ. από τον δρόμο. Τον χειμώνα πιθανό χιόνι και πάγος· σταματήστε μόνο στο πάρκινγκ.", "en": "Car park at Hania, about 60 m off the road. Snow and ice are possible in winter; stop only in the car park." },
+      "notifyRadiusM": 700,
+      "approachPoint": { "lat": 39.39504, "lon": 23.06461 },
+      "detourKm": 0.1,
+      "detourRoadKm": 0.1,
+      "geometryRevision": { "date": "2026-11-07", "pathSha256": "df018fcf9db7d867a57d511419e01f9afa8a257a716090d8db26004799f2c7d9", "pathFullSha256": "f99601b5bd00e850fff466e1d0f8f548c476c57dc2d0215800d87f98081cec7f" },
+      "verification": { "status": "doğrulanmalı", "notes": "Konum: OSM way 321142552 (amenity=parking; etiket yalnızca bu, fee/surface/capacity yok) düğüm ortalaması 39.39595, 23.06395; rotadan kuş uçuşu ~56 m, km ~25,9; residential way 310088390 ve 310088388 üzerinden erişiliyor. Χάνια yer düğümü: OSM node 1459094656 (place=hamlet). Rakım 1.190 m: el.wikipedia 'Χάνια Μαγνησίας' (rota-uzmani, 2026-11-07); OSM'de ele etiketi yok. Kaynak: OpenStreetMap (OSM API 0.6, 2026-11-07 erişim; rota-uzmani'nın Overpass listesi aynı API ile yeniden okundu). Uyarı: bu çevrede OSM'de tourism=viewpoint YOK; nokta manzara noktası olarak değil, rotanın geçit noktası olarak seçildi. Doğrulanmalı (sahada/uydu ile): geçitten görülen manzara (Pagasitikos ya da Ege yönü açık mı), otoparkın kamuya açık olup olmadığı, zemini ve kışın açık tutulup tutulmadığı, geçit tabelası. Agriolefkes Kayak Merkezi (way 172044512) ve zirvesi (node 1300736373) rotadan ~2 km uzakta olduğu ve güvenli durma bilgisi olmadığı için nokta yapılmadı. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 4 m ötedeki yola bağladı); bildirim (notifyRadiusM=700 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,1 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-07); sesli bildirim bunu söyler. detourKm=0,1 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
+    },
+    {
+      "id": "ps-gr-thessalia-01-03",
+      "routeId": "gr-thessalia-01",
+      "location": { "lat": 39.43954, "lon": 23.10363 },
+      "title": { "el": "Ζαγορά – Σημείο θέας Αγίας Κυριακής", "en": "Zagora – Agia Kyriaki Viewpoint" },
+      "description": { "el": "Σημείο θέας στο μικρό πάρκο δίπλα στην εκκλησία της Αγίας Κυριακής, στη νότια είσοδο της Ζαγοράς, στην πλευρά του Αιγαίου· το τέλος της διαδρομής είναι περίπου 0,6 χλμ. πιο πέρα.", "en": "Viewpoint in the small park beside Agia Kyriaki church at the southern entrance of Zagora, on the Aegean side of Pelion; the end of the route is about 0.6 km further on." },
+      "safeStop": true,
+      "safeStopInfo": { "el": "Μικρό πάρκινγκ περίπου 50 μ. από το σημείο θέας, δίπλα στον δρόμο Τσαγκαράδας – Χορευτού. Μη σταματάτε πάνω στον δρόμο.", "en": "Small car park about 50 m from the viewpoint, beside the Tsagkarada – Horefto road. Do not stop on the carriageway." },
+      "notifyRadiusM": 600,
+      "approachPoint": { "lat": 39.4398, "lon": 23.10312 },
+      "detourKm": 0.0,
+      "detourRoadKm": 0.1,
+      "geometryRevision": { "date": "2026-11-07", "pathSha256": "df018fcf9db7d867a57d511419e01f9afa8a257a716090d8db26004799f2c7d9", "pathFullSha256": "f99601b5bd00e850fff466e1d0f8f548c476c57dc2d0215800d87f98081cec7f" },
+      "verification": { "status": "doğrulanmalı", "notes": "Konum: OSM node 5860551768 (tourism=viewpoint, adsız; 39.4395406, 23.1036338), park way 257143228 (leisure=park) içinde, Αγία Κυριακή kilisesi (way 620279263) yanında; rotadan kuş uçuşu 49 m, km ~44,8. Güvenli durma: OSM way 257141067 (amenity=parking; başka etiket yok), manzara noktasına 49 m, rotaya (ΕΟ34 'Τσαγκαράδας - Χορευτού', way 992507573) 32 m. Zagora merkezinde başka otoparklar da var (way 310641252, 620324770). Not: rota-uzmani'nın listesindeki way 591661070'in OSM adı 'Κεντρική Πλατεία' değil 'Πλατεία Αγίου Γεωργίου'. Kaynak: OpenStreetMap (OSM API 0.6, 2026-11-07 erişim; rota-uzmani'nın Overpass listesi aynı API ile yeniden okundu). Kullanılmayan aday: 'Σχολείο Ρήγα Φερραίου' adıyla geçen viewpoint node 1438644909 adsızdır (ad yandaki müze way 1549738105'e ait), rotadan 147 m ve yakın otoparka ~250 m. Doğrulanmalı (sahada/uydu ile): manzaranın Ege'ye açık olduğu (OSM'de yön bilgisi yok), otoparkın kamuya açık olup olmadığı ve kapasitesi. Bildirim noktası (approachPoint): noktadan gelen yolun rota çizgisine katıldığı kavşak (OSRM, hedef: en yakın yer; OSRM noktayı 10 m ötedeki yola bağladı); bildirim (notifyRadiusM=600 m) bu noktanın çevresinde tetiklenir. detourRoadKm=0,1 km bu kavşaktan noktaya gerçek yol mesafesidir (tek yön; OSRM sürüş profili, router.project-osrm.org, 2026-11-07); sesli bildirim bunu söyler. detourKm=0,0 km rotadan noktaya kuş uçuşu en kısa mesafedir. Çizgi: pathFull; geometryRevision rotadakinin kopyasıdır (scripts/compute_photo_approach.py)." }
     }
   ]
 }

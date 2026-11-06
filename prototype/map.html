@@ -30,6 +30,8 @@
   .legend span { display: inline-flex; align-items: center; gap: 8px; }
   .legend svg { flex: none; }
   h2 { font-size: 1.05rem; color: var(--muted); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
+  #list h2.country { color: var(--text); font-size: 1.15rem; border-bottom: 2px solid #444; padding-bottom: 4px; margin-top: 22px; }
+  #list h3.region { font-size: 1rem; color: var(--muted); margin: 14px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
   .route { display: block; width: 100%; min-height: var(--tap); text-align: left; font: inherit; color: var(--text);
            background: var(--card); border: 2px solid transparent; border-left: 10px solid var(--c, #888);
            border-radius: 12px; padding: 12px 14px; margin: 0 0 10px; cursor: pointer; }
@@ -91,7 +93,7 @@ const UI = {
     title: "Rota Haritası",
     km: "km",
     length: "Uzunluk", difficulty: "Zorluk", season: "En iyi sezon", status: "Doğrulama", route: "Rota",
-    start: "Başlangıç", end: "Bitiş", notes: "Doğrulama notları",
+    start: "Başlangıç", end: "Bitiş", notes: "Doğrulama notları", country: "Ülke", region: "Bölge",
     diff: { easy: "Kolay", moderate: "Orta", hard: "Zor" },
     st: { "doğrulandı": "Doğrulandı", "doğrulanmalı": "Doğrulanmalı" },
     legendOk: "Doğrulandı", legendWarn: "Doğrulanmalı (kesikli)", legendSpot: "Fotoğraf noktası",
@@ -106,7 +108,7 @@ const UI = {
     title: "Route Map",
     km: "km",
     length: "Length", difficulty: "Difficulty", season: "Best season", status: "Verification", route: "Route",
-    start: "Start", end: "End", notes: "Verification notes",
+    start: "Start", end: "End", notes: "Verification notes", country: "Country", region: "Region",
     diff: { easy: "Easy", moderate: "Moderate", hard: "Hard" },
     st: { "doğrulandı": "Verified", "doğrulanmalı": "Needs verification" },
     legendOk: "Verified", legendWarn: "Needs verification (dashed)", legendSpot: "Photo spot",
@@ -118,15 +120,23 @@ const UI = {
     noData: "Route data (map-data.js) could not be loaded. Run scripts/build_map_data.py first.",
   },
 };
-const COLORS = ["#e6194b", "#3cb4ff", "#ffe119", "#3cd44b", "#f58231", "#d27bff", "#46f0f0"];
+// One colour per route; the list wraps if there are more routes than colours.
+const COLORS = ["#e6194b", "#3cb4ff", "#ffe119", "#3cd44b", "#f58231", "#d27bff", "#46f0f0", "#ff8fc8"];
 
 let lang = "tr";
 try { const saved = localStorage.getItem("route-map-lang"); if (UI[saved]) lang = saved; else throw 0; }
 catch (_) { const nav = (navigator.language || "tr").slice(0, 2); lang = UI[nav] ? nav : "en"; }
 
 const t = (k) => UI[lang][k];
-const tx = (obj) => (obj && (obj[lang] || obj.en || obj.tr)) || "";
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// Localised text {lang: text}: UI language, else English, else the first language present
+// (e.g. a Greek route has el + en only, so the TR UI shows its English text).
+function pick(obj) {
+  if (obj) for (const l of [lang, "en", ...Object.keys(obj)]) if (obj[l]) return { text: obj[l], lang: l };
+  return { text: "", lang };
+}
+// Escaped HTML; text in a fallback language is wrapped with its own lang attribute.
+const txh = (obj) => { const p = pick(obj); return p.lang === lang ? esc(p.text) : `<span lang="${esc(p.lang)}">${esc(p.text)}</span>`; };
 const isUnverified = (v) => !v || v.status !== "doğrulandı";
 // A spot is reachable unless the data says reachableFromRoute: false (missing field = reachable).
 const isUnreachable = (s) => s && s.reachableFromRoute === false;
@@ -211,16 +221,20 @@ function init() {
 
 function spotPopup(s) {
   const unv = isUnverified(s.verification);
-  return `<strong>${esc(tx(s.title))}</strong><br>${esc(tx(s.description))}` +
+  return `<strong>${txh(s.title)}</strong><br>${txh(s.description)}` +
     (isUnreachable(s) ? `<br><strong class="unreachable-note">${esc(t("unreachable"))}</strong>` : "") +
     (hasRoadDetour(s) ? `<br><span class="road-detour">${esc(t("detourRoad")(fmtKm(s.detourRoadKm)))}</span>` : "") +
-    (s.safeStop ? `<br><em>${esc(t("safeStop"))}:</em> ${esc(tx(s.safeStopInfo))}` : "") +
+    (s.safeStop ? `<br><em>${esc(t("safeStop"))}:</em> ${txh(s.safeStopInfo)}` : "") +
     `<br><span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(s.verification))}</span>`;
 }
 
+// HTML (escaped).
 function routeMeta(r) {
-  return `${r.lengthKm} ${t("km")} · ${UI[lang].diff[r.difficulty] || r.difficulty} · ${tx(r.bestSeason)}`;
+  return `${esc(r.lengthKm)} ${esc(t("km"))} · ${esc(UI[lang].diff[r.difficulty] || r.difficulty)} · ${txh(r.bestSeason)}`;
 }
+// Function declarations (hoisted): init() runs before later top-level consts are initialised.
+function regionOf(r) { return D.regions.find((g) => g.id === r.regionId); }
+function countryOf(r) { const g = regionOf(r); return g && D.countries.find((c) => c.code === g.countryCode); }
 
 function renderText() {
   document.documentElement.lang = lang;
@@ -240,28 +254,41 @@ function renderText() {
 
   const list = document.getElementById("list");
   list.innerHTML = "";
-  D.regions.forEach((g) => {
-    const routes = D.routes.filter((r) => r.regionId === g.id);
-    if (!routes.length) return;
-    const h = document.createElement("h2");
-    h.textContent = tx(g.name);
-    list.appendChild(h);
-    routes.forEach((r) => {
-      const unv = isUnverified(r.verification);
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "route";
-      b.dataset.routeId = r.id;
-      b.style.setProperty("--c", r._color || "#888");
-      b.setAttribute("aria-pressed", String(app.selected === r.id));
-      b.innerHTML = `<span class="name">${esc(tx(r.name))}</span>` +
-        `<span class="meta">${esc(routeMeta(r))}</span>` +
-        `<span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(r.verification))}</span>`;
-      b.addEventListener("click", () => selectRoute(r.id, true));
-      list.appendChild(b);
-    });
+  // Grouped by country (data order), then by region.
+  D.countries.forEach((c) => {
+    const regions = D.regions.filter((g) => g.countryCode === c.code && D.routes.some((r) => r.regionId === g.id));
+    if (!regions.length) return;
+    const ch = document.createElement("h2");
+    ch.className = "country";
+    ch.dataset.country = c.code;
+    ch.innerHTML = txh(c.name);
+    list.appendChild(ch);
+    regions.forEach((g) => renderRegion(list, g));
   });
   renderDetail();
+}
+
+function renderRegion(list, g) {
+  const routes = D.routes.filter((r) => r.regionId === g.id);
+  const h = document.createElement("h3");
+  h.className = "region";
+  h.dataset.region = g.id;
+  h.innerHTML = txh(g.name);
+  list.appendChild(h);
+  routes.forEach((r) => {
+    const unv = isUnverified(r.verification);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "route";
+    b.dataset.routeId = r.id;
+    b.style.setProperty("--c", r._color || "#888");
+    b.setAttribute("aria-pressed", String(app.selected === r.id));
+    b.innerHTML = `<span class="name">${txh(r.name)}</span>` +
+      `<span class="meta">${routeMeta(r)}</span>` +
+      `<span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(r.verification))}</span>`;
+    b.addEventListener("click", () => selectRoute(r.id, true));
+    list.appendChild(b);
+  });
 }
 
 function renderDetail() {
@@ -270,15 +297,19 @@ function renderDetail() {
   if (!r) { el.innerHTML = ""; return; }
   const unv = isUnverified(r.verification);
   const spots = D.photoSpots.filter((s) => s.routeId === r.id);
-  el.innerHTML = `<h3>${esc(tx(r.name))}</h3>` +
+  const g = regionOf(r), c = countryOf(r);
+  el.innerHTML = `<h3>${txh(r.name)}</h3>` +
     `<span class="badge ${unv ? "warn" : "ok"}">${esc(statusLabel(r.verification))}</span>` +
-    `<dl><dt>${esc(t("length"))}</dt><dd>${r.lengthKm} ${t("km")}</dd>` +
+    `<dl>` +
+    (c ? `<dt>${esc(t("country"))}</dt><dd class="country">${txh(c.name)}</dd>` : "") +
+    (g ? `<dt>${esc(t("region"))}</dt><dd class="region">${txh(g.name)}</dd>` : "") +
+    `<dt>${esc(t("length"))}</dt><dd>${r.lengthKm} ${t("km")}</dd>` +
     `<dt>${esc(t("difficulty"))}</dt><dd>${esc(UI[lang].diff[r.difficulty] || r.difficulty)}</dd>` +
-    `<dt>${esc(t("season"))}</dt><dd>${esc(tx(r.bestSeason))}</dd>` +
+    `<dt>${esc(t("season"))}</dt><dd>${txh(r.bestSeason)}</dd>` +
     `<dt>${esc(t("start"))}</dt><dd>${esc(r.start.name)}</dd>` +
     `<dt>${esc(t("end"))}</dt><dd>${esc(r.end.name)}</dd>` +
-    (spots.length ? `<dt>${esc(t("photoSpots"))}</dt><dd>${spots.map((s) => esc(tx(s.title))).join("; ")}</dd>` : "") +
-    `</dl><p>${esc(tx(r.description))}</p>` +
+    (spots.length ? `<dt>${esc(t("photoSpots"))}</dt><dd>${spots.map((s) => txh(s.title)).join("; ")}</dd>` : "") +
+    `</dl><p>${txh(r.description)}</p>` +
     // Verification notes exist only in Turkish in the data.
     `<details><summary>${esc(t("notes"))}</summary><p lang="tr">${esc(r.verification.notes || "")}</p></details>`;
 }

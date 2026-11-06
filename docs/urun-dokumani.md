@@ -108,7 +108,7 @@ PhotoSpot { id, routeId, location{lat, lon}, title{lang}, description{lang},
 ChecklistItem { id, order, text{lang}, spokenText{lang}, conditional?: { key, before } }
 ```
 
-**Rota id kuralı:** `<ülke>-<bölge>-<nn>` (ör. `tr-karadeniz-01`, `tr-ic-anadolu-01`). Bölge adları: marmara, ege, akdeniz,
+**Rota id kuralı:** `<ülke>-<bölge>-<nn>` (ör. `tr-karadeniz-01`, `tr-ic-anadolu-01`, `gr-thessalia-01`). Bölge adları: marmara, ege, akdeniz,
 ic-anadolu, karadeniz, dogu-anadolu, guneydogu-anadolu. Tehlike ve fotoğraf noktaları rotalara bu id ile bağlanır; id'ler değiştirilmez.
 
 **Veri dosyaları:** `data/routes.json`, `data/photo-spots.json`, `data/hazards.json` (şu an boş; etiketsiz yüzey tehlike sayılmaz), `data/hazards.schema.json` (tehlike verisi henüz yok; uydurma veri eklenmez,
@@ -124,7 +124,7 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
   ürüne geçmeden önce kendi karo sunucusu ya da sağlayıcı gerekir.
 - `lengthKm` yol uzunluğudur (OSRM); `path` sadeleştirilmiş çizgidir ve %3–17,5 daha kısadır. Mesafe, varış saati, rota dışı ve
   tehlike hesapları `pathFull ?? path` kullanır; yalnızca `path` olan rotada (şu an Kemaliye) sonuç yaklaşıktır (`routeApproximate: true`).
-  Harita sadeleştirilmiş `path`'i çizer. `path` yöntemi: `pathFull` üzerinde Douglas-Peucker, 200 m tolerans.
+  Harita sadeleştirilmiş `path`'i çizer. Harita listesi ülke › bölge gruplu; metin önce arayüz dilinde, yoksa İngilizcede gösterilir. `path` yöntemi: `pathFull` üzerinde Douglas-Peucker, 200 m tolerans.
 - `geometryRevision`: karma = `coordinates` dizisinin `json.dumps(separators=(",",":"))` UTF-8 metninin SHA-256'sı (JS `JSON.stringify` ile aynı);
   hesap `scripts/geometry_revision.py`. Fotoğraf noktaları ve tehlike `extent` kayıtları kopyasını taşır;
   eşitlik kuralı tek yerde, `sameGeometryRevision` (`prototype/hazards.js`): iki karma karşılaştırılır, `date` karşılaştırılmaz.
@@ -138,6 +138,8 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
   mesafedir (gerçek yol mesafesi değil). Değerler `scripts/compute_photo_approach.py` ile `data/routes.json`'dan hesaplanır; rota çizgisi değişirse betik yeniden çalıştırılır.
 - Fotoğraf noktası `approachPoint`: noktaya giden yolun rotaya katıldığı kavşak (OSRM); `detourRoadKm` tek yön yol mesafesidir ve sesli bildirim bunu söyler,
   `detourKm` kuş uçuşudur. Nokta çizgiden 50 m'den uzaksa `detached`, `reachableFromRoute: false` ise bildirilmez.
+- Yeni fotoğraf noktası eklerken `compute_photo_approach.py --osrm --only <routeId>`; mevcut noktaların değişmediği `--osrm --check` ile doğrulanır.
+  Sesli metin tr/en; başlık istenen dilde yoksa metnin tamamı İngilizce okunur. Hava uyarıları şu an tr/en (el bekliyor).
 - Fotoğraf bildirimi: `prototype/photo-alerts.js` (`hazardsAheadOnRoute` üzerine ince sarmalayıcı; çizgiden 100 m'den uzak düşen noktalar `detached` olarak raporlanır; `toPhotoAnnouncement` ile `kind: 'photo'`). `approachPoint` rota çizgisine izdüşürülür; `aheadM` ≤ `notifyRadiusM` olunca nokta başına bir kez
   tetiklenir, `notifyRadiusM` + 500 m uzaklaşınca yeniden kurulur. `detourKm` ≥ 0,5 ise "rotadan yaklaşık X km sapma" söylenir; `safeStop` false olan nokta önerilmez.
   Harita, `reachableFromRoute: false` noktayı soluk işaretçi ve "Bu rotadan erişilmiyor" ibaresiyle gösterir; `detourRoadKm` > 0 ise "yolla ~X km (tek yön)" yazar.

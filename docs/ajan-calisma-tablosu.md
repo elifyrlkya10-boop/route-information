@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 9 | 49.5 | 5.5 | 17.7 | 1.137.283 |
+| rota-uzmani | 11 | 68.2 | 6.2 | 17.7 | 1.563.629 |
 | ekipman-asistani | 5 | 9.2 | 1.8 | 2.8 | 439.865 |
 | guvenlik-ve-yakin-cevre | 7 | 14.9 | 2.1 | 3.8 | 694.531 |
-| fotograf-noktalari | 7 | 27.1 | 3.9 | 12.1 | 778.863 |
-| hava-durumu | 5 | 17.0 | 3.4 | 5.4 | 497.427 |
-| **Toplam** | **33** | **117.7** | | | **3.547.969** |
+| fotograf-noktalari | 8 | 36.0 | 4.5 | 12.1 | 948.420 |
+| hava-durumu | 6 | 20.4 | 3.4 | 5.4 | 628.358 |
+| **Toplam** | **37** | **148.7** | | | **4.274.803** |
 
 ### 44. hafta: 26 Ekim – 1 Kasım 2026
 
@@ -33,17 +33,21 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 10 | 54.3 | 5.4 | 17.7 | 1.212.729 |
+| rota-uzmani | 12 | 73.0 | 6.1 | 17.7 | 1.639.075 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
 | guvenlik-ve-yakin-cevre | 8 | 16.9 | 2.1 | 3.8 | 756.509 |
-| fotograf-noktalari | 8 | 28.7 | 3.6 | 12.1 | 833.409 |
-| hava-durumu | 5 | 17.0 | 3.4 | 5.4 | 497.427 |
-| **Toplam** | **37** | **127.7** | | | **3.799.045** |
+| fotograf-noktalari | 9 | 37.6 | 4.2 | 12.1 | 1.002.966 |
+| hava-durumu | 6 | 20.4 | 3.4 | 5.4 | 628.358 |
+| **Toplam** | **41** | **158.7** | | | **4.525.879** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-07 | 02:43:56 | 02:45:39 | rota-uzmani | 1.7 | tamamlandi | Aşama 3: harita testi dil yedeği, Volos başlangıç analizi |
+| 2026-11-07 | 02:33:53 | 02:42:48 | fotograf-noktalari | 8.9 | tamamlandi | Pelion rotasına 3 fotoğraf noktası, sesli metinde dil yedeği |
+| 2026-11-07 | 02:33:40 | 02:37:04 | hava-durumu | 3.4 | tamamlandi | Yön ve hava testleri Pelion rotasına uyarlandı |
+| 2026-11-07 | 02:15:47 | 02:32:44 | rota-uzmani | 16.9 | tamamlandi | İlk Yunanistan rotası gr-thessalia-01 (Pelion), harita ülke gruplaması |
 | 2026-11-06 | 02:20:02 | 02:20:49 | fotograf-noktalari | 0.8 | tamamlandi | Fotoğraf bildirimi ortak eskime kontrolüne bağlandı |
 | 2026-11-06 | 02:18:20 | 02:19:56 | guvenlik-ve-yakin-cevre | 1.6 | tamamlandi | Ortak eskime kontrolü sameGeometryRevision (hazards.js) |
 | 2026-11-06 | 02:17:55 | 02:19:56 | hava-durumu | 2.0 | tamamlandi | Yan/karşı rüzgâr bilgi alanları (sürüş seviyesi değişmedi) |

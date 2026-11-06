@@ -204,10 +204,11 @@ def verify_others():
     old = {r["id"]: r for r in head["routes"]}
     bad = []
     ids = [r["id"] for r in cur["routes"]]
-    if ids != [r["id"] for r in head["routes"]]:
+    # Yeni rota eklenebilir (ör. gr-thessalia-01, scripts/add_greece_route.py); HEAD'deki rotalar silinmemeli, sırası değişmemeli.
+    if ids[:len(head["routes"])] != [r["id"] for r in head["routes"]]:
         bad.append(f"rota id listesi değişti: {ids}")
     for r in cur["routes"]:
-        if r["id"] in CHANGED_ROUTES:
+        if r["id"] in CHANGED_ROUTES or r["id"] not in old:
             continue
         o = old.get(r["id"])
         for k in ("path", "pathFull", "lengthKm", "start", "end"):

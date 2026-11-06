@@ -54,16 +54,42 @@ function drive(r, fromM, toM, stepM, tracker, opts = {}) {
   return announced;
 }
 
-test('veri: 12 nokta, her biri bir rotaya bağlı, approachPoint ve detourKm var', () => {
-  assert.equal(SPOTS.length, 12);
+/** Rota id'sindeki ülke kodu -> ülke dili (docs/urun-dokumani.md: başlık ve açıklamalar ülke dili + İngilizce). */
+const COUNTRY_LANG = { tr: 'tr', gr: 'el' };
+const LANG_FIELDS = ['title', 'description', 'safeStopInfo'];
+
+test(`veri: ${SPOTS.length} nokta (data/photo-spots.json), id'ler tekil, her biri bir rotaya bağlı, approachPoint ve detourKm var`, () => {
+  // Sayı kaynak veriden gelir; boş ya da kopya id'li veri geçmez.
+  assert.ok(SPOTS.length > 0);
+  assert.equal(new Set(SPOTS.map((s) => s.id)).size, SPOTS.length, 'id tekrarı');
   for (const s of SPOTS) {
     assert.ok(route(s.routeId), `${s.id}: rota yok`);
+    assert.match(s.id, new RegExp(`^ps-${s.routeId}-\\d{2}$`), `${s.id}: id kuralı ps-<routeId>-<nn>`);
     assert.ok(Number.isFinite(s.approachPoint?.lat) && Number.isFinite(s.approachPoint?.lon), `${s.id}: approachPoint`);
     assert.ok(Number.isFinite(s.detourKm), `${s.id}: detourKm`);
   }
+  // Her rotanın noktası kendi rotasında: map-data/harita ile aynı küme, başka rotaya bağlı nokta kalmaz.
+  const routeIds = new Set(ROUTES.map((r) => r.id));
+  assert.equal(SPOTS.filter((s) => routeIds.has(s.routeId)).length, SPOTS.length);
 });
 
-test('12 noktada approachPoint bildirim çizgisi (pathFull ?? path) üzerinde (< 5 m; Python betiğiyle JS hesabı tutarlı)', () => {
+test('veri: title, description, safeStopInfo en az ülke dili + en (Türkçe zorunlu değil; yalnız TR rotalarında)', () => {
+  for (const s of SPOTS) {
+    const country = s.routeId.split('-')[0];
+    const own = COUNTRY_LANG[country];
+    assert.ok(own, `${s.id}: ülke dili tanımsız (${country})`);
+    for (const f of LANG_FIELDS) {
+      for (const l of new Set([own, 'en'])) {
+        assert.equal(typeof s[f]?.[l], 'string', `${s.id}.${f}.${l}`);
+        assert.ok(s[f][l].trim().length > 0, `${s.id}.${f}.${l} boş`);
+      }
+    }
+  }
+  // Türkçesi olmayan nokta gerçekten var (aşağıdaki dil yedeği testleri boşa çalışmasın).
+  assert.ok(SPOTS.some((s) => s.title.tr === undefined), 'Türkçesi olmayan nokta yok');
+});
+
+test(`${SPOTS.length} noktada approachPoint bildirim çizgisi (pathFull ?? path) üzerinde (< 5 m; Python betiğiyle JS hesabı tutarlı)`, () => {
   for (const s of SPOTS) {
     const r = route(s.routeId);
     const { coordinates: coords, geometry: source } = routeLine(r);
@@ -73,7 +99,7 @@ test('12 noktada approachPoint bildirim çizgisi (pathFull ?? path) üzerinde (<
   }
 });
 
-test(`spotMaxOffsetM varsayılanı ${SPOT_MAX_OFFSET_M} m; 12 noktanın hiçbiri detached ya da stale değil`, () => {
+test(`spotMaxOffsetM varsayılanı ${SPOT_MAX_OFFSET_M} m; ${SPOTS.length} noktanın hiçbiri detached ya da stale değil`, () => {
   assert.equal(SPOT_MAX_OFFSET_M, 50);
   for (const s of SPOTS) {
     const r = route(s.routeId);
@@ -397,6 +423,40 @@ test('aynı anda gelen tehlike + fotoğraf: orderAnnouncements önce tehlikeyi o
   assert.match(ordered[1].text, /^Fotoğraf noktası 650 metre ileride: Sarıalan Yaylası\./);
   // Girdi değişmez.
   assert.deepEqual(items.map((x) => x.kind), ['photo', 'hazard']);
+});
+
+test('dil yedeği (tr → en): Türkçesi olmayan noktada sesli metnin tamamı İngilizce; Türkçesi olan nokta değişmez', () => {
+  const yerli = SPOTS.filter((s) => s.title.tr === undefined);
+  for (const s of yerli) {
+    const en = buildPhotoVoiceAlert(s, 400, 'en');
+    assert.equal(en, `Photo spot in 400 meters: ${s.title.en}.`, s.id); // gerçek veride sapma < 0,5 km
+    assert.equal(buildPhotoVoiceAlert(s, 400, 'tr'), en, `${s.id}: tr istenince İngilizce okunmalı`);
+    assert.equal(toPhotoAnnouncement({ spot: s, aheadM: 400 }, 'tr').text, en, s.id);
+    assert.ok(!/Fotoğraf noktası|ileride|undefined/.test(buildPhotoVoiceAlert(s, 400, 'tr')), s.id);
+  }
+  // Sapma cümlesi de İngilizceye düşer (ÖRNEK sapma değeri).
+  const p = yerli[0];
+  assert.equal(buildPhotoVoiceAlert({ ...p, detourRoadKm: 2.3 }, 1000, 'tr'),
+    `Photo spot in 1 kilometer: ${p.title.en}. About 2.3 kilometer detour off the route by road.`);
+  // Ülke dili (el) sesli metin dili değildir; İngilizce okunur.
+  assert.equal(buildPhotoVoiceAlert(p, 400, 'el'), `Photo spot in 400 meters: ${p.title.en}.`);
+  // Türkçesi olan nokta Türkçe okunmaya devam eder.
+  assert.equal(buildPhotoVoiceAlert(spot('ps-tr-marmara-01-01'), 20, 'tr'), 'Fotoğraf noktası hemen ileride: Kirazlıyayla – Bursa Ovası Manzarası.');
+  // Ne istenen dilde ne İngilizcede başlık yoksa hata (sessizce "undefined" okunmaz).
+  assert.throws(() => buildPhotoVoiceAlert({ ...p, title: { el: p.title.el } }, 400, 'tr'), TypeError);
+  assert.throws(() => buildPhotoVoiceAlert({ ...p, title: { el: p.title.el, tr: '' } }, 400, 'tr'), TypeError);
+});
+
+test('gr-thessalia-01: üç nokta baştan sona sürüşte rota sırasıyla birer kez, yarıçap içinde bildirilir', () => {
+  const r = route('gr-thessalia-01');
+  const ids = SPOTS.filter((s) => s.routeId === r.id).map((s) => s.id);
+  assert.deepEqual(ids, ['ps-gr-thessalia-01-01', 'ps-gr-thessalia-01-02', 'ps-gr-thessalia-01-03']);
+  const ann = drive(r, 0, routeLengthMeters(routeLine(r).coordinates), 25, createPhotoAlertTracker());
+  assert.deepEqual(ann.map((a) => a.id), ids);
+  for (const a of ann) {
+    const s = spot(a.id);
+    assert.ok(a.aheadM <= s.notifyRadiusM && a.aheadM > s.notifyRadiusM - 30, `${a.id}: aheadM ${a.aheadM}`);
+  }
 });
 
 test('isSample: true olan (örnek) fotoğraf noktası yalnızca includeSamples ile değerlendirilir', () => {

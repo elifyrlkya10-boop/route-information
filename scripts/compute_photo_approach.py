@@ -23,6 +23,12 @@ dokunulmaz.
 Çalıştırma kipleri:
   python3 scripts/compute_photo_approach.py --osrm [--date YYYY-MM-DD]
       Ağ gerekir (router.project-osrm.org). approachPoint/detourRoadKm/notu yeniden hesaplar.
+  python3 scripts/compute_photo_approach.py --osrm --only ID[,ID...]
+      Yalnızca verilen nokta (ps-...) ya da rota (routeId) id'lerinin noktalarını hesaplar; diğerlerine dokunulmaz
+      (yeni nokta eklerken mevcut noktaların OSRM değerleri ve notları değişmesin diye).
+  python3 scripts/compute_photo_approach.py --osrm --check
+      Dosyaya yazmaz; hesaplanan alanları (approachPoint, detourKm, detourRoadKm, geometryRevision) dosyadakiyle
+      karşılaştırır, farkları basar ve fark varsa 2 ile çıkar. --only ile birlikte kullanılabilir.
   python3 scripts/compute_photo_approach.py
       Ağ gerekmez. geometryRevision'ı rotadakiyle aynı olan (ve approachPoint'i çizgide duran) noktaya dokunmaz;
       bu yüzden değişiklik yokken tekrar çalıştırmak aynı dosyayı üretir. Geometrisi değişmiş rotanın
@@ -221,13 +227,24 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--osrm", action="store_true", help="kavşak ve detourRoadKm'i OSRM ile yeniden hesapla (ağ gerekir)")
     ap.add_argument("--date", default=datetime.date.today().isoformat(), help="nota yazılacak OSRM sorgu tarihi")
+    ap.add_argument("--only", default="", help="virgülle ayrılmış nokta ya da rota id'leri; yalnızca bunlar hesaplanır")
+    ap.add_argument("--check", action="store_true", help="yazma; hesaplanan alanları dosyadakiyle karşılaştır")
     a = ap.parse_args()
+    only = {x.strip() for x in a.only.split(",") if x.strip()}
 
     routes = {r["id"]: r for r in json.loads(ROUTES.read_text(encoding="utf-8"))["routes"]}
     doc = json.loads(SPOTS.read_text(encoding="utf-8"))
     warnings = []
 
+    known = {s["id"] for s in doc["photoSpots"]} | {s["routeId"] for s in doc["photoSpots"]}
+    if only - known:
+        print(f"--only: bilinmeyen id: {', '.join(sorted(only - known))}", file=sys.stderr)
+        return 1
+    before = {s["id"]: {k: s.get(k) for k in COMPUTED_KEYS} for s in doc["photoSpots"]}
+
     for s in doc["photoSpots"]:
+        if only and s["id"] not in only and s["routeId"] not in only:
+            continue
         r = routes.get(s["routeId"])
         if r is None or len(r["path"]["coordinates"]) < 2:
             print(f"{s['id']}: rota çizgisi yok ({s['routeId']})", file=sys.stderr)
@@ -280,6 +297,15 @@ def main():
 
     for w in warnings:
         print("UYARI", w, file=sys.stderr)
+    if a.check:
+        diffs = 0
+        for s in doc["photoSpots"]:
+            for k in COMPUTED_KEYS:
+                if s.get(k) != before[s["id"]][k]:
+                    diffs += 1
+                    print(f"FARK {s['id']} {k}: dosyada {before[s['id']][k]} -> hesap {s.get(k)}")
+        print(f"--check: {diffs} fark; dosya yazılmadı")
+        return 2 if diffs else 0
     SPOTS.write_text(dump(doc), encoding="utf-8")
     print(f"Wrote {SPOTS.relative_to(ROOT)}: {len(doc['photoSpots'])} photo spots")
     return 0

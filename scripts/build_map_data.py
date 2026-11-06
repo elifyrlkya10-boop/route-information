@@ -44,6 +44,10 @@ def main():
     region_ids = {g["id"] for g in routes_doc["regions"]}
 
     problems = []
+    country_codes = {c["code"] for c in routes_doc["countries"]}
+    for g in routes_doc["regions"]:
+        if g.get("countryCode") not in country_codes:
+            problems.append(f"{g['id']}: unknown countryCode {g.get('countryCode')}")
     for r in routes:
         if r["regionId"] not in region_ids:
             problems.append(f"{r['id']}: unknown regionId {r['regionId']}")

@@ -67,12 +67,32 @@ const ornekNokta = (forecast, distanceKm = 10, index = 1) => ({
 });
 
 // ---- Testler ----
-test('çizgi uzunluğu lengthKm\'den kısa (tüm rotalar; ölçülen fark %3–18)', () => {
+test('sadeleştirilmiş path lengthKm\'den kısa; üst sınır yalnız path\'in KULLANILDIĞI rotada (pathFull yok) aranır', () => {
+  // path, pathFull'un Douglas-Peucker sadeleştirmesi: her rotada lengthKm'den kısa olmalı (değişmez özellik).
+  // Fark rotanın virajlılığına bağlıdır (2026-11-07 ölçümü: Türkiye %3,0–17,5, Pelion %22,5); pathFull olan rotada
+  // hava modülü path'i hiç kullanmaz (sonraki test bunu sınar), bu yüzden orada üst sınır anlamlı değildir.
+  // Sınırı genişletmek yerine üst sınır, path'in mesafe/varış saati için ölçeklenerek kullanıldığı rotalarda korunur.
   for (const r of data.routes) {
-    const L = lineLengthKm(r, { geometry: 'path' }); // sadeleştirilmiş path (pathFull ayrı testte)
+    const L = lineLengthKm(r, { geometry: 'path' });
     const diff = (r.lengthKm - L) / L;
     assert.ok(L > 0 && L < r.lengthKm, `${r.id}: çizgi ${L.toFixed(1)} km, lengthKm ${r.lengthKm}`);
-    assert.ok(diff > 0 && diff < 0.2, `${r.id}: fark %${(diff * 100).toFixed(1)}`);
+    if (!r.pathFull) assert.ok(diff > 0 && diff < 0.18, `${r.id} (yalnız path): fark %${(diff * 100).toFixed(1)}`);
+  }
+  assert.ok(data.routes.some((r) => !r.pathFull), 'üst sınır en az bir yalnız-path rotada (Kemaliye) sınanmalı');
+});
+
+test('pathFull olan her rotada path farkı önemsiz: path silinse ya da bozulsa örnekleme, varış ve yön aynı (sahte fetch, ÖRNEK yanıt)', async () => {
+  const bozukPath = (r) => ({ type: 'LineString', coordinates: [r.path.coordinates[0], r.path.coordinates.at(-1)] }); // 2 noktalı kiriş
+  const opt = { startTime: Date.parse('2026-11-02T08:00:00Z'), now: ORNEK_BASLANGIC_SAATI, speedKmh: 40, n: 6 };
+  const body = (pts) => ornekOpenMeteoYaniti(pts, { hourValues: () => ({ wind_direction_10m: 90 }) }); // ÖRNEK
+  const pf = data.routes.filter((r) => r.pathFull);
+  assert.ok(pf.some((r) => r.id === 'gr-thessalia-01'), 'Pelion da sınanmalı');
+  for (const r of pf) {
+    const asil = await fetchRouteForecast(r, { ...opt, fetchImpl: sahteFetch(body) });
+    for (const v of [{ ...r, path: undefined }, { ...r, path: bozukPath(r) }]) {
+      assert.deepEqual(sampleRoutePoints(v), sampleRoutePoints(r), r.id);
+      assert.deepEqual(await fetchRouteForecast(v, { ...opt, fetchImpl: sahteFetch(body) }), asil, `${r.id}: path değişince sonuç değişmemeli`);
+    }
   }
 });
 
@@ -367,6 +387,94 @@ test('assessRide: yan rüzgâr alanları seviyeyi ve gerekçeleri değiştirmez 
     const a = assessRide(eski), b = assessRide(yeni);
     assert.deepEqual(b, a, JSON.stringify(f));
   }
+});
+
+// ---- gr-thessalia-01 (Pelion, ilk Yunanistan rotası; rota-uzmani 2026-11-07). Hava değerleri ÖRNEKTİR; geometri gerçek pathFull. ----
+const PELION = data.routes.find((r) => r.id === 'gr-thessalia-01');
+
+test('Pelion: fetchRouteForecast örnekleme, varış saati, rakım ve yan rüzgâr alanları (sahte fetch, ÖRNEK yanıt)', async () => {
+  assert.ok(PELION?.pathFull, 'gr-thessalia-01 pathFull ile olmalı');
+  const start = Date.parse('2026-11-02T08:00:00Z');
+  const n = 6;
+  // ÖRNEK: tüm noktalarda doğudan (90°) 25 km/sa rüzgâr; rakımlar örnek (Hania geçidi civarı yüksek).
+  const ornekRakim = [10, 600, 1100, 1150, 700, 450];
+  const f = sahteFetch((pts) => ornekOpenMeteoYaniti(pts, {
+    elevations: ornekRakim, hourValues: () => ({ wind_speed_10m: 25, wind_direction_10m: 90 }),
+  }));
+  const r = await fetchRouteForecast(PELION, { fetchImpl: f, startTime: start, now: ORNEK_BASLANGIC_SAATI, speedKmh: 40, n });
+  assert.equal(f.calls.length, 1, 'tek istek');
+  assert.equal(r.routeId, 'gr-thessalia-01');
+  assert.equal(r.geometry, 'pathFull');
+  assert.equal(r.routeApproximate, false);
+  assert.equal(r.distanceScale, 1);
+  const L = lineLengthKm(PELION);
+  assert.ok(Math.abs(L - PELION.lengthKm) / PELION.lengthKm < 0.002, `pathFull ${L.toFixed(2)} km, lengthKm ${PELION.lengthKm}`);
+  assert.ok(Math.abs(r.routeKm - L) < 1e-9);
+  // uçlar: rotanın gerçek başlangıç/bitişi (Volos, Zagora)
+  const c = PELION.pathFull.coordinates;
+  assert.deepEqual([r.points[0].lon, r.points[0].lat], c[0]);
+  assert.deepEqual([r.points.at(-1).lon, r.points.at(-1).lat], c.at(-1));
+  assert.ok(Math.abs(r.points[0].lat - PELION.start.lat) < 1e-3 && Math.abs(r.points.at(-1).lon - PELION.end.lon) < 1e-3);
+  // istek URL'si örnek noktaları taşır (5 ondalık) ve dönüş saatini kapsar
+  const u = new URL(f.calls[0]);
+  assert.equal(u.searchParams.get('latitude').split(',').length, n);
+  const hours = Number(u.searchParams.get('forecast_hours'));
+  assert.ok(hours >= Math.ceil((start + (L / 40) * 3600e3 - ORNEK_BASLANGIC_SAATI) / 3600e3));
+  const bearings = routeBearings(c);
+  r.points.forEach((p, i) => {
+    assert.ok(Math.abs(p.distanceKm - (L * i) / (n - 1)) < 1e-9, `nokta ${i} mesafe`);
+    const arr = start + ((L * i) / (n - 1) / 40) * 3600e3; // 45,45 km / 40 km/sa ≈ 68 dk
+    assert.equal(p.arrival, new Date(arr).toISOString(), `nokta ${i} varış`);
+    assert.equal(p.forecast.temperature_2m, 15 + Math.round((arr - ORNEK_BASLANGIC_SAATI) / 3600e3), `nokta ${i} saat seçimi`);
+    assert.equal(p.elevationM, ornekRakim[i]);
+    // yön: noktanın merkezine en yakın 200 m pencere (testin kendi seçimi)
+    const lineM = p.distanceKm * 1000;
+    const b = bearings.reduce((best, x) => (Math.abs(x.sM + 100 - lineM) < Math.abs(best.sM + 100 - lineM) ? x : best));
+    assert.equal(p.bearingR, b.R, `nokta ${i} pencere`);
+    assert.equal(p.bearingVariable, b.variable || b.bearingDeg === null);
+    if (p.bearingVariable) {
+      assert.equal(p.crosswindKmh, null);
+      assert.equal(p.headwindKmh, null);
+    } else {
+      const rad = ((90 - p.bearingDeg) * Math.PI) / 180;
+      assert.ok(Math.abs(p.crosswindKmh - Math.abs(25 * Math.sin(rad))) < 1e-9, `nokta ${i} yan`);
+      assert.ok(Math.abs(p.headwindKmh - 25 * Math.cos(rad)) < 1e-9, `nokta ${i} karşı`);
+    }
+  });
+  // sakin ÖRNEK hava (25 km/sa < 40 eşiği) → uygun
+  assert.equal(assessRide(r).level, 'uygun');
+});
+
+test('Pelion: firkete (way 223719457) ve düz kesimde yan rüzgâr; Hania tarafında ÖRNEK soğuk + yağış → önerilmez', async () => {
+  const bs = routeBearings(PELION.pathFull.coordinates);
+  // rota-uzmani: firketeler km ~8,5–9,7 (way 223719457). Oradaki en düşük R'li pencere variable olmalı → bileşen yok.
+  const firkete = bs.filter((b) => b.sM >= 8500 && b.sM + 200 <= 9700).reduce((m, b) => (b.R < m.R ? b : m));
+  assert.ok(firkete.variable && firkete.R < 0.3, `firkete R ${firkete.R}`);
+  const duz = bs.find((b) => b.R > 0.99 && b.sM > 5800); // şehir dışı ilk düz pencere
+  assert.ok(duz, 'Pelion pathFull\'da şehir dışında düz pencere olmalı');
+  const pts = [
+    { ...ornekNokta({ wind_speed_10m: 30, wind_direction_10m: 90 }, (firkete.sM + 100) / 1000, 0), geometry: 'pathFull' },
+    { ...ornekNokta({ wind_speed_10m: 30, wind_direction_10m: (duz.bearingDeg + 270) % 360 }, (duz.sM + 100) / 1000, 1), geometry: 'pathFull' },
+  ];
+  const [p, q] = addWindComponents(PELION, pts);
+  assert.equal(p.bearingVariable, true);
+  assert.equal(p.crosswindKmh, null);
+  assert.equal(q.bearingVariable, false);
+  assert.ok(Math.abs(q.crosswindKmh - 30) < 0.1 && Math.abs(q.headwindKmh) < 1, `yan ${q.crosswindKmh}, karşı ${q.headwindKmh}`);
+  assert.equal(q.crosswindSide, 'left');
+  // ÖRNEK kış senaryosu (bestSeason: Hania'da kar/buz olası): 4. örnek nokta (km ~27, Hania inişi) 1 °C ve yağış.
+  const f = sahteFetch((ptsQ) => ornekOpenMeteoYaniti(ptsQ, {
+    hourValues: (i) => (i === 3 ? { temperature_2m: 1, precipitation: 0.4, weather_code: 61 } : {}),
+  }));
+  const r = await fetchRouteForecast(PELION, { fetchImpl: f, startTime: ORNEK_BASLANGIC_SAATI, now: ORNEK_BASLANGIC_SAATI, n: 6 });
+  const a = assessRide(r);
+  assert.equal(a.level, 'önerilmez');
+  assert.equal(a.reasons[0].code, 'ice');
+  assert.equal(a.reasons[0].distanceKm, r.points[3].distanceKm);
+  assert.match(buildWeatherAlert(a, 'en'), /^Riding not advised: ice risk at km 27 \(1 °C with precipitation\)\. Take rain gear\.$/);
+  // Yunanca uyarı metni henüz yok: 'el' İngilizceye düşer (rota metinleri el + en).
+  assert.equal(buildWeatherAlert(a, 'el'), buildWeatherAlert(a, 'en'));
+  assert.equal(checklistUrl('checklist.html', a), 'checklist.html?ek=yagmur,soguk,-sis');
 });
 
 let failed = 0;

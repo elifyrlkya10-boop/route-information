@@ -65,6 +65,14 @@ Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
 - **A** — Yan rüzgâr ≥ 30 km/sa ya da hamlenin yan bileşeni ≥ 45 km/sa ise "dikkat" verilsin ve sesli uyarıda söylensin ("28. km'de sağdan yan rüzgâr, 32 km/sa"). Deneme sürüşlerinden sonra gözden geçirilsin. **(önerilen)**
 - **B** — Yalnızca bilgi olarak kalsın; uyarı olmasın.
 
+**19. Yunanca metinler** (7 Kasım gecesi eklendi). İlk Yunanistan rotası (`gr-thessalia-01`, Pelion) eklendi; rota ve fotoğraf metinleri Yunanca + İngilizce. Yunanca metinleri ajanlar yazdı.
+- **A** — Yunanca metinler ana dili Yunanca olan biri tarafından kontrol edilene kadar "doğrulanmalı" sayılsın; hava uyarılarına Yunanca bu kontrolden sonra eklensin. **(önerilen)**
+- **B** — Ajanların Yunanca metinleri şimdilik yeterli; hava uyarılarına da Yunanca eklensin.
+
+**20. Ülke ve yer adları Türkçe arayüzde.** Şu an Türkçe arayüzde "Greece", "Βόλος (Volos)" görünüyor.
+- **A** — Ülke ve bölge adlarına `tr` eklensin ("Yunanistan", "Teselya"); başlangıç/bitiş adları çok dilli (`name{lang}`) olsun. **(önerilen)**
+- **B** — Olduğu gibi kalsın (İngilizceye düşme yeterli).
+
 ---
 
 ## Karar sırasında sunulan seçenekler

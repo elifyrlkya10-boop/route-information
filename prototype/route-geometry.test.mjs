@@ -19,6 +19,7 @@ const byId = (id) => {
 const NEMRUT = byId('tr-guneydogu-anadolu-01');
 const EGE = byId('tr-ege-01');
 const IC_ANADOLU = byId('tr-ic-anadolu-01');
+const PELION = byId('gr-thessalia-01');
 
 // ---- Testin kendi bağımsız ölçümü (modülden ayrı yazıldı): parça listesi ve iki nokta arası kiriş yönü ----
 const toRad = (d) => (d * Math.PI) / 180;
@@ -95,11 +96,18 @@ test('düz kesim: İç Anadolu (Erciyes) pathFull üzerinde en az 1 km kesintisi
 });
 
 // Veri revizyonu: aşağıdaki sayısal beklentiler (oranlar, pencere sayıları) bu geometriye aittir
-// (rota-uzmani 2026-11-05 Aşama 1: Nemrut güneye taşındı, Bozdağ çıkıntısı kalktı). Geometri değişirse
-// test hata mesajında revizyon farkını gösterir; beklentiler yeni veriye göre güncellenmeli.
+// (rota-uzmani 2026-11-05 Aşama 1: Nemrut güneye taşındı, Bozdağ çıkıntısı kalktı; 2026-11-07: ilk Yunanistan
+// rotası gr-thessalia-01 eklendi, Türkiye geometrisi değişmedi). Oran referansı pathFull olan HER rotaya ait
+// olduğundan karma da her rota için tutulur. Geometri değişirse test hata mesajında revizyon farkını gösterir;
+// beklentiler yeni veriye göre güncellenmeli.
 const REF_REVISION = {
-  'tr-guneydogu-anadolu-01': '3ef5856ff1f860eedab05cb7c3ba07f8fc07bf56ad18daccaec61e007025614f',
+  'tr-marmara-01': '222ccde2eeeafa1e6bd31d63852fc74a2f4bfbaf7f799d883a41044fb89fc88a',
   'tr-ege-01': '83dce96f3fcf36cec9f711b86b41af46715f32ccb3837c6a0929b19575771d3a',
+  'tr-akdeniz-01': 'a5eea9f154005096f75cfbbece326d621c67fa10c472223275c775faf17acca4',
+  'tr-ic-anadolu-01': '4d33b887f775b3189acf4c1d0d576a39bf7def64c76be718c53640a5f5ae5603',
+  'tr-karadeniz-01': '1d8374534393145ca16a32b3311ae5a4615c90acf68fdd86edefc30a2329b294',
+  'tr-guneydogu-anadolu-01': '3ef5856ff1f860eedab05cb7c3ba07f8fc07bf56ad18daccaec61e007025614f',
+  'gr-thessalia-01': 'f99601b5bd00e850fff466e1d0f8f548c476c57dc2d0215800d87f98081cec7f', // rota-uzmani 2026-11-07
 };
 const revNote = (r) => (REF_REVISION[r.id] && r.geometryRevision?.pathFullSha256 !== REF_REVISION[r.id]
   ? ` [UYARI: ${r.id} pathFull revizyonu değişmiş (${r.geometryRevision?.pathFullSha256?.slice(0, 12) ?? 'yok'}); test beklentileri eski geometriye ait]` : '');
@@ -113,6 +121,9 @@ test('firkete (gerçek pathFull): her rotada variable pencereler gerçekten yön
     'tr-ege-01': { minVariable: 20, maxMinR: 0.3 },
     'tr-karadeniz-01': { minVariable: 20, maxMinR: 0.3 },
     'tr-guneydogu-anadolu-01': { minVariable: 10, maxMinR: 0.5 },
+    // Pelion (2026-11-07 geometrisi): 137 variable pencere, en düşük R 0,085. Bu sayıya Volos şehir içi kavşaklar
+    // (km 0–5,8; 18 pencere) dahildir; firkete sayımı şehir içi hariç ayrı testte.
+    'gr-thessalia-01': { minVariable: 100, maxMinR: 0.15 },
   };
   for (const r of PATHFULL_ROUTES) {
     const c = r.pathFull.coordinates;
@@ -150,22 +161,74 @@ test('Bozdağ (Ege) eski yapay U dönüşü kalktı: kavşak çevresinde (pathFu
   assert.deepEqual(v.map((x) => x.sM), [], `Ege kavşak çevresinde variable pencere: ${v.map((x) => `${x.sM}(R ${x.R.toFixed(2)})`).join(', ')}${revNote(EGE)}`);
 });
 
-test('variable oranı (200 m) rota-uzmani 2026-11-05 ölçümüyle uyumlu: Nemrut en düşük, Ege en yüksek; her biri ±0,5 puan', () => {
-  // rota-uzmani 2026-11-05 Aşama 1 (yeni geometri): Marmara 5,97 · Ege 7,32 · Akdeniz 5,47 · İç Anadolu 1,96 · Karadeniz 5,35 · Nemrut 1,73 (%)
-  // Eski referans (2026-11-03, kuzey Nemrut 9,3 · Ege 7,6) eski geometriye aitti. Yeni değerler bu modülle aynı yöntemden
-  // geldiği için tolerans ±1,5'ten ±0,5 puana daraltıldı.
-  const ref = { 'tr-ic-anadolu-01': 1.96, 'tr-marmara-01': 5.97, 'tr-karadeniz-01': 5.35, 'tr-akdeniz-01': 5.47, 'tr-ege-01': 7.32, 'tr-guneydogu-anadolu-01': 1.73 };
+test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Türkiye içinde Nemrut en düşük, Ege en yüksek; Pelion hepsinden yüksek', () => {
+  // rota-uzmani 2026-11-05 Aşama 1 (Türkiye, yeni geometri): Marmara 5,97 · Ege 7,32 · Akdeniz 5,47 · İç Anadolu 1,96 · Karadeniz 5,35 · Nemrut 1,73 (%)
+  // rota-uzmani 2026-11-07 Aşama 1 (Yunanistan): Pelion (gr-thessalia-01) 15,12 (906 pencerenin 137'si).
+  // Eski referans (2026-11-03, kuzey Nemrut 9,3 · Ege 7,6) eski geometriye aitti. Değerler bu modülle aynı yöntemden
+  // geldiği için tolerans ±0,5 puan.
+  // Sıralama beklentisi ülke başınadır: "Türkiye içinde en düşük/en yüksek" iddiası, yeni ülke rotaları eklendikçe
+  // bozulmamalı (Türkiye verisi değişmeden bu test kırılmasın); ülkeler arası karşılaştırma ayrı, açık bir iddia.
+  const ref = {
+    tr: { 'tr-ic-anadolu-01': 1.96, 'tr-marmara-01': 5.97, 'tr-karadeniz-01': 5.35, 'tr-akdeniz-01': 5.47, 'tr-ege-01': 7.32, 'tr-guneydogu-anadolu-01': 1.73 },
+    gr: { 'gr-thessalia-01': 15.12 },
+  };
   const pct = {};
-  for (const [id, p] of Object.entries(ref)) {
+  for (const [id, p] of Object.entries({ ...ref.tr, ...ref.gr })) {
     const r = byId(id);
     const w = routeBearings(r.pathFull.coordinates);
     pct[id] = (100 * w.filter((x) => x.variable).length) / w.length;
     assert.ok(Math.abs(pct[id] - p) <= 0.5, `${id}: %${pct[id].toFixed(2)} (rota-uzmani %${p})${revNote(r)}`);
   }
-  assert.deepEqual(Object.keys(ref).sort(), PATHFULL_ROUTES.map((r) => r.id).sort(), 'pathFull olan her rota referansta olmalı');
-  const order = Object.entries(pct).sort((a, b) => a[1] - b[1]).map(([id]) => id);
-  assert.equal(order[0], 'tr-guneydogu-anadolu-01', `en düşük: ${order[0]}`);
-  assert.equal(order.at(-1), 'tr-ege-01', `en yüksek: ${order.at(-1)}`);
+  assert.deepEqual(Object.keys({ ...ref.tr, ...ref.gr }).sort(), PATHFULL_ROUTES.map((r) => r.id).sort(), 'pathFull olan her rota referansta olmalı');
+  assert.deepEqual(Object.keys(REF_REVISION).sort(), PATHFULL_ROUTES.map((r) => r.id).sort(), 'pathFull olan her rotanın karması REF_REVISION\'da olmalı');
+  for (const [cc, ids] of Object.entries(ref)) {
+    assert.ok(Object.keys(ids).every((id) => id.startsWith(`${cc}-`)), `${cc}: id öneki ülkeyle uyumlu`);
+  }
+  const trOrder = Object.keys(ref.tr).sort((a, b) => pct[a] - pct[b]);
+  assert.equal(trOrder[0], 'tr-guneydogu-anadolu-01', `Türkiye en düşük: ${trOrder[0]}`);
+  assert.equal(trOrder.at(-1), 'tr-ege-01', `Türkiye en yüksek: ${trOrder.at(-1)}`);
+  // Yunanistan: tek rota var, ülke içi sıralama yok. Ayrı beklenti: Pelion projedeki en virajlı rota
+  // (rota-uzmani 2026-11-07) ve en virajlı Türkiye rotasının (Ege) en az iki katı.
+  const trMax = Math.max(...Object.keys(ref.tr).map((id) => pct[id]));
+  assert.ok(pct['gr-thessalia-01'] > 2 * trMax, `Pelion %${pct['gr-thessalia-01'].toFixed(2)} > 2 × Türkiye en yüksek %${trMax.toFixed(2)}${revNote(PELION)}`);
+});
+
+test('Pelion (gerçek pathFull): firketeler dağ kesiminde (km 5,8 sonrası), şehir içi kavşaklar sayılmadan; way 223719457 firketeli, Portaria–Hania geniş virajlı', () => {
+  // Firkete tanımı (testin kendi ölçümü): variable pencere VE pencerenin ilk/son 50 m kirişleri arasında ≥ 150° dönüş;
+  // aralarında ≤ 200 m olan pencereler tek firkete sayılır. Volos şehir içi (km 0–5,8; rota-uzmani: "kavşaklar,
+  // firkete değil") geometrik olarak benzer U şekilleri verir (km 0,05–0,15 ve 4,8–5,5); bu yüzden geometriyle değil
+  // rota-uzmani'nın km sınıflandırmasıyla hariç tutulur. Hariç tutulmasaydı firkete sayısı 4 fazla çıkardı.
+  const CITY_END_M = 5800;
+  const c = PELION.pathFull.coordinates;
+  const sl = segList(c);
+  const w = routeBearings(c);
+  const tight = (from, to) => w.filter((x) => x.variable && x.sM >= from && x.sM + 200 <= to && angleDiffDeg(
+    initialBearing(pointAt(sl, x.sM), pointAt(sl, x.sM + 50)),
+    initialBearing(pointAt(sl, x.sM + 150), pointAt(sl, x.sM + 200)),
+  ) >= 150);
+  const clusters = (arr) => arr.reduce((n, x, i) => n + (i === 0 || x.sM - arr[i - 1].sM > 200 ? 1 : 0), 0);
+  const mountain = clusters(tight(CITY_END_M, sl.total));
+  const city = clusters(tight(0, CITY_END_M));
+  // 2026-11-07 geometrisi: dağ kesiminde 25 firkete, şehir içinde 4 U şekilli kavşak.
+  assert.ok(mountain >= 20, `Pelion dağ kesimi firkete sayısı ${mountain}${revNote(PELION)}`);
+  assert.ok(city > 0 && city < mountain / 4, `şehir içi U şekilleri ${city} (sayıma girmiyor)${revNote(PELION)}`);
+  // Aynı ölçüyle her Türkiye rotası (şehir içi ayrımı yapılmadan, tüm çizgi) Pelion dağ kesiminden az firketeli.
+  for (const r of PATHFULL_ROUTES.filter((x) => x.id.startsWith('tr-'))) {
+    const rc = r.pathFull.coordinates, rsl = segList(rc);
+    const t = routeBearings(rc).filter((x) => x.variable && angleDiffDeg(
+      initialBearing(pointAt(rsl, x.sM), pointAt(rsl, x.sM + 50)),
+      initialBearing(pointAt(rsl, x.sM + 150), pointAt(rsl, x.sM + 200)),
+    ) >= 150);
+    assert.ok(clusters(t) < mountain, `${r.id}: ${clusters(t)} firkete, Pelion dağ kesimi ${mountain}${revNote(r)}`);
+  }
+  // rota-uzmani: way 223719457 firketeler km ~8,5–9,7 → en az 2 sıkı firkete (R < 0,3).
+  const way = tight(8500, 9700);
+  assert.ok(clusters(way) >= 2 && way.some((x) => x.R < 0.3), `km 8,5–9,7 firkete ${clusters(way)}${revNote(PELION)}`);
+  // Best Biking Roads sürücü yorumu: Portaria–Hania arası geniş virajlar. km 14,2–25,4 kesiminde variable oranı
+  // tırmanışın (km 5,8–14,2) ve Hania inişinin (km 26–39,5) yarısından az olmalı.
+  const frac = (a, b) => { const s = w.filter((x) => x.sM >= a && x.sM < b); return s.filter((x) => x.variable).length / s.length; };
+  const climb = frac(5800, 14200), mid = frac(14200, 25400), descent = frac(26000, 39500);
+  assert.ok(mid < climb / 2 && mid < descent / 2, `variable oranı: tırmanış %${(100 * climb).toFixed(1)}, orta %${(100 * mid).toFixed(1)}, iniş %${(100 * descent).toFixed(1)}${revNote(PELION)}`);
 });
 
 test('359°/1° geçişi (gerçek pathFull, tüm rotalar): sağlam seçilmiş kuzey pencerelerinde yön kuzeyde, açı ortalaması belirgin yanlış', () => {

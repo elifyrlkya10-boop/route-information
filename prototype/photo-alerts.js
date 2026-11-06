@@ -175,15 +175,17 @@ function spokenDistance(m, lang) {
  *   (kuş uçuşu) "rotadan yaklaşık X kilometre sapma". Söylenen değer >= 0,5 km ise eklenir.
  * - reachableFromRoute === false ise null döner (bu rotadan erişilmiyor).
  * - safeStop !== true ise null döner: güvenli durulamayan nokta önerilmez.
- * - Başlık istenen dilde yoksa İngilizceye düşülür.
+ * - Dil yedeği (tr → en): başlık istenen dilde yoksa (ör. yalnız {el, en} olan Yunanistan noktası) metnin TAMAMI
+ *   İngilizce kurulur; Türkçe çerçeve içinde İngilizce başlık okunmaz. tr/en dışındaki diller İngilizceye düşer.
  * @returns {string|null}
  */
 export function buildPhotoVoiceAlert(spot, aheadM, lang = 'en') {
   if (!isObj(spot)) throw new TypeError('spot: nesne olmalı');
   if (!isNum(aheadM) || aheadM < 0) throw new TypeError('aheadM: negatif olmayan sayı olmalı');
   if (spot.safeStop !== true || spot.reachableFromRoute === false) return null;
-  const l = lang === 'tr' ? 'tr' : 'en';
-  const title = spot.title?.[l] ?? spot.title?.en;
+  const want = lang === 'tr' ? 'tr' : 'en';
+  const l = typeof spot.title?.[want] === 'string' && spot.title[want].length > 0 ? want : 'en';
+  const title = spot.title?.[l];
   if (typeof title !== 'string' || title.length === 0) throw new TypeError('spot.title: en az en metni olmalı');
   const dist = spokenDistance(aheadM, l);
   let text = l === 'tr' ? `Fotoğraf noktası ${dist}: ${title}.` : `Photo spot ${dist}: ${title}.`;
