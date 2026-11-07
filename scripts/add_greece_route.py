@@ -14,8 +14,10 @@ path = pathFull üzerinde Douglas-Peucker, 200 m.
 Ara noktalar: OSRM, Volos–Portaria arasında ΕΟ34α'dan ayrılıp mahalle sokaklarından (Αργυροκάστρου,
 Σταγιάτες – Άνω Βόλος, Κατηχώρι, Πορταριάς-Κατηχωρίου) ve Hania'da köy içi sokaklardan kestirme
 yapıyor. Motorcuların bilinen yolu ΕΟ34α olduğu için ara noktalar ΕΟ34α yollarının (OSM way) düğümlerine
-konur (aşağıda node id'leriyle). Başlangıç ve bitiş OSM'deki yer düğümleridir (Βόλος place=city
-node 135531710, Ζαγορά place=town node 1827940526).
+konur (aşağıda node id'leriyle). Başlangıç Volos merkezinde Γρηγορίου Λαμπράκη (ΕΟ34) caddesinin doğuya
+giden şeridindeki düğüm (node 287465983, Βόλος place=city node 135531710'un ~35 m güneyi; 2026-11-08'e
+kadar başlangıç yer düğümüydü ve dönel kavşakta geri dönüşe yol açıyordu). Bitiş OSM'deki yer düğümü
+(Ζαγορά place=town node 1827940526).
 
 Çalıştır:
   python3 scripts/add_greece_route.py               # yalnızca hesapla ve özetle (ağ gerekir)
@@ -38,7 +40,12 @@ REGION = {"id": "gr-thessalia", "countryCode": "GR", "name": {"el": "Θεσσα�
 
 # (lat, lon, açıklama) — OSM node'ları (2026-11-07 OSM API / Overpass)
 WAYPOINTS = [
-    (39.3624833, 22.9401864, "Βόλος, place=city node 135531710 (başlangıç)"),
+    # 2026-11-08: başlangıç Βόλος yer düğümü (place=city node 135531710, 39.3624833 / 22.9401864) idi; OSRM onu
+    # Γρηγορίου Λαμπράκη'nin batıya giden şeridine yapıştırıyor, rota 150 m batıdaki dönel kavşakta tam dönüş
+    # yapıp geri geliyordu (km 0–0,24). Başlangıç artık aynı caddenin doğuya giden şeridinde, yer düğümünün
+    # ~35 m güneyindeki ışıklı yaya geçidi düğümü.
+    (39.3621720, 22.9402559, "Βόλος, Γρηγορίου Λαμπράκη (ΕΟ34) doğuya giden şerit, way 476340903, "
+                             "node 287465983 (başlangıç)"),
     (39.3805309, 22.9668239, "ΕΟ34α Ιωλκού, way 958275451, node 6055801380"),
     (39.3808963, 22.9705450, "ΕΟ34α Ιωλκού, way 1058097604, node 6055349889"),
     (39.3812539, 22.9730774, "ΕΟ34α Βόλου – Τσαγκαράδας, way 919948007, node 10709348977"),
@@ -73,7 +80,7 @@ TEXT = {
         "el": "Απρίλιος–Οκτώβριος (τον χειμώνα πιθανό χιόνι και πάγος στο διάσελο των Χανίων)",
         "en": "April–October (snow and ice possible at the Hania pass in winter)",
     },
-    "start_name": "Βόλος (Volos)",
+    "start_name": "Βόλος, Γρηγορίου Λαμπράκη (Volos)",
     "end_name": "Ζαγορά (Zagora)",
 }
 DIFFICULTY = "moderate"

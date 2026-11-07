@@ -69,7 +69,7 @@ const ornekNokta = (forecast, distanceKm = 10, index = 1) => ({
 // ---- Testler ----
 test('sadeleştirilmiş path lengthKm\'den kısa; üst sınır yalnız path\'in KULLANILDIĞI rotada (pathFull yok) aranır', () => {
   // path, pathFull'un Douglas-Peucker sadeleştirmesi: her rotada lengthKm'den kısa olmalı (değişmez özellik).
-  // Fark rotanın virajlılığına bağlıdır (2026-11-07 ölçümü: Türkiye %3,0–17,5, Pelion %22,5); pathFull olan rotada
+  // Fark rotanın virajlılığına bağlıdır (2026-11-07 ölçümü: Türkiye %3,0–17,5; Pelion 2026-11-08 geometrisinde %21,5); pathFull olan rotada
   // hava modülü path'i hiç kullanmaz (sonraki test bunu sınar), bu yüzden orada üst sınır anlamlı değildir.
   // Sınırı genişletmek yerine üst sınır, path'in mesafe/varış saati için ölçeklenerek kullanıldığı rotalarda korunur.
   for (const r of data.routes) {
@@ -423,7 +423,7 @@ test('Pelion: fetchRouteForecast örnekleme, varış saati, rakım ve yan rüzg�
   const bearings = routeBearings(c);
   r.points.forEach((p, i) => {
     assert.ok(Math.abs(p.distanceKm - (L * i) / (n - 1)) < 1e-9, `nokta ${i} mesafe`);
-    const arr = start + ((L * i) / (n - 1) / 40) * 3600e3; // 45,45 km / 40 km/sa ≈ 68 dk
+    const arr = start + ((L * i) / (n - 1) / 40) * 3600e3; // 45,06 km / 40 km/sa ≈ 68 dk
     assert.equal(p.arrival, new Date(arr).toISOString(), `nokta ${i} varış`);
     assert.equal(p.forecast.temperature_2m, 15 + Math.round((arr - ORNEK_BASLANGIC_SAATI) / 3600e3), `nokta ${i} saat seçimi`);
     assert.equal(p.elevationM, ornekRakim[i]);
@@ -447,10 +447,10 @@ test('Pelion: fetchRouteForecast örnekleme, varış saati, rakım ve yan rüzg�
 
 test('Pelion: firkete (way 223719457) ve düz kesimde yan rüzgâr; Hania tarafında ÖRNEK soğuk + yağış → önerilmez', async () => {
   const bs = routeBearings(PELION.pathFull.coordinates);
-  // rota-uzmani: firketeler km ~8,5–9,7 (way 223719457). Oradaki en düşük R'li pencere variable olmalı → bileşen yok.
-  const firkete = bs.filter((b) => b.sM >= 8500 && b.sM + 200 <= 9700).reduce((m, b) => (b.R < m.R ? b : m));
+  // rota-uzmani: firketeler km ~8,1–9,3 (way 223719457; 2026-11-08 geometrisi). Oradaki en düşük R'li pencere variable olmalı → bileşen yok.
+  const firkete = bs.filter((b) => b.sM >= 8100 && b.sM + 200 <= 9300).reduce((m, b) => (b.R < m.R ? b : m));
   assert.ok(firkete.variable && firkete.R < 0.3, `firkete R ${firkete.R}`);
-  const duz = bs.find((b) => b.R > 0.99 && b.sM > 5800); // şehir dışı ilk düz pencere
+  const duz = bs.find((b) => b.R > 0.99 && b.sM > 5400); // şehir dışı (km 5,4 sonrası) ilk düz pencere
   assert.ok(duz, 'Pelion pathFull\'da şehir dışında düz pencere olmalı');
   const pts = [
     { ...ornekNokta({ wind_speed_10m: 30, wind_direction_10m: 90 }, (firkete.sM + 100) / 1000, 0), geometry: 'pathFull' },

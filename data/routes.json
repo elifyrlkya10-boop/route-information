@@ -8291,16 +8291,16 @@
         "el": "Ορεινή διαδρομή από το κέντρο του Βόλου που ανεβαίνει με στροφές από την Ανακασιά και την Πορταριά (ΕΟ34α) στο διάσελο των Χανίων (περίπου 1.190 μ.) και κατεβαίνει μέσα από δάση οξιάς και καστανιάς στη Ζαγορά, στην πλευρά του Αιγαίου. Θέα στον Παγασητικό κόλπο και στον Βόλο στην ανάβαση και στο Αιγαίο στην κατάβαση.",
         "en": "A mountain road from central Volos that climbs in bends through Anakasia and Portaria (EO34a) to the Hania pass (about 1,190 m), then descends through beech and chestnut forest to Zagora on the Aegean side. Views over the Pagasetic Gulf and Volos on the climb and over the Aegean on the descent."
       },
-      "lengthKm": 45.4,
+      "lengthKm": 45.0,
       "difficulty": "moderate",
       "bestSeason": {
         "el": "Απρίλιος–Οκτώβριος (τον χειμώνα πιθανό χιόνι και πάγος στο διάσελο των Χανίων)",
         "en": "April–October (snow and ice possible at the Hania pass in winter)"
       },
       "start": {
-        "name": "Βόλος (Volos)",
-        "lat": 39.36231,
-        "lon": 22.94019
+        "name": "Βόλος, Γρηγορίου Λαμπράκη (Volos)",
+        "lat": 39.36217,
+        "lon": 22.94026
       },
       "end": {
         "name": "Ζαγορά (Zagora)",
@@ -8311,8 +8311,8 @@
         "type": "LineString",
         "coordinates": [
           [
-            22.94019,
-            39.36231
+            22.94026,
+            39.36217
           ],
           [
             22.94627,
@@ -8507,64 +8507,6 @@
       "pathFull": {
         "type": "LineString",
         "coordinates": [
-          [22.94019, 39.36231],
-          [22.93951, 39.3623],
-          [22.93912, 39.3623],
-          [22.93868, 39.3623],
-          [22.93865, 39.3623],
-          [22.93859, 39.3623],
-          [22.93854, 39.3623],
-          [22.93851, 39.36231],
-          [22.9385, 39.36231],
-          [22.93849, 39.36231],
-          [22.93848, 39.36231],
-          [22.93847, 39.36232],
-          [22.93845, 39.36232],
-          [22.93845, 39.36233],
-          [22.93844, 39.36234],
-          [22.93842, 39.36235],
-          [22.9384, 39.36236],
-          [22.93839, 39.36237],
-          [22.93838, 39.36237],
-          [22.93837, 39.36238],
-          [22.93835, 39.36239],
-          [22.93833, 39.36239],
-          [22.93832, 39.36239],
-          [22.9383, 39.36239],
-          [22.93827, 39.36239],
-          [22.93824, 39.36239],
-          [22.93821, 39.36238],
-          [22.93819, 39.36238],
-          [22.93817, 39.36237],
-          [22.93815, 39.36236],
-          [22.93813, 39.36234],
-          [22.93812, 39.36232],
-          [22.9381, 39.36231],
-          [22.93809, 39.36229],
-          [22.93809, 39.36227],
-          [22.93809, 39.36226],
-          [22.93809, 39.36225],
-          [22.93809, 39.36223],
-          [22.93809, 39.36221],
-          [22.9381, 39.36219],
-          [22.93811, 39.36217],
-          [22.93812, 39.36215],
-          [22.93814, 39.36213],
-          [22.93816, 39.36212],
-          [22.93819, 39.36211],
-          [22.9382, 39.3621],
-          [22.93821, 39.3621],
-          [22.93824, 39.36209],
-          [22.93827, 39.36209],
-          [22.9383, 39.36209],
-          [22.93833, 39.36209],
-          [22.93837, 39.3621],
-          [22.93839, 39.36211],
-          [22.93842, 39.36213],
-          [22.93844, 39.36215],
-          [22.93846, 39.36216],
-          [22.93855, 39.36217],
-          [22.93865, 39.36218],
           [22.94026, 39.36217],
           [22.94128, 39.36217],
           [22.94133, 39.36217],
@@ -12175,13 +12117,13 @@
         ]
       },
       "geometryRevision": {
-        "date": "2026-11-07",
-        "pathSha256": "df018fcf9db7d867a57d511419e01f9afa8a257a716090d8db26004799f2c7d9",
-        "pathFullSha256": "f99601b5bd00e850fff466e1d0f8f548c476c57dc2d0215800d87f98081cec7f"
+        "date": "2026-11-08",
+        "pathSha256": "300bffe9abbce32154b2fee385f4e004f4e50a72e7fddc3f351b05b9e0c20ec3",
+        "pathFullSha256": "e06b56502d0d486059fed42b382db92a6d6c72f68bc358831153eb3ff9b7f1e4"
       },
       "verification": {
         "status": "doğrulandı",
-        "notes": "2026-11-07 kontrolü (rota-uzmani): çizginin 48 noktasının tümü yola oturuyor (OSRM nearest en fazla 1 m); başlangıç/bitiş OSM yer düğümleri (Βόλος place=city node 135531710, Nominatim 19 m; Ζαγορά place=town node 1827940526, Nominatim 29 m). Seçim gerekçesi: Pelion dağ yolu Volos–Portaria–Hania–Zagora, motorcuların bilinen rotası (Best Biking Roads, 'Mt Pelion: Volos - Zagora - Mouresi', 2012 sürücü yorumu: 'the best route for motorcycling in Magnesia (Volos)', Portaria–Hania arası geniş virajlar); Hania (Χάνια) Volos–Zagora il yolu üzerinde, 1.190 m, Volos'a 26 km (el.wikipedia 'Χάνια Μαγνησίας', 2026-11-07 erişim). Geometri: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili, overview=full) ile 2026-11-07 tarihinde alındı (scripts/add_greece_route.py), koordinatlar 5 ondalığa yuvarlandı. OSRM kendi başına Volos–Portaria arasında ve Hania'da ΕΟ34α'dan ayrılıp mahalle/köy sokaklarından kestirme yapıyordu; ΕΟ34α üzerindeki OSM düğümlerine 16 ara nokta konarak rota ana yola bağlandı (düğüm id'leri betikte). Gidip-dönme yok. pathFull 3665 nokta, çizgi 45,45 km (lengthKm farkı %+0,12); path pathFull'dan Douglas-Peucker 200 m ile 48 nokta, çizgi 37,06 km (lengthKm'den %18,4 kısa; yol çok virajlı). Yüzey: OSM'de güzergâhın etiketli tüm yolları surface=asphalt (ΕΟ34, ΕΟ34α, Ζαγορά - Πουρί); toprak/taşlı etiket yok. Doğrulanmalı: Hania rakımı (kaynakta 1.190 m, OSM düğümünde ele yok), kışın kar/buz ve olası kapanmalar, bestSeason (Nisan–Ekim proje önerisi), zorluk (moderate, proje değerlendirmesi), yol yüzeyinin güncel durumu; OSRM grafiği OSM'nin en yeni düzenlemelerinden (ör. Anakasia'daki ΕΟ34α yeniden çizimi) eski olabilir, sahada teyit edilmeli. Volos şehir içi kesim (km 0–~5) kavşak ve dönüşler içerir."
+        "notes": "2026-11-07 kontrolü (rota-uzmani): çizginin 48 noktasının tümü yola oturuyor (OSRM nearest en fazla 1 m); başlangıç Γρηγορίου Λαμπράκη (ΕΟ34) caddesinin doğuya giden şeridinde OSM node 287465983 (way 476340903, oneway, ışıklı yaya geçidi; Βόλος place=city node 135531710'un 35 m güneyi), bitiş OSM yer düğümü (Ζαγορά place=town node 1827940526, Nominatim 29 m). Seçim gerekçesi: Pelion dağ yolu Volos–Portaria–Hania–Zagora, motorcuların bilinen rotası (Best Biking Roads, 'Mt Pelion: Volos - Zagora - Mouresi', 2012 sürücü yorumu: 'the best route for motorcycling in Magnesia (Volos)', Portaria–Hania arası geniş virajlar); Hania (Χάνια) Volos–Zagora il yolu üzerinde, 1.190 m, Volos'a 26 km (el.wikipedia 'Χάνια Μαγνησίας', 2026-11-07 erişim). Geometri: OpenStreetMap verisi üzerinde OSRM (router.project-osrm.org, sürüş profili, overview=full) ile 2026-11-07 tarihinde alındı (scripts/add_greece_route.py), koordinatlar 5 ondalığa yuvarlandı. OSRM kendi başına Volos–Portaria arasında ve Hania'da ΕΟ34α'dan ayrılıp mahalle/köy sokaklarından kestirme yapıyordu; ΕΟ34α üzerindeki OSM düğümlerine 16 ara nokta konarak rota ana yola bağlandı (düğüm id'leri betikte). Gidip-dönme yok. 2026-11-08 düzeltmesi (rota-uzmani): başlangıç önceden Βόλος yer düğümüydü; OSRM onu caddenin batıya giden şeridine yapıştırıyor, rota 150 m batıdaki dönel kavşakta (22,93845 / 39,36232) tam dönüş yapıp doğuya giden şeritten geri geliyordu (eski km 0–0,40). Başlangıç doğuya giden şeride alındı; yeni pathFull eski pathFull'un 58. noktasından sonrasıyla birebir aynı (yalnız baştaki 0,40 km kalktı, km değerleri ~0,40 km öne kaydı). pathFull 3607 nokta, çizgi 45,06 km (lengthKm 45,0 ile farkı %+0,13); path pathFull'dan Douglas-Peucker 200 m ile 48 nokta, çizgi 37,05 km (lengthKm'den %17,7 kısa; yol çok virajlı). Yüzey: OSM'de güzergâhın etiketli tüm yolları surface=asphalt (ΕΟ34, ΕΟ34α, Ζαγορά - Πουρί); toprak/taşlı etiket yok. Doğrulanmalı: Hania rakımı (kaynakta 1.190 m, OSM düğümünde ele yok), kışın kar/buz ve olası kapanmalar, bestSeason (Nisan–Ekim proje önerisi), zorluk (moderate, proje değerlendirmesi), yol yüzeyinin güncel durumu; OSRM grafiği OSM'nin en yeni düzenlemelerinden (ör. Anakasia'daki ΕΟ34α yeniden çizimi) eski olabilir, sahada teyit edilmeli. Volos şehir içi kesim (km 0–~5,4) kavşak ve dönüşler içerir."
       }
     }
   ]

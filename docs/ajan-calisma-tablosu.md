@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 11 | 68.2 | 6.2 | 17.7 | 1.563.629 |
+| rota-uzmani | 12 | 72.6 | 6.1 | 17.7 | 1.700.876 |
 | ekipman-asistani | 5 | 9.2 | 1.8 | 2.8 | 439.865 |
 | guvenlik-ve-yakin-cevre | 7 | 14.9 | 2.1 | 3.8 | 694.531 |
-| fotograf-noktalari | 8 | 36.0 | 4.5 | 12.1 | 948.420 |
-| hava-durumu | 6 | 20.4 | 3.4 | 5.4 | 628.358 |
-| **Toplam** | **37** | **148.7** | | | **4.274.803** |
+| fotograf-noktalari | 9 | 42.4 | 4.7 | 12.1 | 1.048.500 |
+| hava-durumu | 7 | 22.6 | 3.2 | 5.4 | 724.266 |
+| **Toplam** | **40** | **161.7** | | | **4.608.038** |
 
 ### 44. hafta: 26 Ekim – 1 Kasım 2026
 
@@ -33,17 +33,20 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 12 | 73.0 | 6.1 | 17.7 | 1.639.075 |
+| rota-uzmani | 13 | 77.4 | 6.0 | 17.7 | 1.776.322 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
 | guvenlik-ve-yakin-cevre | 8 | 16.9 | 2.1 | 3.8 | 756.509 |
-| fotograf-noktalari | 9 | 37.6 | 4.2 | 12.1 | 1.002.966 |
-| hava-durumu | 6 | 20.4 | 3.4 | 5.4 | 628.358 |
-| **Toplam** | **41** | **158.7** | | | **4.525.879** |
+| fotograf-noktalari | 10 | 43.9 | 4.4 | 12.1 | 1.103.046 |
+| hava-durumu | 7 | 22.6 | 3.2 | 5.4 | 724.266 |
+| **Toplam** | **44** | **171.7** | | | **4.859.114** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-08 | 02:20:33 | 02:26:52 | fotograf-noktalari | 6.3 | tamamlandi | Pelion fotoğraf noktaları yeni geometriye göre yeniden hesaplandı |
+| 2026-11-08 | 02:20:26 | 02:22:41 | hava-durumu | 2.3 | tamamlandi | Pelion test referansları yeni geometriye göre güncellendi |
+| 2026-11-08 | 02:15:22 | 02:19:49 | rota-uzmani | 4.4 | tamamlandi | Pelion başlangıcı düzeltildi (dönel kavşak dönüşü kaldırıldı) |
 | 2026-11-07 | 02:43:56 | 02:45:39 | rota-uzmani | 1.7 | tamamlandi | Aşama 3: harita testi dil yedeği, Volos başlangıç analizi |
 | 2026-11-07 | 02:33:53 | 02:42:48 | fotograf-noktalari | 8.9 | tamamlandi | Pelion rotasına 3 fotoğraf noktası, sesli metinde dil yedeği |
 | 2026-11-07 | 02:33:40 | 02:37:04 | hava-durumu | 3.4 | tamamlandi | Yön ve hava testleri Pelion rotasına uyarlandı |
