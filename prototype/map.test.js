@@ -160,6 +160,12 @@ async function step(name, fn) {
 
   await step("her rota TR ve EN arayüzde doğru dilde; Türkçe metni olmayan rota TR'de İngilizceye düşer (lang=\"en\")", async () => {
     assert.ok(NO_TR_ROUTES.length >= 1, "expected at least one route without Turkish text (e.g. Greece)");
+    // Route content is in the country's own language(s) and English (TR/EN, EL/EN, ES/EN, ...).
+    for (const r of SRC_ROUTES) {
+      const langs = countryOf(r).languages;
+      assert.ok(langs.includes("en"), `${countryOf(r).code}: languages must include en`);
+      for (const k of ["name", "description", "bestSeason"]) for (const l of langs) assert.ok(r[k][l], `${r.id}: ${k}.${l} missing (country languages ${langs})`);
+    }
     for (const lang of ["tr", "en"]) {
       await page.locator("#lang-" + lang).click();
       for (const r of SRC_ROUTES) {
@@ -193,6 +199,10 @@ async function step(name, fn) {
     await page.locator("#reset-view").click();
     await page.waitForTimeout(600);
     const before = await page.evaluate(() => mapApp.map.getZoom());
+    // Overview (reset) shows every route of every country.
+    const outOfView = await page.evaluate(() => Object.entries(mapApp.routeLayers)
+      .filter(([, l]) => !mapApp.map.getBounds().contains(l.getBounds())).map(([id]) => id));
+    assert.deepStrictEqual(outOfView, [], "routes outside the overview: " + outOfView.join(", "));
     for (const id of ["tr-dogu-anadolu-01", "tr-marmara-01"]) {
       await page.locator(`.route[data-route-id="${id}"]`).click();
       await page.waitForTimeout(600);

@@ -5,6 +5,17 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 ## Haftalık
 
+### 46. hafta: 9 Kasım – 15 Kasım 2026
+
+| Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
+|---|---:|---:|---:|---:|---:|
+| rota-uzmani | 1 | 14.5 | 14.5 | 14.5 | 221.933 |
+| ekipman-asistani | 0 | 0.0 | – | – | 0 |
+| guvenlik-ve-yakin-cevre | 0 | 0.0 | – | – | 0 |
+| fotograf-noktalari | 1 | 6.9 | 6.9 | 6.9 | 137.865 |
+| hava-durumu | 1 | 4.2 | 4.2 | 4.2 | 130.452 |
+| **Toplam** | **3** | **25.6** | | | **490.250** |
+
 ### 45. hafta: 2 Kasım – 8 Kasım 2026
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
@@ -33,17 +44,20 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 13 | 77.4 | 6.0 | 17.7 | 1.776.322 |
+| rota-uzmani | 14 | 91.9 | 6.6 | 17.7 | 1.998.255 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
 | guvenlik-ve-yakin-cevre | 8 | 16.9 | 2.1 | 3.8 | 756.509 |
-| fotograf-noktalari | 10 | 43.9 | 4.4 | 12.1 | 1.103.046 |
-| hava-durumu | 7 | 22.6 | 3.2 | 5.4 | 724.266 |
-| **Toplam** | **44** | **171.7** | | | **4.859.114** |
+| fotograf-noktalari | 11 | 50.8 | 4.6 | 12.1 | 1.240.911 |
+| hava-durumu | 8 | 26.8 | 3.4 | 5.4 | 854.718 |
+| **Toplam** | **47** | **197.3** | | | **5.349.364** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-09 | 02:31:22 | 02:38:19 | fotograf-noktalari | 6.9 | tamamlandi | Grazalema rotasına 3 fotoğraf noktası |
+| 2026-11-09 | 02:31:08 | 02:35:19 | hava-durumu | 4.2 | tamamlandi | Yön ve hava testleri İspanya rotasına göre genişletildi |
+| 2026-11-09 | 02:15:55 | 02:30:24 | rota-uzmani | 14.5 | tamamlandi | İlk İspanya rotası es-andalucia-01 (Sierra de Grazalema) |
 | 2026-11-08 | 02:20:33 | 02:26:52 | fotograf-noktalari | 6.3 | tamamlandi | Pelion fotoğraf noktaları yeni geometriye göre yeniden hesaplandı |
 | 2026-11-08 | 02:20:26 | 02:22:41 | hava-durumu | 2.3 | tamamlandi | Pelion test referansları yeni geometriye göre güncellendi |
 | 2026-11-08 | 02:15:22 | 02:19:49 | rota-uzmani | 4.4 | tamamlandi | Pelion başlangıcı düzeltildi (dönel kavşak dönüşü kaldırıldı) |

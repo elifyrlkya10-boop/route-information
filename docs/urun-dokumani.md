@@ -108,7 +108,7 @@ PhotoSpot { id, routeId, location{lat, lon}, title{lang}, description{lang},
 ChecklistItem { id, order, text{lang}, spokenText{lang}, conditional?: { key, before } }
 ```
 
-**Rota id kuralı:** `<ülke>-<bölge>-<nn>` (ör. `tr-karadeniz-01`, `tr-ic-anadolu-01`, `gr-thessalia-01`). Bölge adları: marmara, ege, akdeniz,
+**Rota id kuralı:** `<ülke>-<bölge>-<nn>` (ör. `tr-karadeniz-01`, `tr-ic-anadolu-01`, `gr-thessalia-01`, `es-andalucia-01`). Bölge adları: marmara, ege, akdeniz,
 ic-anadolu, karadeniz, dogu-anadolu, guneydogu-anadolu. Tehlike ve fotoğraf noktaları rotalara bu id ile bağlanır; id'ler değiştirilmez.
 
 **Veri dosyaları:** `data/routes.json`, `data/photo-spots.json`, `data/hazards.json` (şu an boş; etiketsiz yüzey tehlike sayılmaz), `data/hazards.schema.json` (tehlike verisi henüz yok; uydurma veri eklenmez,

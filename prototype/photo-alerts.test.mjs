@@ -55,7 +55,7 @@ function drive(r, fromM, toM, stepM, tracker, opts = {}) {
 }
 
 /** Rota id'sindeki ülke kodu -> ülke dili (docs/urun-dokumani.md: başlık ve açıklamalar ülke dili + İngilizce). */
-const COUNTRY_LANG = { tr: 'tr', gr: 'el' };
+const COUNTRY_LANG = { tr: 'tr', gr: 'el', es: 'es' };
 const LANG_FIELDS = ['title', 'description', 'safeStopInfo'];
 
 test(`veri: ${SPOTS.length} nokta (data/photo-spots.json), id'ler tekil, her biri bir rotaya bağlı, approachPoint ve detourKm var`, () => {
@@ -456,6 +456,29 @@ test('gr-thessalia-01: üç nokta baştan sona sürüşte rota sırasıyla birer
   for (const a of ann) {
     const s = spot(a.id);
     assert.ok(a.aheadM <= s.notifyRadiusM && a.aheadM > s.notifyRadiusM - 30, `${a.id}: aheadM ${a.aheadM}`);
+  }
+});
+
+test('es-andalucia-01: üç nokta (Boyar, Palomas, Acebuches) rota sırasıyla birer kez, yarıçap içinde; metinler es + en, Türkçe yok', () => {
+  const r = route('es-andalucia-01');
+  const ids = SPOTS.filter((s) => s.routeId === r.id).map((s) => s.id);
+  assert.deepEqual(ids, ['ps-es-andalucia-01-01', 'ps-es-andalucia-01-02', 'ps-es-andalucia-01-03']);
+  const ann = drive(r, 0, routeLengthMeters(routeLine(r).coordinates), 25, createPhotoAlertTracker());
+  assert.deepEqual(ann.map((a) => a.id), ids);
+  for (const a of ann) {
+    const s = spot(a.id);
+    assert.ok(a.aheadM <= s.notifyRadiusM && a.aheadM > s.notifyRadiusM - 30, `${a.id}: aheadM ${a.aheadM}`);
+  }
+  const { coordinates: coords } = routeLine(r);
+  for (const id of ids) {
+    const s = spot(id);
+    assert.equal(s.safeStop, true, id);
+    assert.equal(s.verification.status, 'doğrulanmalı', id);
+    // Karar 19 bekleniyor: es metinlerinin ana dili İspanyolca olan biri tarafından kontrol edileceği notu.
+    assert.match(s.verification.notes, /es metinleri ana dili İspanyolca olan biri tarafından kontrol edilmeli/, id);
+    for (const f of LANG_FIELDS) assert.equal(s[f].tr, undefined, `${id}.${f}.tr`);
+    // Noktaların kendisi rotaya 50 m'den yakın (rota-uzmani'nın OSM listesi; La Garganta Verde 362 m olduğu için seçilmedi).
+    assert.ok(projectOnRoute(s.location, coords).offsetM < 50, `${id}: location offset`);
   }
 });
 

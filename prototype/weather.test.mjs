@@ -69,7 +69,9 @@ const ornekNokta = (forecast, distanceKm = 10, index = 1) => ({
 // ---- Testler ----
 test('sadeleştirilmiş path lengthKm\'den kısa; üst sınır yalnız path\'in KULLANILDIĞI rotada (pathFull yok) aranır', () => {
   // path, pathFull'un Douglas-Peucker sadeleştirmesi: her rotada lengthKm'den kısa olmalı (değişmez özellik).
-  // Fark rotanın virajlılığına bağlıdır (2026-11-07 ölçümü: Türkiye %3,0–17,5; Pelion 2026-11-08 geometrisinde %21,5); pathFull olan rotada
+  // Fark rotanın virajlılığına bağlıdır (2026-11-07 ölçümü: Türkiye %3,0–17,5; Pelion 2026-11-08 geometrisinde %21,5;
+  // Sierra de Grazalema 2026-11-09 geometrisinde %17,7 — bu testin formülüyle (lengthKm − path)/path; rota-uzmani'nın %15,0'ı
+  // aynı farkın lengthKm'e oranı). pathFull olan rotada
   // hava modülü path'i hiç kullanmaz (sonraki test bunu sınar), bu yüzden orada üst sınır anlamlı değildir.
   // Sınırı genişletmek yerine üst sınır, path'in mesafe/varış saati için ölçeklenerek kullanıldığı rotalarda korunur.
   for (const r of data.routes) {
@@ -474,6 +476,100 @@ test('Pelion: firkete (way 223719457) ve düz kesimde yan rüzgâr; Hania taraf�
   assert.match(buildWeatherAlert(a, 'en'), /^Riding not advised: ice risk at km 27 \(1 °C with precipitation\)\. Take rain gear\.$/);
   // Yunanca uyarı metni henüz yok: 'el' İngilizceye düşer (rota metinleri el + en).
   assert.equal(buildWeatherAlert(a, 'el'), buildWeatherAlert(a, 'en'));
+  assert.equal(checklistUrl('checklist.html', a), 'checklist.html?ek=yagmur,soguk,-sis');
+});
+
+// ---- es-andalucia-01 (Sierra de Grazalema, ilk İspanya rotası; rota-uzmani 2026-11-09). Hava değerleri ÖRNEKTİR; geometri gerçek pathFull. ----
+const ANDALUCIA = data.routes.find((r) => r.id === 'es-andalucia-01');
+
+test('Sierra de Grazalema: fetchRouteForecast örnekleme, varış saati, rakım ve yan rüzgâr alanları (sahte fetch, ÖRNEK yanıt)', async () => {
+  assert.ok(ANDALUCIA?.pathFull, 'es-andalucia-01 pathFull ile olmalı');
+  const start = Date.parse('2026-11-02T08:00:00Z');
+  const n = 6;
+  // ÖRNEK: tüm noktalarda batıdan (270°, Atlantik yönü) 20 km/sa rüzgâr; rakımlar örnek (Boyar/Palomas geçitleri yüksek).
+  const ornekRakim = [300, 700, 1000, 1150, 750, 500];
+  const f = sahteFetch((pts) => ornekOpenMeteoYaniti(pts, {
+    elevations: ornekRakim, hourValues: () => ({ wind_speed_10m: 20, wind_direction_10m: 270 }),
+  }));
+  const r = await fetchRouteForecast(ANDALUCIA, { fetchImpl: f, startTime: start, now: ORNEK_BASLANGIC_SAATI, speedKmh: 40, n });
+  assert.equal(f.calls.length, 1, 'tek istek');
+  assert.equal(r.routeId, 'es-andalucia-01');
+  assert.equal(r.geometry, 'pathFull');
+  assert.equal(r.routeApproximate, false);
+  assert.equal(r.distanceScale, 1);
+  const L = lineLengthKm(ANDALUCIA);
+  assert.ok(Math.abs(L - ANDALUCIA.lengthKm) / ANDALUCIA.lengthKm < 0.002, `pathFull ${L.toFixed(2)} km, lengthKm ${ANDALUCIA.lengthKm}`);
+  assert.ok(Math.abs(r.routeKm - L) < 1e-9);
+  // uçlar: rotanın gerçek başlangıç/bitişi (El Bosque A-372, Zahara de la Sierra CA-9104)
+  const c = ANDALUCIA.pathFull.coordinates;
+  assert.deepEqual([r.points[0].lon, r.points[0].lat], c[0]);
+  assert.deepEqual([r.points.at(-1).lon, r.points.at(-1).lat], c.at(-1));
+  assert.ok(Math.abs(r.points[0].lat - ANDALUCIA.start.lat) < 1e-3 && Math.abs(r.points.at(-1).lon - ANDALUCIA.end.lon) < 1e-3);
+  // batı boylamı (negatif) URL'de doğru taşınır
+  const u = new URL(f.calls[0]);
+  const lons = u.searchParams.get('longitude').split(',').map(Number);
+  assert.equal(lons.length, n);
+  assert.ok(lons.every((x) => x < -5 && x > -6), `boylamlar ${lons}`);
+  const hours = Number(u.searchParams.get('forecast_hours'));
+  assert.ok(hours >= Math.ceil((start + (L / 40) * 3600e3 - ORNEK_BASLANGIC_SAATI) / 3600e3));
+  const bearings = routeBearings(c);
+  r.points.forEach((p, i) => {
+    assert.ok(Math.abs(p.distanceKm - (L * i) / (n - 1)) < 1e-9, `nokta ${i} mesafe`);
+    const arr = start + ((L * i) / (n - 1) / 40) * 3600e3; // 31,75 km / 40 km/sa ≈ 48 dk
+    assert.equal(p.arrival, new Date(arr).toISOString(), `nokta ${i} varış`);
+    assert.equal(p.forecast.temperature_2m, 15 + Math.round((arr - ORNEK_BASLANGIC_SAATI) / 3600e3), `nokta ${i} saat seçimi`);
+    assert.equal(p.elevationM, ornekRakim[i]);
+    // yön: noktanın merkezine en yakın 200 m pencere (testin kendi seçimi)
+    const lineM = p.distanceKm * 1000;
+    const b = bearings.reduce((best, x) => (Math.abs(x.sM + 100 - lineM) < Math.abs(best.sM + 100 - lineM) ? x : best));
+    assert.equal(p.bearingR, b.R, `nokta ${i} pencere`);
+    assert.equal(p.bearingVariable, b.variable || b.bearingDeg === null);
+    if (p.bearingVariable) {
+      assert.equal(p.crosswindKmh, null);
+      assert.equal(p.headwindKmh, null);
+    } else {
+      const rad = ((270 - p.bearingDeg) * Math.PI) / 180;
+      assert.ok(Math.abs(p.crosswindKmh - Math.abs(20 * Math.sin(rad))) < 1e-9, `nokta ${i} yan`);
+      assert.ok(Math.abs(p.headwindKmh - 20 * Math.cos(rad)) < 1e-9, `nokta ${i} karşı`);
+    }
+  });
+  assert.equal(assessRide(r).level, 'uygun', 'sakin ÖRNEK hava (20 km/sa < 40 eşiği)');
+});
+
+test('Sierra de Grazalema: iniş firketesi ve A-372 düz kesiminde yan rüzgâr; Palomas tarafında ÖRNEK soğuk + yağış → önerilmez', async () => {
+  const bs = routeBearings(ANDALUCIA.pathFull.coordinates);
+  // rota-uzmani: CA-9104 iniş firketeleri km 21,25–23,90. Oradaki en düşük R'li pencere variable olmalı → bileşen yok.
+  const firkete = bs.filter((b) => b.sM >= 21250 && b.sM + 200 <= 23900).reduce((m, b) => (b.R < m.R ? b : m));
+  assert.ok(firkete.variable && firkete.R < 0.3, `firkete R ${firkete.R}`);
+  const duz = bs.find((b) => b.R > 0.99 && b.sM >= 1700 && b.sM + 200 <= 15230); // El Bosque sonrası A-372 düz pencere
+  assert.ok(duz, 'A-372 üzerinde düz pencere olmalı');
+  const pts = [
+    { ...ornekNokta({ wind_speed_10m: 35, wind_direction_10m: 270 }, (firkete.sM + 100) / 1000, 0), geometry: 'pathFull' },
+    { ...ornekNokta({ wind_speed_10m: 35, wind_direction_10m: (duz.bearingDeg + 90) % 360 }, (duz.sM + 100) / 1000, 1), geometry: 'pathFull' },
+  ];
+  const [p, q] = addWindComponents(ANDALUCIA, pts);
+  assert.equal(p.bearingVariable, true);
+  assert.equal(p.crosswindKmh, null);
+  assert.equal(p.crosswindSide, null);
+  assert.equal(q.bearingVariable, false);
+  assert.ok(Math.abs(q.crosswindKmh - 35) < 0.1 && Math.abs(q.headwindKmh) < 1, `yan ${q.crosswindKmh}, karşı ${q.headwindKmh}`);
+  assert.equal(q.crosswindSide, 'right');
+  // Yan rüzgâr yalnız bilgi (karar 18 cevap bekliyor): 35 km/sa yan rüzgâr seviyeyi değiştirmez.
+  assert.equal(assessRide([q]).level, 'uygun');
+  // ÖRNEK kış senaryosu (bestSeason: "en invierno puede haber hielo"): 4. örnek nokta (km ~19, CA-9104 tırmanışı,
+  // Puerto de las Palomas'a ~1,4 km) 1 °C ve yağış.
+  const f = sahteFetch((ptsQ) => ornekOpenMeteoYaniti(ptsQ, {
+    hourValues: (i) => (i === 3 ? { temperature_2m: 1, precipitation: 0.4, weather_code: 61 } : {}),
+  }));
+  const r = await fetchRouteForecast(ANDALUCIA, { fetchImpl: f, startTime: ORNEK_BASLANGIC_SAATI, now: ORNEK_BASLANGIC_SAATI, n: 6 });
+  assert.ok(r.points[3].distanceKm > 17.21 && r.points[3].distanceKm < 20.46, `nokta 3 CA-9104 tırmanışında (km ${r.points[3].distanceKm})`);
+  const a = assessRide(r);
+  assert.equal(a.level, 'önerilmez');
+  assert.equal(a.reasons[0].code, 'ice');
+  assert.equal(a.reasons[0].distanceKm, r.points[3].distanceKm);
+  assert.match(buildWeatherAlert(a, 'en'), /^Riding not advised: ice risk at km 19 \(1 °C with precipitation\)\. Take rain gear\.$/);
+  // İspanyolca uyarı metni henüz yok: 'es' İngilizceye düşer (rota metinleri es + en).
+  assert.equal(buildWeatherAlert(a, 'es'), buildWeatherAlert(a, 'en'));
   assert.equal(checklistUrl('checklist.html', a), 'checklist.html?ek=yagmur,soguk,-sis');
 });
 
