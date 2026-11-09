@@ -55,7 +55,7 @@ function drive(r, fromM, toM, stepM, tracker, opts = {}) {
 }
 
 /** Rota id'sindeki ülke kodu -> ülke dili (docs/urun-dokumani.md: başlık ve açıklamalar ülke dili + İngilizce). */
-const COUNTRY_LANG = { tr: 'tr', gr: 'el', es: 'es' };
+const COUNTRY_LANG = { tr: 'tr', gr: 'el', es: 'es', br: 'pt' };
 const LANG_FIELDS = ['title', 'description', 'safeStopInfo'];
 
 test(`veri: ${SPOTS.length} nokta (data/photo-spots.json), id'ler tekil, her biri bir rotaya bağlı, approachPoint ve detourKm var`, () => {
@@ -479,6 +479,30 @@ test('es-andalucia-01: üç nokta (Boyar, Palomas, Acebuches) rota sırasıyla b
     for (const f of LANG_FIELDS) assert.equal(s[f].tr, undefined, `${id}.${f}.tr`);
     // Noktaların kendisi rotaya 50 m'den yakın (rota-uzmani'nın OSM listesi; La Garganta Verde 362 m olduğu için seçilmedi).
     assert.ok(projectOnRoute(s.location, coords).offsetM < 50, `${id}: location offset`);
+  }
+});
+
+test('br-santa-catarina-01: üç nokta (Biker 3, ana mirante, Cascata da Barrinha) rota sırasıyla birer kez, yarıçap içinde; metinler pt + en, Türkçe yok', () => {
+  const r = route('br-santa-catarina-01');
+  const ids = SPOTS.filter((s) => s.routeId === r.id).map((s) => s.id);
+  assert.deepEqual(ids, ['ps-br-santa-catarina-01-01', 'ps-br-santa-catarina-01-02', 'ps-br-santa-catarina-01-03']);
+  const ann = drive(r, 0, routeLengthMeters(routeLine(r).coordinates), 25, createPhotoAlertTracker());
+  assert.deepEqual(ann.map((a) => a.id), ids);
+  for (const a of ann) {
+    const s = spot(a.id);
+    assert.ok(a.aheadM <= s.notifyRadiusM && a.aheadM > s.notifyRadiusM - 30, `${a.id}: aheadM ${a.aheadM}`);
+  }
+  const { coordinates: coords } = routeLine(r);
+  for (const id of ids) {
+    const s = spot(id);
+    assert.equal(s.safeStop, true, id);
+    assert.equal(s.verification.status, 'doğrulanmalı', id);
+    // Karar 19 bekleniyor: pt metinlerinin ana dili Portekizce olan biri tarafından kontrol edileceği notu.
+    assert.match(s.verification.notes, /pt metinleri ana dili Portekizce olan biri tarafından kontrol edilmeli/, id);
+    for (const f of LANG_FIELDS) assert.equal(s[f].tr, undefined, `${id}.${f}.tr`);
+    // Noktalar rotaya 150 m'den yakın (OSM; ana mirante ~131 m). Mirante Norte 406 m olduğu için seçilmedi.
+    assert.ok(projectOnRoute(s.location, coords).offsetM < 150, `${id}: location offset`);
+    assert.equal(s.geometryRevision.pathFullSha256, r.geometryRevision.pathFullSha256, `${id}: geometryRevision`);
   }
 });
 

@@ -21,6 +21,7 @@ const EGE = byId('tr-ege-01');
 const IC_ANADOLU = byId('tr-ic-anadolu-01');
 const PELION = byId('gr-thessalia-01');
 const ANDALUCIA = byId('es-andalucia-01');
+const RASTRO = byId('br-santa-catarina-01');
 
 // ---- Testin kendi bağımsız ölçümü (modülden ayrı yazıldı): parça listesi ve iki nokta arası kiriş yönü ----
 const toRad = (d) => (d * Math.PI) / 180;
@@ -100,7 +101,8 @@ test('düz kesim: İç Anadolu (Erciyes) pathFull üzerinde en az 1 km kesintisi
 // (rota-uzmani 2026-11-05 Aşama 1: Nemrut güneye taşındı, Bozdağ çıkıntısı kalktı; 2026-11-07: ilk Yunanistan
 // rotası gr-thessalia-01 eklendi, Türkiye geometrisi değişmedi; 2026-11-08 Aşama 1: Pelion başlangıcı Γρηγορίου Λαμπράκη
 // doğu şeridine alındı, pathFull'un ilk 0,396 km'si kalktı, eski km − 0,40 = yeni km; 2026-11-09 Aşama 1: ilk İspanya
-// rotası es-andalucia-01 eklendi, diğer rotaların geometrisi değişmedi). Oran referansı pathFull olan HER rotaya ait
+// rotası es-andalucia-01 eklendi, diğer rotaların geometrisi değişmedi; 2026-11-10 Aşama 1: ilk Brezilya rotası
+// br-santa-catarina-01 eklendi, diğer rotaların geometrisi değişmedi). Oran referansı pathFull olan HER rotaya ait
 // olduğundan karma da her rota için tutulur. Geometri değişirse test hata mesajında revizyon farkını gösterir;
 // beklentiler yeni veriye göre güncellenmeli.
 const REF_REVISION = {
@@ -112,6 +114,7 @@ const REF_REVISION = {
   'tr-guneydogu-anadolu-01': '3ef5856ff1f860eedab05cb7c3ba07f8fc07bf56ad18daccaec61e007025614f',
   'gr-thessalia-01': 'e06b56502d0d486059fed42b382db92a6d6c72f68bc358831153eb3ff9b7f1e4', // rota-uzmani 2026-11-08
   'es-andalucia-01': '90ff0306362241e16f9134c1428dfc87f514a370a57eb68dc0679210bb3b1b61', // rota-uzmani 2026-11-09
+  'br-santa-catarina-01': 'f58eb0ff44cb2d145443b13b4df2e00de313fad77d4a67c05cff92f88caee4e7', // rota-uzmani 2026-11-10
 };
 const revNote = (r) => (REF_REVISION[r.id] && r.geometryRevision?.pathFullSha256 !== REF_REVISION[r.id]
   ? ` [UYARI: ${r.id} pathFull revizyonu değişmiş (${r.geometryRevision?.pathFullSha256?.slice(0, 12) ?? 'yok'}); test beklentileri eski geometriye ait]` : '');
@@ -130,6 +133,9 @@ test('firkete (gerçek pathFull): her rotada variable pencereler gerçekten yön
     'gr-thessalia-01': { minVariable: 100, maxMinR: 0.15 },
     // Sierra de Grazalema (2026-11-09 geometrisi): 56 variable pencere, en düşük R 0,128 (testin kendi ölçümü, rota-uzmani ile aynı).
     'es-andalucia-01': { minVariable: 45, maxMinR: 0.2 },
+    // Serra do Rio do Rastro (2026-11-10 geometrisi): 55 variable pencere, en düşük R 0,088 (sM 18950; testin kendi
+    // ölçümü, rota-uzmani ile aynı).
+    'br-santa-catarina-01': { minVariable: 45, maxMinR: 0.15 },
   };
   for (const r of PATHFULL_ROUTES) {
     const c = r.pathFull.coordinates;
@@ -173,6 +179,8 @@ test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Tü
   // 2026-11-07 geometrisinde 15,12, 906 pencerenin 137'si).
   // rota-uzmani 2026-11-09 Aşama 1 (İspanya): Sierra de Grazalema (es-andalucia-01) 8,87 (631 pencerenin 56'sı; testin
   // kendi ölçümü %8,875, aynı).
+  // rota-uzmani 2026-11-10 Aşama 1 (Brezilya): Serra do Rio do Rastro (br-santa-catarina-01) 8,73 (630 pencerenin 55'i;
+  // testin kendi ölçümü %8,730, aynı).
   // Eski referans (2026-11-03, kuzey Nemrut 9,3 · Ege 7,6) eski geometriye aitti. Değerler bu modülle aynı yöntemden
   // geldiği için tolerans ±0,5 puan.
   // Sıralama beklentisi ülke başınadır: "Türkiye içinde en düşük/en yüksek" iddiası, yeni ülke rotaları eklendikçe
@@ -181,6 +189,7 @@ test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Tü
     tr: { 'tr-ic-anadolu-01': 1.96, 'tr-marmara-01': 5.97, 'tr-karadeniz-01': 5.35, 'tr-akdeniz-01': 5.47, 'tr-ege-01': 7.32, 'tr-guneydogu-anadolu-01': 1.73 },
     gr: { 'gr-thessalia-01': 14.81 },
     es: { 'es-andalucia-01': 8.87 },
+    br: { 'br-santa-catarina-01': 8.73 },
   };
   const all = Object.assign({}, ...Object.values(ref));
   const pct = {};
@@ -198,10 +207,13 @@ test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Tü
   const trOrder = Object.keys(ref.tr).sort((a, b) => pct[a] - pct[b]);
   assert.equal(trOrder[0], 'tr-guneydogu-anadolu-01', `Türkiye en düşük: ${trOrder[0]}`);
   assert.equal(trOrder.at(-1), 'tr-ege-01', `Türkiye en yüksek: ${trOrder.at(-1)}`);
-  // Yunanistan ve İspanya: her birinde tek rota var, ülke içi sıralama yok. İspanya için ülkeler arası bir sıralama
+  // Yunanistan, İspanya ve Brezilya: her birinde tek rota var, ülke içi sıralama yok. İspanya ve Brezilya için ülkeler
+  // arası bir sıralama
   // iddiası eklenmedi (rota-uzmani'nın "Pelion'dan düşük, Ege'den yüksek" gözlemi ölçüldü: 8,87 < 14,81 ve > 7,32, ama
   // başka ülkenin verisine bağlı sıralama, o ülkenin verisi değişince ilgisiz yere kırılır); İspanya'nın kendi geometrisine
-  // dayanan beklentileri ayrı testte. Ayrı beklenti: Pelion projedeki en virajlı rota
+  // dayanan beklentileri ayrı testte. Brezilya için de aynı gerekçeyle eklenmedi (rota-uzmani 2026-11-10: "Pelion'dan
+  // düşük, Grazalema'dan biraz düşük"; ölçüldü: 8,73 < 14,81 ve < 8,87 — Grazalema farkı 0,15 puan, ±0,5 toleransın
+  // içinde, iddia olarak zaten anlamsız). Rio do Rastro'nun beklentileri kendi testinde. Ayrı beklenti: Pelion projedeki en virajlı rota
   // (rota-uzmani 2026-11-07) ve en virajlı Türkiye rotasının (Ege) en az iki katı.
   const trMax = Math.max(...Object.keys(ref.tr).map((id) => pct[id]));
   assert.ok(pct['gr-thessalia-01'] > 2 * trMax, `Pelion %${pct['gr-thessalia-01'].toFixed(2)} > 2 × Türkiye en yüksek %${trMax.toFixed(2)}${revNote(PELION)}`);
@@ -283,6 +295,67 @@ test('Sierra de Grazalema (gerçek pathFull): firketeler, Palomas–Zahara iniş
   const bosque = w.filter((x) => x.variable && x.sM < 1700);
   assert.ok(bosque.length > 0 && bosque.every((x) => x.sM >= 400 && x.sM + 200 <= 700),
     `El Bosque kenarı variable: ${bosque.map((x) => `${x.sM}(R ${x.R.toFixed(2)})`).join(', ')}${revNote(ANDALUCIA)}`);
+});
+
+test('Serra do Rio do Rastro (gerçek pathFull): firketeler beton serra kesiminde; Lauro Müller–Guatá, zirve ve plato variable değil', () => {
+  // rota-uzmani 2026-11-10: SC-390 Lauro Müller (km 0) → Guatá km 3,96–4,38 → vadi km 4,38–14,92 → serra tırmanışı
+  // (beton) km 14,92–21,35 → zirve/mirante km 21,35–23,04 → plato km 23,04–31,65 (Bom Jardim da Serra girişi).
+  // Şehir içi hariç tutma gerekmiyor: Lauro Müller, Guatá ve Bom Jardim girişinde variable pencere yok (aşağıda sınanıyor).
+  const c = RASTRO.pathFull.coordinates;
+  const sl = segList(c);
+  const w = routeBearings(c);
+  const turn = (x) => angleDiffDeg(
+    initialBearing(pointAt(sl, x.sM), pointAt(sl, x.sM + 50)),
+    initialBearing(pointAt(sl, x.sM + 150), pointAt(sl, x.sM + 200)),
+  );
+  // Firkete tanımı Pelion/Grazalema testleriyle aynı: variable VE ilk/son 50 m kirişleri arasında ≥ 150°; ≤ 200 m arayla tek firkete.
+  const tight = (from, to) => w.filter((x) => x.variable && x.sM >= from && x.sM + 200 <= to && turn(x) >= 150);
+  const clusters = (arr) => arr.reduce((n, x, i) => n + (i === 0 || x.sM - arr[i - 1].sM > 200 ? 1 : 0), 0);
+  // 2026-11-10 geometrisi (testin kendi ölçümü, rota-uzmani ile aynı): 9 firkete, sM 8900 · 11700 · 17650–17700 ·
+  // 17950–18000 · 18650 · 18900–18950 · 19550 · 20050–20100 · 20400–20950; 7'si serrada, 2'si vadide.
+  const SERRA = [14920, 21350];
+  const all = clusters(tight(0, sl.total));
+  const serra = clusters(tight(...SERRA));
+  assert.ok(all >= 7, `firkete sayısı ${all}${revNote(RASTRO)}`);
+  assert.ok(serra >= 5 && serra > all / 2, `serra firkete sayısı ${serra} / ${all}${revNote(RASTRO)}`);
+  assert.ok(tight(...SERRA).some((x) => x.R < 0.3), `serrada sıkı firkete yok${revNote(RASTRO)}`);
+  // Kesim oranları (pencere tamamen kesim içinde; rota-uzmani'nın (a) tanımı): vadi %6,28 · serra %33,60.
+  const frac = (a, b) => { const s = w.filter((x) => x.sM >= a && x.sM + 200 <= b); return s.filter((x) => x.variable).length / s.length; };
+  const vadi = frac(4380, 14920), serraFrac = frac(...SERRA);
+  assert.ok(serraFrac > 3 * vadi && serraFrac > 0.25, `variable oranı: vadi %${(100 * vadi).toFixed(2)}, serra %${(100 * serraFrac).toFixed(2)}${revNote(RASTRO)}`);
+  // Lauro Müller–Guatá (km 0–4,38), zirve (km 21,35–23,04) ve plato (km 23,04–sonu): pencereye değen variable pencere yok.
+  // Not: serranın son variable penceresi sM 21100 (pencere sonu km 21,30), yani zirve sınırı 21,35'ten önce biter.
+  const touching = (a, b) => w.filter((x) => x.variable && x.sM + 200 > a && x.sM < b).map((x) => x.sM);
+  assert.deepEqual(touching(0, 4380), [], `Lauro Müller–Guatá variable${revNote(RASTRO)}`);
+  assert.deepEqual(touching(21350, sl.total), [], `zirve/plato variable${revNote(RASTRO)}`);
+});
+
+test('güney yarımküre / batı boylamı (gerçek pathFull, Rio do Rastro): yön işaret hatası yok — ayna simetrisi ve kiriş yönü', () => {
+  // Rota lat < 0, lon < 0. routeBearings yerel düzlemde dLon·cos(lat) kullanır; cos çift fonksiyon olduğundan işaretten
+  // bağımsız olmalı. Kanıt: aynı çizgiyi ekvatora göre aynalarsak (lat → −lat) yön 180° − θ, başlangıç meridyenine
+  // göre aynalarsak (lon → −lon) yön 360° − θ olur, R değişmez. Aynalanmış çizgiler ÖRNEKTİR (gerçek yol değil).
+  const c = RASTRO.pathFull.coordinates;
+  assert.ok(c.every(([lon, lat]) => lat < 0 && lon < 0), 'rota güney yarımkürede ve batı boylamında');
+  const w = routeBearings(c);
+  const kuzey = routeBearings(c.map(([lon, lat]) => [lon, -lat]));
+  const dogu = routeBearings(c.map(([lon, lat]) => [-lon, lat]));
+  assert.equal(kuzey.length, w.length);
+  assert.equal(dogu.length, w.length);
+  w.forEach((x, i) => {
+    assert.ok(Math.abs(kuzey[i].R - x.R) < 1e-9 && Math.abs(dogu[i].R - x.R) < 1e-9, `sM=${x.sM} R`);
+    if (x.bearingDeg === null) return;
+    assert.ok(angleDiffDeg(kuzey[i].bearingDeg, 180 - x.bearingDeg) < 1e-6, `sM=${x.sM}: lat aynası ${kuzey[i].bearingDeg} vs ${180 - x.bearingDeg}`);
+    assert.ok(angleDiffDeg(dogu[i].bearingDeg, 360 - x.bearingDeg) < 1e-6, `sM=${x.sM}: lon aynası ${dogu[i].bearingDeg} vs ${360 - x.bearingDeg}`);
+  });
+  // Mutlak yön (bağımsız): Lauro Müller (−49,405) → Bom Jardim (−49,611) batıya gider. Plato düz kesimi (km 25,55–25,85)
+  // testin büyük daire kirişiyle ±2° içinde ve batıda (225°–315°).
+  const sl = segList(c);
+  const p = w.find((x) => x.sM === 25550);
+  assert.ok(p && p.R > 0.99, 'plato km 25,55 düz pencere');
+  const chord = initialBearing(pointAt(sl, p.sM), pointAt(sl, p.sM + 200));
+  assert.ok(angleDiffDeg(p.bearingDeg, chord) < 2 && chord > 225 && chord < 315, `plato yönü ${p.bearingDeg.toFixed(1)}, kiriş ${chord.toFixed(1)}`);
+  const genel = initialBearing(c[0], c.at(-1));
+  assert.ok(genel > 270 && genel < 315, `başlangıç → bitiş yönü ${genel.toFixed(1)} (batı-kuzeybatı)`);
 });
 
 test('359°/1° geçişi (gerçek pathFull, tüm rotalar): sağlam seçilmiş kuzey pencerelerinde yön kuzeyde, açı ortalaması belirgin yanlış', () => {

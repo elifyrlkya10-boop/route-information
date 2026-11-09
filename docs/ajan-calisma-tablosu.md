@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 1 | 14.5 | 14.5 | 14.5 | 221.933 |
+| rota-uzmani | 2 | 33.3 | 16.7 | 18.9 | 410.949 |
 | ekipman-asistani | 0 | 0.0 | – | – | 0 |
 | guvenlik-ve-yakin-cevre | 0 | 0.0 | – | – | 0 |
-| fotograf-noktalari | 1 | 6.9 | 6.9 | 6.9 | 137.865 |
-| hava-durumu | 1 | 4.2 | 4.2 | 4.2 | 130.452 |
-| **Toplam** | **3** | **25.6** | | | **490.250** |
+| fotograf-noktalari | 2 | 14.6 | 7.3 | 7.6 | 253.484 |
+| hava-durumu | 2 | 8.6 | 4.3 | 4.4 | 273.988 |
+| **Toplam** | **6** | **56.5** | | | **938.421** |
 
 ### 45. hafta: 2 Kasım – 8 Kasım 2026
 
@@ -44,17 +44,20 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 14 | 91.9 | 6.6 | 17.7 | 1.998.255 |
+| rota-uzmani | 15 | 110.8 | 7.4 | 18.9 | 2.187.271 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
 | guvenlik-ve-yakin-cevre | 8 | 16.9 | 2.1 | 3.8 | 756.509 |
-| fotograf-noktalari | 11 | 50.8 | 4.6 | 12.1 | 1.240.911 |
-| hava-durumu | 8 | 26.8 | 3.4 | 5.4 | 854.718 |
-| **Toplam** | **47** | **197.3** | | | **5.349.364** |
+| fotograf-noktalari | 12 | 58.5 | 4.9 | 12.1 | 1.356.530 |
+| hava-durumu | 9 | 31.3 | 3.5 | 5.4 | 998.254 |
+| **Toplam** | **50** | **228.2** | | | **5.797.535** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-10 | 02:36:33 | 02:41:00 | hava-durumu | 4.4 | tamamlandi | Yön ve hava testleri Brezilya rotasına göre genişletildi (güney yarımküre, UTC−3) |
+| 2026-11-10 | 02:36:22 | 02:44:00 | fotograf-noktalari | 7.6 | tamamlandi | Serra do Rio do Rastro rotasına 3 fotoğraf noktası |
+| 2026-11-10 | 02:15:08 | 02:34:00 | rota-uzmani | 18.9 | tamamlandi | İlk Brezilya rotası br-santa-catarina-01 (Serra do Rio do Rastro) |
 | 2026-11-09 | 02:31:22 | 02:38:19 | fotograf-noktalari | 6.9 | tamamlandi | Grazalema rotasına 3 fotoğraf noktası |
 | 2026-11-09 | 02:31:08 | 02:35:19 | hava-durumu | 4.2 | tamamlandi | Yön ve hava testleri İspanya rotasına göre genişletildi |
 | 2026-11-09 | 02:15:55 | 02:30:24 | rota-uzmani | 14.5 | tamamlandi | İlk İspanya rotası es-andalucia-01 (Sierra de Grazalema) |

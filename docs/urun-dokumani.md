@@ -113,6 +113,8 @@ ic-anadolu, karadeniz, dogu-anadolu, guneydogu-anadolu. Tehlike ve fotoğraf nok
 
 **Veri dosyaları:** `data/routes.json`, `data/photo-spots.json`, `data/hazards.json` (şu an boş; etiketsiz yüzey tehlike sayılmaz), `data/hazards.schema.json` (tehlike verisi henüz yok; uydurma veri eklenmez,
 örnek veri `isSample: true` ile işaretlenir). Koordinatlar `scripts/verify_coordinates.py` ile OpenStreetMap'e karşı kontrol edilir (rapor: `scripts/verify_report.json`).
+2026-11-10 durumu: 10 rota (7 Türkiye, 1 Yunanistan, 1 İspanya, 1 Brezilya), 9'i **doğrulandı**; 21 fotoğraf noktası, 11'i **doğrulandı** (yurt dışı noktaları, sahada ve ana dili o dil olan biri tarafından kontrol edilene kadar **doğrulanmalı**).
+
 2026-11-01 durumu: 7 rotanın 6'sı ve 12 fotoğraf noktasının 11'i **doğrulandı**. Hâlâ **doğrulanmalı** olanlar:
 Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara noktası (OSM'de karşılığı yok).
 "Doğrulandı", koordinatın yola ve adlı yere oturduğu anlamına gelir. Otopark, zemin ve mevsimsel kapanma gibi bilgiler yine sahada teyit edilmelidir.

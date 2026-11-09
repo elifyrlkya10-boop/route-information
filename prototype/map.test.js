@@ -219,6 +219,44 @@ async function step(name, fn) {
     assert.match(await page.textContent("#detail"), /Uludağ Yolu/);
   });
 
+  await step("her rota haritada kaynak koordinatlarında (lat/lon yer değiştirmez, güney/batı işareti korunur); her ülkenin rotasına tıklanınca harita oraya gider", async () => {
+    // Expected bounds straight from data/routes.json path ([lon, lat]); Leaflet layer bounds must match exactly.
+    const want = Object.fromEntries(SRC_ROUTES.map((r) => {
+      const lats = r.path.coordinates.map((c) => c[1]), lons = r.path.coordinates.map((c) => c[0]);
+      return [r.id, [Math.min(...lats), Math.min(...lons), Math.max(...lats), Math.max(...lons)]];
+    }));
+    const got = await page.evaluate(() => Object.fromEntries(Object.entries(mapApp.routeLayers).map(([id, l]) => {
+      const b = l.getBounds(); return [id, [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]];
+    })));
+    for (const r of SRC_ROUTES) {
+      want[r.id].forEach((v, k) => assert.ok(Math.abs(got[r.id][k] - v) < 1e-9, `${r.id}: layer bounds ${got[r.id]} != data ${want[r.id]}`));
+    }
+    // Southern / western hemisphere routes (e.g. Brazil) stay there on the map.
+    for (const r of SRC_ROUTES.filter((x) => x.start.lat < 0 || x.start.lon < 0)) {
+      const [s, w, n, e] = got[r.id];
+      if (r.start.lat < 0) assert.ok(n < 0, `${r.id}: expected south of the equator, north edge ${n}`);
+      if (r.start.lon < 0) assert.ok(e < 0, `${r.id}: expected west of Greenwich, east edge ${e}`);
+    }
+    // One route per used country (first in data order): clicking it zooms in and centres the map on it.
+    await page.locator("#lang-tr").click();
+    for (const c of USED_COUNTRIES) {
+      const r = SRC_ROUTES.find((x) => countryOf(x).code === c.code);
+      await page.locator("#reset-view").click();
+      await page.waitForTimeout(400);
+      const before = await page.evaluate(() => mapApp.map.getZoom());
+      await page.locator(`.route[data-route-id="${r.id}"]`).click();
+      await page.waitForTimeout(600);
+      const v = await page.evaluate((rid) => {
+        const m = mapApp.map, rb = mapApp.routeLayers[rid].getBounds();
+        return { zoom: m.getZoom(), contains: m.getBounds().contains(rb), centerIn: rb.pad(0.5).contains(m.getCenter()) };
+      }, r.id);
+      assert.ok(v.zoom > before && v.contains && v.centerIn, `${c.code}/${r.id}: ${JSON.stringify(v)} (overview zoom ${before})`);
+    }
+    // Restore the previous step's state (Uludağ selected) for the steps below.
+    await page.locator('.route[data-route-id="tr-marmara-01"]').click();
+    await page.waitForTimeout(600);
+  });
+
   await step("dil değişince metinler değişir (TR -> EN -> TR)", async () => {
     assert.strictEqual(await page.textContent("#title"), "Rota Haritası");
     await page.locator("#lang-en").click();

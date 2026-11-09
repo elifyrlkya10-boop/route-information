@@ -71,7 +71,8 @@ test('sadeleştirilmiş path lengthKm\'den kısa; üst sınır yalnız path\'in 
   // path, pathFull'un Douglas-Peucker sadeleştirmesi: her rotada lengthKm'den kısa olmalı (değişmez özellik).
   // Fark rotanın virajlılığına bağlıdır (2026-11-07 ölçümü: Türkiye %3,0–17,5; Pelion 2026-11-08 geometrisinde %21,5;
   // Sierra de Grazalema 2026-11-09 geometrisinde %17,7 — bu testin formülüyle (lengthKm − path)/path; rota-uzmani'nın %15,0'ı
-  // aynı farkın lengthKm'e oranı). pathFull olan rotada
+  // aynı farkın lengthKm'e oranı; Serra do Rio do Rastro 2026-11-10 geometrisinde %19,7 — rota-uzmani'nın %16,4'ü
+  // yine lengthKm paydalı). pathFull olan rotada
   // hava modülü path'i hiç kullanmaz (sonraki test bunu sınar), bu yüzden orada üst sınır anlamlı değildir.
   // Sınırı genişletmek yerine üst sınır, path'in mesafe/varış saati için ölçeklenerek kullanıldığı rotalarda korunur.
   for (const r of data.routes) {
@@ -571,6 +572,134 @@ test('Sierra de Grazalema: iniş firketesi ve A-372 düz kesiminde yan rüzgâr;
   // İspanyolca uyarı metni henüz yok: 'es' İngilizceye düşer (rota metinleri es + en).
   assert.equal(buildWeatherAlert(a, 'es'), buildWeatherAlert(a, 'en'));
   assert.equal(checklistUrl('checklist.html', a), 'checklist.html?ek=yagmur,soguk,-sis');
+});
+
+// ---- br-santa-catarina-01 (Serra do Rio do Rastro, SC-390, ilk Brezilya rotası; rota-uzmani 2026-11-10). ----
+// Hava değerleri ÖRNEKTİR; geometri gerçek pathFull. Rota güney yarımkürede (lat < 0) ve batı boylamında (lon < 0);
+// yerel saat UTC−3 (America/Sao_Paulo; Brezilya 2019'dan beri yaz saati uygulamıyor).
+const RASTRO = data.routes.find((r) => r.id === 'br-santa-catarina-01');
+
+test('Rio do Rastro: örnekleme, yerel saat (UTC−3) ile varış, negatif lat/lon URL\'de, rakım ve yan rüzgâr alanları (sahte fetch, ÖRNEK yanıt)', async () => {
+  assert.ok(RASTRO?.pathFull, 'br-santa-catarina-01 pathFull ile olmalı');
+  // Sürücü yerel saatle 08:00'de Lauro Müller'den çıkıyor: 08:00−03:00 = 11:00Z.
+  const start = Date.parse('2026-11-02T08:00:00-03:00');
+  assert.equal(new Date(start).toISOString(), '2026-11-02T11:00:00.000Z');
+  const n = 6;
+  // ÖRNEK: tüm noktalarda güneyden (180°) 20 km/sa rüzgâr; rakımlar örnek (vadi alçak, serra üstü ve plato yüksek).
+  const ornekRakim = [250, 450, 600, 1100, 1400, 1250];
+  const body = (offset) => (pts) => ornekOpenMeteoYaniti(pts, {
+    elevations: ornekRakim, hourValues: () => ({ wind_speed_10m: 20, wind_direction_10m: 180 }),
+  }).map((loc) => ({ ...loc, utc_offset_seconds: offset, timezone: offset ? 'America/Sao_Paulo' : 'GMT', timezone_abbreviation: offset ? 'GMT-3' : 'GMT' }));
+  const f = sahteFetch(body(0));
+  const r = await fetchRouteForecast(RASTRO, { fetchImpl: f, startTime: start, now: ORNEK_BASLANGIC_SAATI, speedKmh: 40, n });
+  assert.equal(f.calls.length, 1, 'tek istek');
+  assert.equal(r.routeId, 'br-santa-catarina-01');
+  assert.equal(r.geometry, 'pathFull');
+  assert.equal(r.routeApproximate, false);
+  assert.equal(r.distanceScale, 1);
+  assert.equal(r.startTime, '2026-11-02T11:00:00.000Z');
+  const L = lineLengthKm(RASTRO);
+  // rota-uzmani: çizgi 31,65 km, lengthKm 31,6 → %+0,17 (sınır %0,2'ye yakın ama içinde).
+  assert.ok(Math.abs(L - RASTRO.lengthKm) / RASTRO.lengthKm < 0.002, `pathFull ${L.toFixed(2)} km, lengthKm ${RASTRO.lengthKm}`);
+  assert.ok(Math.abs(r.routeKm - L) < 1e-9);
+  // uçlar: rotanın gerçek başlangıç/bitişi (Lauro Müller SC-390, Bom Jardim da Serra SC-390 km 394)
+  const c = RASTRO.pathFull.coordinates;
+  assert.deepEqual([r.points[0].lon, r.points[0].lat], c[0]);
+  assert.deepEqual([r.points.at(-1).lon, r.points.at(-1).lat], c.at(-1));
+  assert.ok(Math.abs(r.points[0].lat - RASTRO.start.lat) < 1e-3 && Math.abs(r.points[0].lon - RASTRO.start.lon) < 1e-3);
+  assert.ok(Math.abs(r.points.at(-1).lat - RASTRO.end.lat) < 1e-3 && Math.abs(r.points.at(-1).lon - RASTRO.end.lon) < 1e-3);
+  // negatif enlem ve boylam URL'de işaretiyle taşınır; zaman UTC + unix saniye istenir (yerel saat varsayımı yok)
+  const u = new URL(f.calls[0]);
+  const lats = u.searchParams.get('latitude').split(',').map(Number);
+  const lons = u.searchParams.get('longitude').split(',').map(Number);
+  assert.equal(lats.length, n);
+  assert.ok(lats.every((x) => x < -28.3 && x > -28.45), `enlemler ${lats}`);
+  assert.ok(lons.every((x) => x < -49.4 && x > -49.62), `boylamlar ${lons}`);
+  r.points.forEach((p, i) => { assert.equal(lats[i], Number(p.lat.toFixed(5))); assert.equal(lons[i], Number(p.lon.toFixed(5))); });
+  assert.equal(u.searchParams.get('timezone'), 'GMT');
+  assert.equal(u.searchParams.get('timeformat'), 'unixtime');
+  const hours = Number(u.searchParams.get('forecast_hours'));
+  assert.ok(hours >= Math.ceil((start + (L / 40) * 3600e3 - ORNEK_BASLANGIC_SAATI) / 3600e3));
+  const yerel = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+  const bearings = routeBearings(c);
+  let hesaplanan = 0;
+  r.points.forEach((p, i) => {
+    assert.ok(Math.abs(p.distanceKm - (L * i) / (n - 1)) < 1e-9, `nokta ${i} mesafe`);
+    const arr = start + ((L * i) / (n - 1) / 40) * 3600e3; // 31,65 km / 40 km/sa ≈ 47,5 dk
+    assert.equal(p.arrival, new Date(arr).toISOString(), `nokta ${i} varış`);
+    assert.equal(p.forecast.temperature_2m, 15 + Math.round((arr - ORNEK_BASLANGIC_SAATI) / 3600e3), `nokta ${i} saat seçimi`);
+    assert.equal(p.elevationM, ornekRakim[i]);
+    // yön: noktanın merkezine en yakın 200 m pencere (testin kendi seçimi)
+    const lineM = p.distanceKm * 1000;
+    const b = bearings.reduce((best, x) => (Math.abs(x.sM + 100 - lineM) < Math.abs(best.sM + 100 - lineM) ? x : best));
+    assert.equal(p.bearingR, b.R, `nokta ${i} pencere`);
+    assert.equal(p.bearingVariable, b.variable || b.bearingDeg === null);
+    if (p.bearingVariable) {
+      assert.equal(p.crosswindKmh, null);
+      assert.equal(p.headwindKmh, null);
+    } else {
+      hesaplanan++;
+      const rad = ((180 - p.bearingDeg) * Math.PI) / 180;
+      assert.ok(Math.abs(p.crosswindKmh - Math.abs(20 * Math.sin(rad))) < 1e-9, `nokta ${i} yan`);
+      assert.ok(Math.abs(p.headwindKmh - 20 * Math.cos(rad)) < 1e-9, `nokta ${i} karşı`);
+    }
+  });
+  // yerel saat: çıkış 08:00, varış (Bom Jardim girişi) 08:47 UTC−3
+  assert.equal(yerel.format(new Date(r.points[0].arrival)), '08:00');
+  assert.equal(yerel.format(new Date(r.points.at(-1).arrival)), '08:47');
+  // 2026-11-10 geometrisi: nokta 3 (km ~19,0) serra firketesinde (R 0,43) → bileşen yok; diğer 5 nokta hesaplanıyor.
+  assert.equal(r.points[3].bearingVariable, true, 'nokta 3 serra firketesinde');
+  assert.equal(hesaplanan, 5);
+  // Yanıt yerel saat dilimini (utc_offset_seconds −10800) bildirse de sonuç değişmez: unix zamanı mutlaktır.
+  const r3 = await fetchRouteForecast(RASTRO, { fetchImpl: sahteFetch(body(-10800)), startTime: start, now: ORNEK_BASLANGIC_SAATI, speedKmh: 40, n });
+  assert.deepEqual(r3, r);
+  assert.equal(assessRide(r).level, 'uygun', 'sakin ÖRNEK hava (20 km/sa < 40 eşiği)');
+});
+
+test('Rio do Rastro: serra firketesi ve batıya giden plato düz kesiminde güney rüzgârı soldan; ÖRNEK sis (serra) + buz (plato) → önerilmez', async () => {
+  const bs = routeBearings(RASTRO.pathFull.coordinates);
+  // rota-uzmani: serra (beton) km 14,92–21,35. Oradaki en düşük R'li pencere variable olmalı → bileşen yok.
+  const firkete = bs.filter((b) => b.sM >= 14920 && b.sM + 200 <= 21350).reduce((m, b) => (b.R < m.R ? b : m));
+  assert.ok(firkete.variable && firkete.R < 0.3, `firkete R ${firkete.R}`);
+  // Plato (km 23,04 sonrası) üzerinde batıya (250°–290°) giden düz pencere. Batıya giderken güney sürücünün solunda
+  // kalır: bu, formülden bağımsız, yarımküreden bağımsız bir gerçek (güney yarımkürede de pusula aynı).
+  const duz = bs.find((b) => b.R > 0.99 && b.sM >= 23040 && b.bearingDeg > 250 && b.bearingDeg < 290);
+  assert.ok(duz, 'platoda batıya giden düz pencere olmalı');
+  const pts = [
+    { ...ornekNokta({ wind_speed_10m: 35, wind_direction_10m: 180 }, (firkete.sM + 100) / 1000, 0), geometry: 'pathFull' },
+    { ...ornekNokta({ wind_speed_10m: 35, wind_direction_10m: 180 }, (duz.sM + 100) / 1000, 1), geometry: 'pathFull' },
+    { ...ornekNokta({ wind_speed_10m: 35, wind_direction_10m: 0 }, (duz.sM + 100) / 1000, 2), geometry: 'pathFull' },
+  ];
+  const [p, q, k] = addWindComponents(RASTRO, pts);
+  assert.equal(p.bearingVariable, true);
+  assert.equal(p.crosswindKmh, null);
+  assert.equal(p.crosswindSide, null);
+  assert.equal(q.bearingVariable, false);
+  assert.equal(q.crosswindSide, 'left', 'batıya giderken güneyden gelen rüzgâr soldan');
+  assert.equal(k.crosswindSide, 'right', 'batıya giderken kuzeyden gelen rüzgâr sağdan');
+  const beklenenYan = 35 * Math.abs(Math.sin(((180 - duz.bearingDeg) * Math.PI) / 180));
+  assert.ok(Math.abs(q.crosswindKmh - beklenenYan) < 1e-9 && q.crosswindKmh > 30, `yan ${q.crosswindKmh}`);
+  assert.ok(Math.abs(q.headwindKmh) < 10, `karşı ${q.headwindKmh}`);
+  // Yan rüzgâr yalnız bilgi (karar 18 cevap bekliyor): ~35 km/sa yan rüzgâr seviyeyi değiştirmez.
+  assert.equal(assessRide([q]).level, 'uygun');
+  // ÖRNEK senaryo (bestSeason: "neblina pode fechar a estrada em qualquer época"; kışın geada/gelo): 6 örnek noktadan
+  // 4.'sü (km ~19,0, serra) yoğun sis, 150 m görüş; 5.'si (km ~25,3, plato) 2 °C ve yağış.
+  const f = sahteFetch((ptsQ) => ornekOpenMeteoYaniti(ptsQ, {
+    hourValues: (i) => (i === 3 ? { visibility: 150, weather_code: 45 }
+      : i === 4 ? { temperature_2m: 2, precipitation: 0.5, weather_code: 61 } : {}),
+  }));
+  const r = await fetchRouteForecast(RASTRO, { fetchImpl: f, startTime: Date.parse('2026-11-02T04:00:00-03:00'), now: ORNEK_BASLANGIC_SAATI, n: 6 });
+  assert.ok(r.points[3].distanceKm > 14.92 && r.points[3].distanceKm < 21.35, `nokta 3 serrada (km ${r.points[3].distanceKm})`);
+  assert.ok(r.points[4].distanceKm > 23.04, `nokta 4 platoda (km ${r.points[4].distanceKm})`);
+  const a = assessRide(r);
+  assert.equal(a.level, 'önerilmez');
+  assert.deepEqual(a.reasons.filter((x) => x.level === 'önerilmez').map((x) => [x.code, x.pointIndex]), [['fog', 3], ['ice', 4]]);
+  assert.ok(a.rainExpected && a.coldExpected && a.fogExpected && !a.dataMissing);
+  assert.equal(buildWeatherAlert(a, 'en'),
+    'Riding not advised: fog and low visibility at km 19, ice risk at km 25 (2 °C with precipitation). Take rain gear.');
+  // Portekizce uyarı metni yok (karar 19 cevap bekliyor): 'pt' İngilizceye düşer (rota metinleri pt + en).
+  assert.equal(buildWeatherAlert(a, 'pt'), buildWeatherAlert(a, 'en'));
+  assert.equal(checklistUrl('checklist.html', a), 'checklist.html?ek=yagmur,soguk,sis');
 });
 
 let failed = 0;
