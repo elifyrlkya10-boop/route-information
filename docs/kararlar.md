@@ -31,7 +31,7 @@ Uygulama sırası (aynı dosyaya iki ajan yazmayacak):
   geometrisi değişince fotoğraf testleri (`approachPoint` çizgiye < 5 m) yeniden hesap yapılmadan kırmızı kalır ve commit edilemez.
   Bu yüzden ikisi aynı gecenin Aşama 2'sine alındı; sıralı çalıştıkları için aynı dosyaya aynı anda yazılmıyor.
 
-## Yeni kararlar (5 Kasım 2026 gecesi çıktı, cevap bekliyor)
+## Yeni kararlar (5 Kasım 2026 gecesinden itibaren çıktı, cevap bekliyor)
 
 Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
 
@@ -72,6 +72,14 @@ Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
 **20. Ülke ve yer adları Türkçe arayüzde.** Şu an Türkçe arayüzde "Greece", "Βόλος (Volos)" görünüyor.
 - **A** — Ülke ve bölge adlarına `tr` eklensin ("Yunanistan", "Teselya", "İspanya", "Endülüs", "Brezilya"; "Santa Catarina" aynı kalır); başlangıç/bitiş adları çok dilli (`name{lang}`) olsun. **(önerilen)**
 - **B** — Olduğu gibi kalsın (İngilizceye düşme yeterli).
+
+**21. Kısa rotalarda harita çizgisi** (11 Kasım gecesi eklendi; rota-uzmani'nın sorusu). Kemaliye Taş Yol artık OSM yolunun kendisini izliyor (`pathFull`, 269 nokta). Haritada gösterilen sadeleştirilmiş çizgi (Douglas-Peucker 200 m) ise 4 noktaya indi ve kanyonda kaba görünüyor (gerçek yoldan en fazla ~190 m sapıyor). Uyarı ve hesaplar `pathFull` ile yapıldığı için yalnızca görünüm etkileniyor.
+- **A** — Harita çizgisi için tolerans rota uzunluğuna göre küçülsün (ör. 15 km'den kısa rotalarda 50 m); diğer rotalar değişmesin. **(önerilen)**
+- **B** — Bütün rotalarda aynı kural (200 m) kalsın.
+
+**22. Kemaliye bitiş adı.** `end.name` hâlâ "…OSM yol parçasının sonu" diyor; gerçekte orası Taş Yol'un Kemaliye–Divriği yoluna katıldığı kavşak (OSM node 2795974769).
+- **A** — "Kemaliyeliler Taş Yolu – Kemaliye–Divriği yolu kavşağı" olsun (karar 20 A seçilirse İngilizcesi "Stone Road – Kemaliye–Divriği road junction"). **(önerilen)**
+- **B** — Olduğu gibi kalsın.
 
 ---
 

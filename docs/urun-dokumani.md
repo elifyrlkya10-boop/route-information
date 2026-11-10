@@ -93,7 +93,7 @@ Route     { id, regionId, name{lang}, description{lang}, lengthKm,
             difficulty: easy|moderate|hard, bestSeason{lang},
             start{name, lat, lon}, end{name, lat, lon},
             path: GeoJSON LineString ([lon,lat]),
-            pathFull?: GeoJSON LineString (sadeleştirilmemiş OSRM geometrisi; uzunluğu lengthKm ile ±%2; map-data.js'e taşınmaz),
+            pathFull?: GeoJSON LineString (sadeleştirilmemiş OSRM geometrisi; OSRM'nin yönlendirmediği kesimde OSM way düğüm geometrisi — Nemrut kuyruğu, Kemaliye Taş Yol; uzunluğu lengthKm ile ±%2; map-data.js'e taşınmaz),
             geometryRevision{ date, pathSha256, pathFullSha256 | null },
             verification{ status: doğrulanmalı|doğrulandı, notes } }
 Hazard    { id, routeId, type: gravel|roadwork|steep_grade|sharp_curve, location{lat, lon},
