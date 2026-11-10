@@ -40,12 +40,12 @@ function pointAt(coords, alongM) {
 }
 
 /** Sürücüyü çizgi boyunca fromM'den toM'e stepM adımlarla sürer; her adımda izleyiciye `ahead` verilir. */
-function drive(r, fromM, toM, stepM, tracker, opts = {}) {
+function drive(r, fromM, toM, stepM, tracker, opts = {}, spots = SPOTS) {
   const { coordinates: coords } = routeLine(r);
   const announced = [];
   const dir = toM >= fromM ? 1 : -1;
   for (let m = fromM; dir > 0 ? m <= toM : m >= toM; m += dir * stepM) {
-    const res = photoSpotsAheadOnRoute(pointAt(coords, m), r, SPOTS, opts);
+    const res = photoSpotsAheadOnRoute(pointAt(coords, m), r, spots, opts);
     for (const s of tracker.update(res.ahead)) {
       const e = res.ahead.find((x) => x.spot.id === s.id);
       announced.push({ id: s.id, atM: m, aheadM: e.aheadM });
@@ -115,7 +115,7 @@ test('geometryRevision: her nokta rotadaki nesnenin aynen kopyasını taşır; k
   for (const r of ROUTES) {
     assert.deepEqual(Object.keys(r.geometryRevision), ['date', 'pathSha256', 'pathFullSha256'], r.id);
     assert.equal(r.geometryRevision.pathSha256, sha(r.path), r.id);
-    assert.equal(r.geometryRevision.pathFullSha256, sha(r.pathFull), r.id); // Kemaliye: null
+    assert.equal(r.geometryRevision.pathFullSha256, sha(r.pathFull), r.id); // pathFull yoksa null (bkz. ÖRNEK yalnız-path testi)
   }
   for (const s of SPOTS) {
     assert.deepEqual(s.geometryRevision, route(s.routeId).geometryRevision, s.id);
@@ -294,21 +294,101 @@ test('pathFull seçimi: gerçek yoldaki sürücü path\'e göre rota dışı gö
   assert.equal(photoSpotsAheadOnRoute(worst.pt, { ...r, pathFull: undefined }, SPOTS).offRoute, true);
 });
 
-test('Kemaliye (yalnız path): mesafe lengthKm ile ölçeklenir, routeApproximate=true', () => {
-  const r = route('tr-dogu-anadolu-01');
+// Yalnız path olan (pathFull'suz) rota: 2026-11-11'de Kemaliye pathFull aldı, katalogda böyle rota kalmadı. Davranış
+// (lengthKm ile ölçek, lineSource 'path', routeApproximate, null === null eskime kuralı, tam bir kez bildirim) aşağıdaki
+// ÖRNEK rota ve ÖRNEK noktayla sınanmaya devam eder. Bunlar gerçek rota/nokta DEĞİLDİR; koordinatlar uydurmadır.
+const shaCoords = (g) => (g ? createHash('sha256').update(JSON.stringify(g.coordinates), 'utf8').digest('hex') : null);
+const ORNEK_PATH = { type: 'LineString', coordinates: [[30.0, 40.0], [30.01, 40.004], [30.02, 40.002], [30.035, 40.008]] };
+const ORNEK_LINE_M = routeLengthMeters(ORNEK_PATH.coordinates);
+const ORNEK_YALNIZ_PATH_ROTA = {
+  id: 'ORNEK-yalniz-path',
+  name: { tr: 'ÖRNEK yalnız-path rota', en: 'SAMPLE path-only route' },
+  lengthKm: Math.round((ORNEK_LINE_M * 1.25) / 100) / 10, // çizgiden ~%25 uzun: ölçek belirgin olsun
+  path: ORNEK_PATH,
+  geometryRevision: { date: '2000-01-01', pathSha256: shaCoords(ORNEK_PATH), pathFullSha256: null },
+  verification: { status: 'doğrulanmalı', notes: 'ÖRNEK' },
+};
+const ORNEK_AP = pointAt(ORNEK_PATH.coordinates, ORNEK_LINE_M * 0.6);
+const ORNEK_YALNIZ_PATH_NOKTA = {
+  id: 'ORNEK-yalniz-path-01',
+  routeId: ORNEK_YALNIZ_PATH_ROTA.id,
+  location: { lat: ORNEK_AP.lat, lon: ORNEK_AP.lon },
+  title: { tr: 'ÖRNEK nokta', en: 'SAMPLE spot' },
+  description: { tr: 'ÖRNEK', en: 'SAMPLE' },
+  safeStop: true,
+  safeStopInfo: { tr: 'ÖRNEK', en: 'SAMPLE' },
+  notifyRadiusM: 700,
+  approachPoint: { lat: ORNEK_AP.lat, lon: ORNEK_AP.lon },
+  detourKm: 0.0,
+  detourRoadKm: 0.0,
+  geometryRevision: { ...ORNEK_YALNIZ_PATH_ROTA.geometryRevision },
+  verification: { status: 'doğrulanmalı', notes: 'ÖRNEK' },
+};
+
+test('yalnız path (ÖRNEK rota): mesafe lengthKm ile ölçeklenir, lineSource path, routeApproximate=true, null === null stale değil', () => {
+  const r = ORNEK_YALNIZ_PATH_ROTA;
+  const s = ORNEK_YALNIZ_PATH_NOKTA;
   assert.equal(r.pathFull, undefined);
+  assert.equal(r.geometryRevision.pathFullSha256, null);
   const line = routeLine(r);
   assert.equal(line.geometry, 'path');
   assert.ok(Math.abs(line.scale - (r.lengthKm * 1000) / routeLengthMeters(r.path.coordinates)) < 1e-12);
-  const s = spot('ps-tr-dogu-anadolu-01-01');
+  assert.ok(line.scale > 1.2 && line.scale < 1.3, `scale ${line.scale}`);
   const apAlong = projectOnRoute(s.approachPoint, line.coordinates).distanceAlongM;
-  const res = photoSpotsAheadOnRoute(pointAt(line.coordinates, apAlong - 500), r, SPOTS);
+  const res = photoSpotsAheadOnRoute(pointAt(line.coordinates, apAlong - 500), r, [s]);
+  assert.equal(res.lineSource, 'path');
+  assert.equal(res.scale, line.scale);
   assert.equal(res.routeApproximate, true);
+  assert.deepEqual(res.stale, []); // iki tarafta pathFullSha256 null: eşit (sameGeometryRevision)
+  assert.deepEqual(res.detached, []);
   const e = res.spots.find((x) => x.spot.id === s.id);
   assert.ok(e);
   assert.ok(Math.abs(e.aheadM - 500 * line.scale) < 2, `aheadM ${e.aheadM}`);
+  // Durum "doğrulanmalı" değilse yalnız path olsa da routeApproximate false.
+  const dogrulandi = { ...r, verification: { status: 'doğrulandı', notes: 'ÖRNEK' } };
+  assert.equal(photoSpotsAheadOnRoute(pointAt(line.coordinates, apAlong - 500), dogrulandi, [s]).routeApproximate, false);
+  // Noktada pathFullSha256 dolu, rotada null: eşit değil, stale (ÖRNEK karma).
+  const kirli = { ...s, geometryRevision: { ...s.geometryRevision, pathFullSha256: 'ORNEK' } };
+  const res2 = photoSpotsAheadOnRoute(pointAt(line.coordinates, apAlong - 500), r, [kirli]);
+  assert.deepEqual(res2.spots, []);
+  assert.deepEqual(res2.stale.map((x) => x.id), [s.id]);
+  // Baştan sona sürüşte tam bir kez, yarıçap içinde (aheadM ölçekli yol mesafesi).
+  const ann = drive(r, 0, ORNEK_LINE_M, 50, createPhotoAlertTracker(), {}, [s]);
+  assert.deepEqual(ann.map((a) => a.id), [s.id]);
+  assert.ok(ann[0].aheadM <= s.notifyRadiusM && ann[0].aheadM > 0, `aheadM ${ann[0].aheadM}`);
   // pathFull olan rotalarda ölçek 1.
   assert.equal(routeLine(route('tr-akdeniz-01')).scale, 1);
+});
+
+test('Kemaliye (gerçek, geometryRevision 2026-11-11): pathFull üzerinde, ölçek 1, nokta Taş Yol başında (km ~3,04), stale değil, bir kez bildirilir', () => {
+  const r = route('tr-dogu-anadolu-01');
+  const s = spot('ps-tr-dogu-anadolu-01-01');
+  assert.ok(r.pathFull && r.pathFull.type === 'LineString');
+  assert.equal(r.geometryRevision.pathFullSha256, shaCoords(r.pathFull));
+  assert.deepEqual(s.geometryRevision, r.geometryRevision);
+  const line = routeLine(r);
+  assert.equal(line.geometry, 'pathFull');
+  assert.equal(line.scale, 1);
+  const lineM = routeLengthMeters(line.coordinates);
+  assert.ok(Math.abs(lineM / 1000 - r.lengthKm) / r.lengthKm < 0.01, `çizgi ${lineM.toFixed(0)} m, lengthKm ${r.lengthKm}`);
+  const p = projectOnRoute(s.approachPoint, line.coordinates);
+  assert.ok(p.offsetM < 5, `offset ${p.offsetM.toFixed(1)} m`);
+  assert.ok(Math.abs(p.distanceAlongM - 3040) < 50, `approachPoint km ${(p.distanceAlongM / 1000).toFixed(2)}`);
+  const res = photoSpotsAheadOnRoute(pointAt(line.coordinates, p.distanceAlongM - 500), r, SPOTS);
+  assert.equal(res.lineSource, 'pathFull');
+  assert.equal(res.scale, 1);
+  // photo-alerts kuralı: routeApproximate = lineSource 'path' && durum 'doğrulanmalı'. Kemaliye artık pathFull'lu,
+  // bu yüzden false (hazards.js'te durum 'doğrulanmalı' olduğu için true; kurallar farklı, bkz. rapor 2026-11-11).
+  assert.equal(r.verification.status, 'doğrulanmalı');
+  assert.equal(res.routeApproximate, false);
+  assert.deepEqual(res.stale, []);
+  assert.deepEqual(res.detached, []);
+  const e = res.spots.find((x) => x.spot.id === s.id);
+  assert.ok(e);
+  assert.ok(Math.abs(e.aheadM - 500) < 2, `aheadM ${e.aheadM}`);
+  const ann = drive(r, 0, lineM, 50, createPhotoAlertTracker());
+  assert.deepEqual(ann.map((a) => a.id), [s.id]);
+  assert.ok(ann[0].aheadM <= s.notifyRadiusM, `aheadM ${ann[0].aheadM}`);
 });
 
 test('safeStop false olan nokta önerilmez; başka rotanın noktası dönmez', () => {

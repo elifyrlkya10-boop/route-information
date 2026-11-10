@@ -173,6 +173,22 @@ const rota = (id) => ROUTES.find((r) => r.id === id);
 const NEMRUT = rota('tr-guneydogu-anadolu-01');
 const KEMALIYE = rota('tr-dogu-anadolu-01');
 
+// ÖRNEK yalnız-path rota (SENTETİK, gerçek değildir). 2026-11-11'den beri katalogdaki tüm rotalarda pathFull var
+// (Kemaliye OSM way geometrisiyle yeniden üretildi); yalnız path olan rota davranışı bu örnekle sınanır.
+// - path: Kemaliye'nin gerçek sadeleştirilmiş path çizgisinin kopyası (4 nokta, ~10,2 km); pathFull YOK.
+// - lengthKm: Kemaliye'nin lengthKm'i (11,2) -> çizgi kısa, ölçek > 1 (eski Kemaliye durumunun benzeri).
+// - verification "doğrulanmalı" -> routeApproximate true.
+// - geometryRevision.pathFullSha256 null (pathFull olmayan rota); pathSha256 ÖRNEK karma.
+const ORNEK_YALNIZ_PATH = Object.freeze({
+  id: 'tr-ornek-01',
+  isSample: true,
+  name: { tr: 'ÖRNEK yalnız-path rota — gerçek değil', en: 'SAMPLE path-only route — not real' },
+  lengthKm: KEMALIYE.lengthKm,
+  path: structuredClone(KEMALIYE.path),
+  geometryRevision: { date: '2026-11-05', pathSha256: 'a'.repeat(64), pathFullSha256: null },
+  verification: { status: 'doğrulanmalı' },
+});
+
 // Test yardımcısı: çizgi boyunca alongM metredeki nokta; offsetM > 0 ise parçaya dik (sola) kaydırılır.
 function pointAlong(lineCoords, alongM, offsetM = 0) {
   let cum = 0;
@@ -265,16 +281,27 @@ test('hazardsAheadOnRoute: ters yön, rota dışı sürücü ve hatalı girdi', 
   assert.throws(() => hazardsAheadOnRoute(surucu, NEMRUT, list, { maxOffsetM: -1 }));
 });
 
-test('routeApproximate: yalnızca "doğrulanmalı" rotada (Kemaliye) true', () => {
-  for (const r of ROUTES) {
+test('routeApproximate: yalnızca "doğrulanmalı" rotada (Kemaliye, ÖRNEK yalnız-path) true', () => {
+  for (const r of [...ROUTES, ORNEK_YALNIZ_PATH]) {
     const c = r.path.coordinates;
     const res = hazardsAheadOnRoute({ lat: c[0][1], lon: c[0][0] }, r, []);
     assert.equal(res.routeApproximate, r.verification.status === 'doğrulanmalı', r.id);
   }
-  assert.equal(KEMALIYE.verification.status, 'doğrulanmalı');
-  const c = KEMALIYE.path.coordinates;
+  // Gerçek routes.json'da yalnız Kemaliye "doğrulanmalı" (pathFull'u olsa da)
+  assert.deepEqual(ROUTES.filter((r) => r.verification.status === 'doğrulanmalı').map((r) => r.id), ['tr-dogu-anadolu-01']);
+  assert.ok(KEMALIYE.pathFull != null);
+  // Yalnız path olan ÖRNEK rota: path üzerinde, routeApproximate true
+  const o = ORNEK_YALNIZ_PATH.path.coordinates;
+  const ho = ornekRotaTehlikesi('yalniz-path', ORNEK_YALNIZ_PATH, 3000, 0, 'gravel');
+  const ro = hazardsAheadOnRoute(pointAlong(o, 2500), ORNEK_YALNIZ_PATH, [ho], { includeSamples: true });
+  assert.equal(ro.geometry, 'path');
+  assert.equal(ro.routeApproximate, true);
+  assert.equal(ro.hazards.length, 1);
+  // Kemaliye: konumlar etkin çizgide (pathFull) kurulur
+  const c = etkinCizgi(KEMALIYE);
   const h = ornekRotaTehlikesi('kemaliye', KEMALIYE, 3000, 0, 'gravel');
   const res = hazardsAheadOnRoute(pointAlong(c, 2500), KEMALIYE, [h], { includeSamples: true });
+  assert.equal(res.geometry, 'pathFull');
   assert.equal(res.routeApproximate, true);
   assert.equal(res.hazards.length, 1);
   // Tehlike konumu çizgiye snap edilmez: kayıt aynen döner
@@ -325,10 +352,11 @@ test('ileriye bakış + tracker birlikte: sürüş simülasyonunda her tehlike e
 const AKDENIZ = rota('tr-akdeniz-01');
 const yalnizPath = (route) => { const { pathFull, ...r } = route; return r; }; // kopya; routes.json değişmez
 
-test('routeLine: pathFull olan 6 rotada pathFull, Kemaliye\'de path; lengthKm ile tutarlı', () => {
-  for (const r of ROUTES) {
+test('routeLine: katalogdaki tüm rotalarda (Kemaliye dahil) pathFull, ÖRNEK yalnız-path rotada path; lengthKm ile tutarlı', () => {
+  assert.ok(ROUTES.every((r) => r.pathFull != null), 'routes.json: yalnız path olan rota kalmadı (2026-11-11)');
+  for (const r of [...ROUTES, ORNEK_YALNIZ_PATH]) {
     const { geometry, coordinates } = routeLine(r);
-    assert.equal(geometry, r.id === 'tr-dogu-anadolu-01' ? 'path' : 'pathFull', r.id);
+    assert.equal(geometry, r === ORNEK_YALNIZ_PATH ? 'path' : 'pathFull', r.id);
     assert.equal(coordinates, (r.pathFull ?? r.path).coordinates);
     if (geometry === 'pathFull') {
       assert.ok(Math.abs(routeLengthMeters(coordinates) / 1000 - r.lengthKm) / r.lengthKm < 0.005, r.id);
@@ -358,9 +386,14 @@ test('hazardsAheadOnRoute pathFull ile: aheadM gerçek yol mesafesi; pathFull yo
   // Çizgi üzerindeki fark hâlâ 400 m; aheadM artık yol mesafesi (× scale = lengthKm / path uzunluğu)
   assert.ok(Math.abs(re.hazards[0].distanceAlongM - re.driver.distanceAlongM - 400) < 2);
   assert.ok(Math.abs(re.hazards[0].aheadM - 400 * re.scale) < 2);
-  // Kemaliye: path + routeApproximate
-  const k = hazardsAheadOnRoute(pointAlong(KEMALIYE.path.coordinates, 1000), KEMALIYE, []);
-  assert.equal(k.geometry, 'path');
+  // ÖRNEK yalnız-path rota: path + routeApproximate
+  const o = hazardsAheadOnRoute(pointAlong(ORNEK_YALNIZ_PATH.path.coordinates, 1000), ORNEK_YALNIZ_PATH, []);
+  assert.equal(o.geometry, 'path');
+  assert.equal(o.routeApproximate, true);
+  // Kemaliye (gerçek): artık pathFull + routeApproximate (durum "doğrulanmalı")
+  const k = hazardsAheadOnRoute(pointAlong(etkinCizgi(KEMALIYE), 1000), KEMALIYE, []);
+  assert.equal(k.geometry, 'pathFull');
+  assert.equal(k.scale, 1);
   assert.equal(k.routeApproximate, true);
 });
 
@@ -431,41 +464,67 @@ test('orderAnnouncements: önce tehlike, sonra fotoğraf; tür içinde yakın ol
 // ---------------- scale, lookAheadOf, includeSkipped (ortak çizgi kuralı) ----------------
 
 test('routeLine.scale: pathFull için 1; yalnız path varsa lengthKm / çizgi uzunluğu', () => {
-  for (const r of ROUTES) {
+  for (const r of [...ROUTES, ORNEK_YALNIZ_PATH]) {
     const { geometry, scale } = routeLine(r);
     if (geometry === 'pathFull') assert.equal(scale, 1, r.id);
     else assert.ok(Math.abs(scale - (r.lengthKm * 1000) / routeLengthMeters(r.path.coordinates)) < 1e-12, r.id);
   }
-  const k = routeLine(KEMALIYE);
+  // Kemaliye (gerçek) artık pathFull: ölçek 1
+  assert.equal(routeLine(KEMALIYE).geometry, 'pathFull');
+  assert.equal(routeLine(KEMALIYE).scale, 1);
+  const k = routeLine(ORNEK_YALNIZ_PATH);
   assert.equal(k.geometry, 'path');
-  assert.ok(k.scale > 1 && k.scale < 1.1, String(k.scale)); // 11,1 km / ~10,8 km
+  assert.ok(k.scale > 1 && k.scale < 1.15, String(k.scale)); // ÖRNEK: 11,2 km / ~10,2 km çizgi
   // lengthKm yoksa/geçersizse ölçek 1 (çizgi mesafesi olduğu gibi)
-  const { lengthKm, ...uzunluksuz } = KEMALIYE;
+  const { lengthKm, ...uzunluksuz } = ORNEK_YALNIZ_PATH;
   assert.equal(routeLine(uzunluksuz).scale, 1);
-  assert.equal(routeLine({ ...KEMALIYE, lengthKm: 0 }).scale, 1);
-  assert.equal(routeLine({ ...KEMALIYE, lengthKm: 'x' }).scale, 1);
+  assert.equal(routeLine({ ...ORNEK_YALNIZ_PATH, lengthKm: 0 }).scale, 1);
+  assert.equal(routeLine({ ...ORNEK_YALNIZ_PATH, lengthKm: 'x' }).scale, 1);
   // pathFull varsa lengthKm farklı olsa bile ölçeklenmez
   assert.equal(routeLine({ ...NEMRUT, lengthKm: 999 }).scale, 1);
 });
 
-test('Kemaliye: aheadM = çizgi mesafesi × lengthKm / çizgi uzunluğu; lookAheadM yol mesafesiyle', () => {
-  const c = KEMALIYE.path.coordinates;
-  const { scale } = routeLine(KEMALIYE);
-  const h = ornekRotaTehlikesi('kemaliye-olcek', KEMALIYE, 4000, 0, 'gravel');
-  const r = hazardsAheadOnRoute(pointAlong(c, 2000), KEMALIYE, [h], { includeSamples: true, lookAheadM: 3000 });
+test('ÖRNEK yalnız-path rota: aheadM = çizgi mesafesi × lengthKm / çizgi uzunluğu; lookAheadM yol mesafesiyle', () => {
+  const R = ORNEK_YALNIZ_PATH;
+  const c = R.path.coordinates;
+  const { scale } = routeLine(R);
+  const h = ornekRotaTehlikesi('yalniz-path-olcek', R, 4000, 0, 'gravel');
+  const r = hazardsAheadOnRoute(pointAlong(c, 2000), R, [h], { includeSamples: true, lookAheadM: 3000 });
   assert.equal(r.scale, scale);
   assert.equal(r.routeApproximate, true);
   const cizgi = r.hazards[0].distanceAlongM - r.driver.distanceAlongM;
   assert.ok(Math.abs(cizgi - 2000) < 2, String(cizgi));
   assert.ok(Math.abs(r.hazards[0].aheadM - cizgi * scale) < 1e-6);
-  assert.ok(r.hazards[0].aheadM > 2000); // ~%3 uzun: ölçek uygulanmış
-  // Menzil yol mesafesine uygulanır: çizgide 2000 m ama yolda >2000 m -> lookAheadM 2000'de dönmez
-  assert.equal(hazardsAheadOnRoute(pointAlong(c, 2000), KEMALIYE, [h], { includeSamples: true, lookAheadM: 2010 }).hazards.length, 0);
+  assert.ok(r.hazards[0].aheadM > 2010); // ölçek (>1) uygulanmış
+  // Menzil yol mesafesine uygulanır: çizgide 2000 m ama yolda >2000 m -> lookAheadM 2010'da dönmez
+  assert.equal(hazardsAheadOnRoute(pointAlong(c, 2000), R, [h], { includeSamples: true, lookAheadM: 2010 }).hazards.length, 0);
   // pathFull rotasında scale 1 ve aheadM çizgi farkıyla aynı
   const full = etkinCizgi(AKDENIZ);
   const a = hazardsAheadOnRoute(pointAlong(full, 10000), AKDENIZ, [ornekRotaTehlikesi('ak', AKDENIZ, 10700)], { includeSamples: true });
   assert.equal(a.scale, 1);
   assert.equal(a.hazards[0].aheadM, a.hazards[0].distanceAlongM - a.driver.distanceAlongM);
+});
+
+test('Kemaliye (gerçek, 2026-11-11): pathFull ~lengthKm, scale 1, aheadM = çizgi farkı, routeApproximate true', () => {
+  const c = etkinCizgi(KEMALIYE);
+  assert.equal(c, KEMALIYE.pathFull.coordinates);
+  const fullM = routeLengthMeters(c);
+  assert.ok(Math.abs(fullM / 1000 - KEMALIYE.lengthKm) / KEMALIYE.lengthKm < 0.005, String(fullM)); // ~11,17 / 11,2 km
+  assert.ok(fullM > routeLengthMeters(KEMALIYE.path.coordinates)); // sadeleştirilmiş path daha kısa
+  const h = ornekRotaTehlikesi('kemaliye-full', KEMALIYE, 5000, 0, 'gravel');
+  const r = hazardsAheadOnRoute(pointAlong(c, 3040), KEMALIYE, [h], { includeSamples: true, lookAheadM: 3000 });
+  assert.equal(r.geometry, 'pathFull');
+  assert.equal(r.scale, 1);
+  assert.equal(r.routeApproximate, true);
+  assert.equal(r.offRoute, false);
+  assert.equal(r.hazards.length, 1);
+  assert.equal(r.hazards[0].aheadM, r.hazards[0].distanceAlongM - r.driver.distanceAlongM);
+  assert.ok(Math.abs(r.hazards[0].aheadM - 1960) < 2, String(r.hazards[0].aheadM));
+  // Menzil düz yol mesafesi: 1960 m < 1970 döner, 1950'de dönmez
+  assert.equal(hazardsAheadOnRoute(pointAlong(c, 3040), KEMALIYE, [h], { includeSamples: true, lookAheadM: 1970 }).hazards.length, 1);
+  assert.equal(hazardsAheadOnRoute(pointAlong(c, 3040), KEMALIYE, [h], { includeSamples: true, lookAheadM: 1950 }).hazards.length, 0);
+  // Geometri revizyonu: pathFullSha256 artık karma (null değil)
+  assert.match(KEMALIYE.geometryRevision.pathFullSha256, /^[0-9a-f]{64}$/);
 });
 
 test('lookAheadOf: kayıt başına menzil; geçersiz değerde lookAheadM', () => {
@@ -642,15 +701,21 @@ test('extentRevisionStatus: rotanın geometryRevision karmasıyla eskime kontrol
   assert.equal(extentRevisionStatus(ornekHazard(), r), 'none');
   const { geometryRevision, ...revsiz } = r;
   assert.equal(extentRevisionStatus(h(kopya), revsiz), 'none');
-  // pathFull olmayan rota (Kemaliye): pathFullSha256 null kopyası da 'current'
-  const k = ROUTES.find((x) => x.pathFull == null);
+  // pathFull olmayan rota (ÖRNEK yalnız-path; katalogda artık yok): pathFullSha256 null kopyası da 'current'
+  const k = ORNEK_YALNIZ_PATH;
+  assert.equal(k.pathFull, undefined);
   assert.equal(k.geometryRevision.pathFullSha256, null);
   assert.equal(extentRevisionStatus(h({ ...k.geometryRevision }), k), 'current');
+  assert.equal(extentRevisionStatus(h({ ...k.geometryRevision, pathFullSha256: 'f'.repeat(64) }), k), 'stale');
+  // Kemaliye (gerçek): eski null'lı kopya (pathFull eklenmeden önceki revizyon) artık 'stale'
+  const kem = KEMALIYE;
+  assert.equal(extentRevisionStatus(h({ ...kem.geometryRevision }), kem), 'current');
+  assert.equal(extentRevisionStatus(h({ ...kem.geometryRevision, pathFullSha256: null }), kem), 'stale');
 });
 
 test('sameGeometryRevision: alan alan karma eşitliği, null === null, date karşılaştırılmaz (gerçek routes.json)', () => {
   const r = ROUTES.find((x) => x.pathFull != null);
-  const k = ROUTES.find((x) => x.pathFull == null); // Kemaliye: pathFullSha256 null
+  const k = ORNEK_YALNIZ_PATH; // ÖRNEK yalnız-path rota: pathFullSha256 null (katalogda böyle rota artık yok)
   const rev = r.geometryRevision;
   assert.equal(sameGeometryRevision(rev, { ...rev }), true);
   assert.equal(sameGeometryRevision({ ...rev, date: '2030-01-01' }, rev), true, 'date karşılaştırılmaz');

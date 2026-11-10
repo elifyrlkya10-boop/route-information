@@ -22,6 +22,7 @@ const IC_ANADOLU = byId('tr-ic-anadolu-01');
 const PELION = byId('gr-thessalia-01');
 const ANDALUCIA = byId('es-andalucia-01');
 const RASTRO = byId('br-santa-catarina-01');
+const KEMALIYE = byId('tr-dogu-anadolu-01');
 
 // ---- Testin kendi bağımsız ölçümü (modülden ayrı yazıldı): parça listesi ve iki nokta arası kiriş yönü ----
 const toRad = (d) => (d * Math.PI) / 180;
@@ -102,7 +103,9 @@ test('düz kesim: İç Anadolu (Erciyes) pathFull üzerinde en az 1 km kesintisi
 // rotası gr-thessalia-01 eklendi, Türkiye geometrisi değişmedi; 2026-11-08 Aşama 1: Pelion başlangıcı Γρηγορίου Λαμπράκη
 // doğu şeridine alındı, pathFull'un ilk 0,396 km'si kalktı, eski km − 0,40 = yeni km; 2026-11-09 Aşama 1: ilk İspanya
 // rotası es-andalucia-01 eklendi, diğer rotaların geometrisi değişmedi; 2026-11-10 Aşama 1: ilk Brezilya rotası
-// br-santa-catarina-01 eklendi, diğer rotaların geometrisi değişmedi). Oran referansı pathFull olan HER rotaya ait
+// br-santa-catarina-01 eklendi, diğer rotaların geometrisi değişmedi; 2026-11-11 Aşama 1: Kemaliye Taş Yol
+// tr-dogu-anadolu-01 OSM way düğümlerinden yeniden üretildi ve ilk kez pathFull aldı, böylece katalogda yalnız path'i
+// olan rota kalmadı; diğer rotaların geometrisi değişmedi). Oran referansı pathFull olan HER rotaya ait
 // olduğundan karma da her rota için tutulur. Geometri değişirse test hata mesajında revizyon farkını gösterir;
 // beklentiler yeni veriye göre güncellenmeli.
 const REF_REVISION = {
@@ -115,6 +118,8 @@ const REF_REVISION = {
   'gr-thessalia-01': 'e06b56502d0d486059fed42b382db92a6d6c72f68bc358831153eb3ff9b7f1e4', // rota-uzmani 2026-11-08
   'es-andalucia-01': '90ff0306362241e16f9134c1428dfc87f514a370a57eb68dc0679210bb3b1b61', // rota-uzmani 2026-11-09
   'br-santa-catarina-01': 'f58eb0ff44cb2d145443b13b4df2e00de313fad77d4a67c05cff92f88caee4e7', // rota-uzmani 2026-11-10
+  // rota-uzmani 2026-11-11; testin kendi ölçümü: sha256(JSON.stringify(pathFull.coordinates)) aynı karmayı veriyor.
+  'tr-dogu-anadolu-01': '7cb1be9cda1d143442142ce66e7a68a95f14fee60c62e1af56efc07797457e10',
 };
 const revNote = (r) => (REF_REVISION[r.id] && r.geometryRevision?.pathFullSha256 !== REF_REVISION[r.id]
   ? ` [UYARI: ${r.id} pathFull revizyonu değişmiş (${r.geometryRevision?.pathFullSha256?.slice(0, 12) ?? 'yok'}); test beklentileri eski geometriye ait]` : '');
@@ -136,6 +141,10 @@ test('firkete (gerçek pathFull): her rotada variable pencereler gerçekten yön
     // Serra do Rio do Rastro (2026-11-10 geometrisi): 55 variable pencere, en düşük R 0,088 (sM 18950; testin kendi
     // ölçümü, rota-uzmani ile aynı).
     'br-santa-catarina-01': { minVariable: 45, maxMinR: 0.15 },
+    // Kemaliye Taş Yol (2026-11-11 geometrisi): 220 pencerenin 3'ü variable (sM 0 R 0,674; 3550 R 0,671; 3600 R 0,509),
+    // en düşük R 0,509 (testin kendi ölçümü, rota-uzmani ile aynı). Kanyon yolu firketeli değil; değişken pencereler
+    // Kemaliye çıkışındaki dönüş ve Taş Yol başı (km ~3,04–3,33, Abdülkadir Duru Tüneli çevresi).
+    'tr-dogu-anadolu-01': { minVariable: 3, maxMinR: 0.55 },
   };
   for (const r of PATHFULL_ROUTES) {
     const c = r.pathFull.coordinates;
@@ -173,7 +182,7 @@ test('Bozdağ (Ege) eski yapay U dönüşü kalktı: kavşak çevresinde (pathFu
   assert.deepEqual(v.map((x) => x.sM), [], `Ege kavşak çevresinde variable pencere: ${v.map((x) => `${x.sM}(R ${x.R.toFixed(2)})`).join(', ')}${revNote(EGE)}`);
 });
 
-test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Türkiye içinde Nemrut en düşük, Ege en yüksek; Pelion > 2 × Türkiye en yüksek', () => {
+test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Türkiye içinde ölçülen en düşük Kemaliye (kaba çizim çekincesiyle), ardından Nemrut; Ege en yüksek; Pelion > 2 × Türkiye en yüksek', () => {
   // rota-uzmani 2026-11-05 Aşama 1 (Türkiye, yeni geometri): Marmara 5,97 · Ege 7,32 · Akdeniz 5,47 · İç Anadolu 1,96 · Karadeniz 5,35 · Nemrut 1,73 (%)
   // rota-uzmani 2026-11-08 Aşama 1 (Yunanistan, yeni başlangıç): Pelion (gr-thessalia-01) 14,81 (898 pencerenin 133'ü;
   // 2026-11-07 geometrisinde 15,12, 906 pencerenin 137'si).
@@ -181,12 +190,15 @@ test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Tü
   // kendi ölçümü %8,875, aynı).
   // rota-uzmani 2026-11-10 Aşama 1 (Brezilya): Serra do Rio do Rastro (br-santa-catarina-01) 8,73 (630 pencerenin 55'i;
   // testin kendi ölçümü %8,730, aynı).
+  // rota-uzmani 2026-11-11 Aşama 1 (Türkiye, ilk pathFull): Kemaliye Taş Yol (tr-dogu-anadolu-01) 1,364 (220 pencerenin 3'ü;
+  // testin kendi ölçümü %1,364, aynı). Diğer Türkiye değerleri yeniden ölçüldü, değişmedi.
   // Eski referans (2026-11-03, kuzey Nemrut 9,3 · Ege 7,6) eski geometriye aitti. Değerler bu modülle aynı yöntemden
   // geldiği için tolerans ±0,5 puan.
   // Sıralama beklentisi ülke başınadır: "Türkiye içinde en düşük/en yüksek" iddiası, yeni ülke rotaları eklendikçe
   // bozulmamalı (Türkiye verisi değişmeden bu test kırılmasın); ülkeler arası karşılaştırma ayrı, açık bir iddia.
   const ref = {
-    tr: { 'tr-ic-anadolu-01': 1.96, 'tr-marmara-01': 5.97, 'tr-karadeniz-01': 5.35, 'tr-akdeniz-01': 5.47, 'tr-ege-01': 7.32, 'tr-guneydogu-anadolu-01': 1.73 },
+    tr: { 'tr-ic-anadolu-01': 1.96, 'tr-marmara-01': 5.97, 'tr-karadeniz-01': 5.35, 'tr-akdeniz-01': 5.47, 'tr-ege-01': 7.32, 'tr-guneydogu-anadolu-01': 1.73,
+      'tr-dogu-anadolu-01': 1.36 },
     gr: { 'gr-thessalia-01': 14.81 },
     es: { 'es-andalucia-01': 8.87 },
     br: { 'br-santa-catarina-01': 8.73 },
@@ -205,7 +217,15 @@ test('variable oranı (200 m) rota-uzmani ölçümüyle uyumlu (±0,5 puan); Tü
     assert.ok(Object.keys(ids).every((id) => id.startsWith(`${cc}-`)), `${cc}: id öneki ülkeyle uyumlu`);
   }
   const trOrder = Object.keys(ref.tr).sort((a, b) => pct[a] - pct[b]);
-  assert.equal(trOrder[0], 'tr-guneydogu-anadolu-01', `Türkiye en düşük: ${trOrder[0]}`);
+  // 2026-11-11: eski "Türkiye en düşük Nemrut" iddiası Kemaliye pathFull alınca ölçümle kırıldı (Kemaliye %1,36 <
+  // Nemrut %1,73). İddia ölçüme göre güncellendi: en düşük Kemaliye, ikinci Nemrut. Ancak bu bir YOL iddiası değil,
+  // ÇİZİM üzerindeki ölçümdür: Kemaliye km 7,16–9,14 (way 104673931, ~2 km) OSM'de tek tünel olarak ve seyrek düğümle
+  // çizilmiş (aşağıdaki "Kemaliye: kaba çizim" testi); parça uzunlukları 200 m pencereye yaklaştığı/aştığı için oradaki
+  // kıvrım ölçülemez ve Kemaliye'nin oranı olduğundan düşük çıkabilir. Bu yüzden Nemrut'un Kemaliye'nin altına
+  // düşmesi değil, yalnız ikinci sırada kalması beklenir; W104673931 sahada doğrulanıp yeniden çizilirse sıra
+  // yeniden ölçülmeli.
+  assert.equal(trOrder[0], 'tr-dogu-anadolu-01', `Türkiye en düşük (ölçülen): ${trOrder[0]}${revNote(KEMALIYE)}`);
+  assert.equal(trOrder[1], 'tr-guneydogu-anadolu-01', `Türkiye ikinci en düşük: ${trOrder[1]}${revNote(NEMRUT)}`);
   assert.equal(trOrder.at(-1), 'tr-ege-01', `Türkiye en yüksek: ${trOrder.at(-1)}`);
   // Yunanistan, İspanya ve Brezilya: her birinde tek rota var, ülke içi sıralama yok. İspanya ve Brezilya için ülkeler
   // arası bir sıralama
@@ -418,13 +438,36 @@ test('ÖRNEK sentetik U dönüşü: 100 m kuzey + 100 m güney → R ≈ 0, bear
   assert.equal(w[0].variable, true);
 });
 
-test('kısa çizgi, yinelenen nokta, Kemaliye path ve hatalı girdi', () => {
+test('Kemaliye (gerçek pathFull): kaba çizim — way 104673931 kesiminde (km 7,16–9,14) düğüm seyrek, variable pencere yok', () => {
+  // rota-uzmani 2026-11-11: W104673931 ~2 km'nin tamamı tek tünel (tunnel=yes) olarak çizilmiş, sahada doğrulanmalı.
+  // Testin kendi ölçümü: bu kesimde yalnız 7 parça başlangıcı var (ortalama ~280 m); 200 m pencerenin "görebileceği"
+  // kıvrım yok. Bu test sıralama iddiasındaki çekincenin (Kemaliye oranı olduğundan düşük olabilir) dayanağıdır:
+  // çizim sıklaştırılırsa (yeni geometryRevision) burası kırılır ve oran/sıralama yeniden ölçülmelidir.
+  const sl = segList(KEMALIYE.pathFull.coordinates);
+  const A = 7160, B = 9140;
+  const inSec = sl.segs.filter((g) => g.s0 >= A && g.s0 < B);
+  const mean = (B - A) / inSec.length;
+  assert.ok(inSec.length <= 10 && mean > 150, `km 7,16–9,14: ${inSec.length} parça, ortalama ${mean.toFixed(0)} m${revNote(KEMALIYE)}`);
+  const restSegs = sl.segs.filter((g) => g.s0 < A || g.s0 >= B);
+  const restMean = (sl.total - (B - A)) / restSegs.length;
+  assert.ok(restMean < mean / 3, `kesim dışı ortalama parça ${restMean.toFixed(0)} m, kesimde ${mean.toFixed(0)} m`);
+  const v = routeBearings(KEMALIYE.pathFull.coordinates).filter((x) => x.variable && x.sM + 200 > A && x.sM < B);
+  assert.deepEqual(v.map((x) => x.sM), [], `kesimde variable pencere${revNote(KEMALIYE)}`);
+});
+
+test('kısa çizgi, yinelenen nokta, sadeleştirilmiş path ve hatalı girdi', () => {
   const d = 50 / 111195;
   const kisa = routeBearings([[33, 40], [33, 40], [33 + d / Math.cos(toRad(40)), 40]]); // ÖRNEK: 50 m doğu, yinelenen nokta
   assert.equal(kisa.length, 1);
   assert.ok(angleDiffDeg(kisa[0].bearingDeg, 90) < 0.5);
-  const kem = data.routes.find((x) => x.id === 'tr-dogu-anadolu-01');
-  assert.ok(routeBearings(kem.path.coordinates).length > 0, 'pathFull olmayan rotada path ile çalışır (yaklaşık)');
+  // Modül hangi çizgi verilirse onunla çalışır: seyrek (sadeleştirilmiş) path de geçerli girdidir. 2026-11-11'den beri
+  // katalogda yalnız path'i olan rota yok; Kemaliye'nin 4 noktalı path'i ve ÖRNEK 3 noktalı seyrek çizgi sınanır.
+  assert.ok(routeBearings(KEMALIYE.path.coordinates).length > 0, 'sadeleştirilmiş path ile çalışır (yaklaşık)');
+  const ornekSeyrek = [[38.0, 39.0], [38.05, 39.0], [38.05, 39.05]]; // ÖRNEK: ~4,3 km doğu + ~5,6 km kuzey, 2 parça
+  const ws = routeBearings(ornekSeyrek);
+  assert.ok(ws.length > 0 && ws.every((x) => x.R >= 0 && x.R <= 1));
+  assert.ok(ws.some((x) => x.variable === false && angleDiffDeg(x.bearingDeg, 90) < 1), 'ÖRNEK: doğu kesimi');
+  assert.ok(ws.some((x) => x.variable === false && angleDiffDeg(x.bearingDeg, 0) < 1), 'ÖRNEK: kuzey kesimi');
   assert.throws(() => routeBearings([[33, 40]]), TypeError);
   assert.throws(() => routeBearings([[40, 33, 0], ['x', 1]]), TypeError);
   assert.throws(() => routeBearings([[33, 40], [33, 40]]), TypeError);

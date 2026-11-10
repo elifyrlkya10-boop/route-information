@@ -141,7 +141,7 @@ async function step(name, fn) {
     assert.deepStrictEqual(seenRoutes.sort(), SRC_ROUTES.map((r) => r.id).sort());
     const b = page.locator('.route[data-route-id="tr-dogu-anadolu-01"]');
     const txt = await b.textContent();
-    for (const s of ["Kemaliye Taş Yol", "11.1 km", "Zor", "Mayıs–Ekim", STATUS_TR[KEMALIYE.verification.status]]) assert.ok(txt.includes(s), "missing '" + s + "' in: " + txt);
+    for (const s of ["Kemaliye Taş Yol", KEMALIYE.lengthKm + " km", "Zor", "Mayıs–Ekim", STATUS_TR[KEMALIYE.verification.status]]) assert.ok(txt.includes(s), "missing '" + s + "' in: " + txt);
   });
 
   await step("dokunma alanları >= 64px (liste, dil, zoom, sıfırla)", async () => {

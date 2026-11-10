@@ -81,6 +81,10 @@ Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
 - **A** — "Kemaliyeliler Taş Yolu – Kemaliye–Divriği yolu kavşağı" olsun (karar 20 A seçilirse İngilizcesi "Stone Road – Kemaliye–Divriği road junction"). **(önerilen)**
 - **B** — Olduğu gibi kalsın.
 
+**23. "Yaklaşık rota" işareti modüller arasında tek kural olsun mu?** (11 Kasım gecesi eklendi; hava-durumu ve fotograf-noktalari'nın bulgusu). Kemaliye artık OSM yolunu izliyor ama hâlâ "doğrulanmalı". Bugün üç modül bunu farklı okuyor: tehlike uyarıları "yaklaşık" diyor, hava ve fotoğraf bildirimleri "yaklaşık değil" diyor.
+- **A** — Tek kural: rota "doğrulanmalı" ise ya da yalnız sadeleştirilmiş çizgisi varsa üç modülde de "yaklaşık" sayılsın (sürücüye temkinli dil). **(önerilen)**
+- **B** — Tek kural: yalnızca çizgi eksikse (pathFull yoksa) "yaklaşık" sayılsın; "doğrulanmalı" durumu bunu etkilemesin.
+
 ---
 
 ## Karar sırasında sunulan seçenekler

@@ -9,12 +9,12 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 2 | 33.3 | 16.7 | 18.9 | 410.949 |
+| rota-uzmani | 3 | 45.9 | 15.3 | 18.9 | 581.515 |
 | ekipman-asistani | 0 | 0.0 | – | – | 0 |
-| guvenlik-ve-yakin-cevre | 0 | 0.0 | – | – | 0 |
-| fotograf-noktalari | 2 | 14.6 | 7.3 | 7.6 | 253.484 |
-| hava-durumu | 2 | 8.6 | 4.3 | 4.4 | 273.988 |
-| **Toplam** | **6** | **56.5** | | | **938.421** |
+| guvenlik-ve-yakin-cevre | 1 | 2.4 | 2.4 | 2.4 | 106.806 |
+| fotograf-noktalari | 3 | 20.6 | 6.9 | 7.6 | 356.765 |
+| hava-durumu | 3 | 12.4 | 4.1 | 4.4 | 392.214 |
+| **Toplam** | **10** | **81.2** | | | **1.437.300** |
 
 ### 45. hafta: 2 Kasım – 8 Kasım 2026
 
@@ -44,17 +44,21 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 
 | Ajan | Çalışma sayısı | Toplam süre (dk) | Ortalama (dk) | En uzun (dk) | Token |
 |---|---:|---:|---:|---:|---:|
-| rota-uzmani | 15 | 110.8 | 7.4 | 18.9 | 2.187.271 |
+| rota-uzmani | 16 | 123.3 | 7.7 | 18.9 | 2.357.837 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
-| guvenlik-ve-yakin-cevre | 8 | 16.9 | 2.1 | 3.8 | 756.509 |
-| fotograf-noktalari | 12 | 58.5 | 4.9 | 12.1 | 1.356.530 |
-| hava-durumu | 9 | 31.3 | 3.5 | 5.4 | 998.254 |
-| **Toplam** | **50** | **228.2** | | | **5.797.535** |
+| guvenlik-ve-yakin-cevre | 9 | 19.3 | 2.1 | 3.8 | 863.315 |
+| fotograf-noktalari | 13 | 64.5 | 5.0 | 12.1 | 1.459.811 |
+| hava-durumu | 10 | 35.0 | 3.5 | 5.4 | 1.116.480 |
+| **Toplam** | **54** | **252.9** | | | **6.296.414** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-11 | 02:29:39 | 02:32:00 | guvenlik-ve-yakin-cevre | 2.4 | tamamlandi | Tehlike testleri: yalnız-path davranışı ÖRNEK rotaya taşındı (35/35) |
+| 2026-11-11 | 02:29:16 | 02:33:00 | hava-durumu | 3.7 | tamamlandi | Yön ve hava testleri Kemaliye pathFull'una göre güncellendi, yuvarlama kuralı |
+| 2026-11-11 | 02:28:57 | 02:35:00 | fotograf-noktalari | 6.0 | tamamlandi | Kemaliye fotoğraf noktası yeni pathFull'a bağlandı; yalnız-path testi ÖRNEK rotaya taşındı |
+| 2026-11-11 | 02:15:28 | 02:28:00 | rota-uzmani | 12.5 | tamamlandi | Kemaliye Taş Yol: OSM'de boşluk yok, pathFull OSM way geometrisiyle üretildi |
 | 2026-11-10 | 02:36:33 | 02:41:00 | hava-durumu | 4.4 | tamamlandi | Yön ve hava testleri Brezilya rotasına göre genişletildi (güney yarımküre, UTC−3) |
 | 2026-11-10 | 02:36:22 | 02:44:00 | fotograf-noktalari | 7.6 | tamamlandi | Serra do Rio do Rastro rotasına 3 fotoğraf noktası |
 | 2026-11-10 | 02:15:08 | 02:34:00 | rota-uzmani | 18.9 | tamamlandi | İlk Brezilya rotası br-santa-catarina-01 (Serra do Rio do Rastro) |

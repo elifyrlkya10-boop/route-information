@@ -66,6 +66,27 @@ const ornekNokta = (forecast, distanceKm = 10, index = 1) => ({
   },
 });
 
+// ---- ÖRNEK sentetik yalnız-path rota ----
+// 2026-11-11'den beri data/routes.json'da yalnız path'i olan rota yok (Kemaliye pathFull aldı). Yalnız-path davranışı
+// (path'in lengthKm ile ölçeklenmesi, routeApproximate: true) bu ÖRNEK rotayla sınanmaya devam eder. Gerçek rota DEĞİLDİR.
+const ORNEK_YALNIZ_PATH = Object.freeze({
+  id: 'ornek-yalniz-path', ORNEK: true,
+  name: { tr: 'ÖRNEK yalnız-path rota (gerçek değil)', en: 'EXAMPLE path-only route (not real)' },
+  lengthKm: 11.0, // ÖRNEK: çizgi ~9,88 km, sadeleştirilmiş path gibi yol uzunluğundan ~%11 kısa
+  path: { type: 'LineString', coordinates: [[38.0, 39.0], [38.05, 39.0], [38.05, 39.05]] }, // ~4,3 km doğu + ~5,6 km kuzey
+  geometryRevision: { date: 'ÖRNEK', pathSha256: 'ÖRNEK', pathFullSha256: null },
+  verification: { status: 'doğrulanmalı' },
+});
+assert.equal(ORNEK_YALNIZ_PATH.pathFull, undefined);
+const KEMALIYE = data.routes.find((r) => r.id === 'tr-dogu-anadolu-01');
+assert.ok(KEMALIYE?.pathFull, 'tr-dogu-anadolu-01 data/routes.json içinde pathFull ile olmalı (2026-11-11)');
+
+// pathFull uzunluğu – lengthKm kuralı: %0,2 içinde, YA DA fark yalnız lengthKm'nin 1 ondalık yuvarlamasından geliyor
+// (round(çizgi, 1) === lengthKm, yani |fark| ≤ 0,05 km). Gerekçe: lengthKm 0,1 km çözünürlükle saklanıyor; kısa rotada
+// yuvarlama tek başına %0,2'yi aşar (11 km'de %0,45'e kadar). %0,2 eşiği gevşetilmedi: uzun rotada (> 25 km) %0,2
+// zaten 0,05 km'den büyük, ikinci kol yalnız kısa rotada devreye girer ve yuvarlama dışı hiçbir farkı kabul etmez.
+const pathFullLengthOk = (L, lengthKm) => Math.abs(L - lengthKm) / lengthKm < 0.002 || Math.round(L * 10) / 10 === lengthKm;
+
 // ---- Testler ----
 test('sadeleştirilmiş path lengthKm\'den kısa; üst sınır yalnız path\'in KULLANILDIĞI rotada (pathFull yok) aranır', () => {
   // path, pathFull'un Douglas-Peucker sadeleştirmesi: her rotada lengthKm'den kısa olmalı (değişmez özellik).
@@ -75,13 +96,21 @@ test('sadeleştirilmiş path lengthKm\'den kısa; üst sınır yalnız path\'in 
   // yine lengthKm paydalı). pathFull olan rotada
   // hava modülü path'i hiç kullanmaz (sonraki test bunu sınar), bu yüzden orada üst sınır anlamlı değildir.
   // Sınırı genişletmek yerine üst sınır, path'in mesafe/varış saati için ölçeklenerek kullanıldığı rotalarda korunur.
-  for (const r of data.routes) {
+  // Kemaliye 2026-11-11 geometrisinde: path 10,21 km, lengthKm 11,2 → %9,7 (pathFull'u olduğu için üst sınır aranmaz).
+  // Gerçek yalnız-path rota kalmadığından üst sınır ÖRNEK rotada sınanır; ileride gerçek bir yalnız-path rota eklenirse
+  // o da aynı döngüde sınanır.
+  let pathOnlyChecked = 0;
+  for (const r of [...data.routes, ORNEK_YALNIZ_PATH]) {
     const L = lineLengthKm(r, { geometry: 'path' });
     const diff = (r.lengthKm - L) / L;
     assert.ok(L > 0 && L < r.lengthKm, `${r.id}: çizgi ${L.toFixed(1)} km, lengthKm ${r.lengthKm}`);
-    if (!r.pathFull) assert.ok(diff > 0 && diff < 0.18, `${r.id} (yalnız path): fark %${(diff * 100).toFixed(1)}`);
+    if (!r.pathFull) { assert.ok(diff > 0 && diff < 0.18, `${r.id} (yalnız path): fark %${(diff * 100).toFixed(1)}`); pathOnlyChecked++; }
   }
-  assert.ok(data.routes.some((r) => !r.pathFull), 'üst sınır en az bir yalnız-path rotada (Kemaliye) sınanmalı');
+  assert.ok(pathOnlyChecked >= 1, 'üst sınır en az bir yalnız-path rotada (ÖRNEK) sınanmalı');
+  // ÖRNEK fark sıfıra yakın değil (alt sınır anlamlı) ve %18'in altında: ~%11,3.
+  const Lo = lineLengthKm(ORNEK_YALNIZ_PATH, { geometry: 'path' });
+  const dOrnek = (ORNEK_YALNIZ_PATH.lengthKm - Lo) / Lo;
+  assert.ok(dOrnek > 0.10 && dOrnek < 0.12, `ÖRNEK fark %${(100 * dOrnek).toFixed(1)}`);
 });
 
 test('pathFull olan her rotada path farkı önemsiz: path silinse ya da bozulsa örnekleme, varış ve yön aynı (sahte fetch, ÖRNEK yanıt)', async () => {
@@ -230,13 +259,13 @@ test('buildWeatherAlert: kısa tr/en metin, bilinmeyen dilde İngilizce', () => 
   assert.equal(buildWeatherAlert(c, 'tr'), "Dikkat: 20. km'de kuvvetli rüzgâr, 45 km/sa.");
 });
 
-test('pathFull ?? path: pathFull varsa o kullanılır, lengthKm ile %0,2 içinde; yoksa path ölçeklenir', () => {
-  for (const r of data.routes) {
+test('pathFull ?? path: pathFull varsa o kullanılır, lengthKm ile %0,2 içinde (ya da yalnız 1 ondalık yuvarlama farkı); yoksa path ölçeklenir (ÖRNEK yalnız-path rota)', () => {
+  for (const r of [...data.routes, ORNEK_YALNIZ_PATH]) {
     const s = sampleRoutePoints(r, 4);
     if (r.pathFull) {
       assert.ok(s.every((p) => p.geometry === 'pathFull'), r.id);
       const L = lineLengthKm(r);
-      assert.ok(Math.abs(L - r.lengthKm) / r.lengthKm < 0.002, `${r.id}: pathFull ${L.toFixed(2)} km, lengthKm ${r.lengthKm}`);
+      assert.ok(pathFullLengthOk(L, r.lengthKm), `${r.id}: pathFull ${L.toFixed(3)} km, lengthKm ${r.lengthKm}`);
       assert.ok(Math.abs(s[3].distanceKm - L) < 1e-9);
     } else {
       assert.ok(s.every((p) => p.geometry === 'path'), r.id);
@@ -246,7 +275,21 @@ test('pathFull ?? path: pathFull varsa o kullanılır, lengthKm ile %0,2 içinde
       assert.ok(L < r.lengthKm);
     }
   }
-  assert.ok(data.routes.some((r) => !r.pathFull), 'en az bir rota yalnız path ile (Kemaliye) denenmeli');
+  // Kemaliye (gerçek, 2026-11-11): artık pathFull kullanılır; son nokta çizginin kendi uzunluğunda (~11,17 km), lengthKm
+  // 11,2'ye ölçeklenmez. Fark %0,27 > %0,2 ama yalnız yuvarlamadan: round(11,170; 1) = 11,2.
+  const sk = sampleRoutePoints(KEMALIYE, 4);
+  const Lk = lineLengthKm(KEMALIYE);
+  assert.ok(sk.every((p) => p.geometry === 'pathFull'));
+  assert.ok(Math.abs(Lk - 11.17) < 0.005, `Kemaliye pathFull ${Lk.toFixed(3)} km`);
+  assert.equal(KEMALIYE.lengthKm, 11.2);
+  assert.ok(Math.abs(Lk - KEMALIYE.lengthKm) / KEMALIYE.lengthKm > 0.002, 'Kemaliye yuvarlama kolunu gerçekten sınıyor');
+  assert.ok(Math.abs(sk[3].distanceKm - Lk) < 1e-9 && sk[3].distanceKm < KEMALIYE.lengthKm);
+  // Kural yuvarlama dışı farkı kabul etmez (ÖRNEK sayılar): 11,17 km çizgi, lengthKm 11,1 ya da 11,3 olsaydı kırılırdı.
+  assert.equal(pathFullLengthOk(11.17, 11.1), false);
+  assert.equal(pathFullLengthOk(11.17, 11.3), false);
+  assert.equal(pathFullLengthOk(46.17, 46.1), true); // %0,15 (İç Anadolu benzeri, yuvarlamadan büyük ama %0,2 içinde)
+  assert.equal(pathFullLengthOk(46.0, 46.2), false);
+  assert.ok(ORNEK_YALNIZ_PATH.pathFull === undefined && ORNEK_YALNIZ_PATH.geometryRevision.pathFullSha256 === null);
   assert.throws(() => sampleRoutePoints({ id: 'x', pathFull: { type: 'LineString', coordinates: [[0, 0]] },
     path: { type: 'LineString', coordinates: [[0, 0], [1, 1]] } }, 3), /pathFull/);
 });
@@ -259,13 +302,27 @@ test('fetchRouteForecast: kullanılan çizgi sonuçta görünür; yalnız path �
   assert.equal(full.routeApproximate, false);
   assert.equal(full.distanceScale, 1);
   assert.ok(full.points.every((p) => p.geometry === 'pathFull'));
-  const kem = data.routes.find((r) => !r.pathFull);
+  const kem = ORNEK_YALNIZ_PATH; // ÖRNEK sentetik yalnız-path rota (2026-11-11'den önce gerçek Kemaliye'ydi)
   const p = await fetchRouteForecast(kem, { ...opt, fetchImpl: sahteFetch((pts) => ornekOpenMeteoYaniti(pts)) });
+  assert.equal(p.routeId, 'ornek-yalniz-path');
   assert.equal(p.geometry, 'path');
   assert.equal(p.routeApproximate, true);
   assert.ok(Math.abs(p.distanceScale - kem.lengthKm / lineLengthKm(kem)) < 1e-12);
   assert.ok(Math.abs(p.routeKm - kem.lengthKm) < 1e-9);
   assert.equal(p.points[2].arrival, new Date(start + (kem.lengthKm / 40) * 3600e3).toISOString());
+  // Gerçek Kemaliye (2026-11-11 pathFull): ölçek 1, varış çizgi uzunluğuyla (~11,17 km), lengthKm 11,2 ile değil.
+  const k = await fetchRouteForecast(KEMALIYE, { ...opt, fetchImpl: sahteFetch((pts) => ornekOpenMeteoYaniti(pts)) });
+  const Lk = lineLengthKm(KEMALIYE);
+  assert.equal(k.geometry, 'pathFull');
+  assert.equal(k.distanceScale, 1);
+  assert.ok(Math.abs(k.routeKm - Lk) < 1e-9);
+  assert.ok(k.points.every((x) => x.geometry === 'pathFull'));
+  assert.equal(k.points[2].arrival, new Date(start + (Lk / 40) * 3600e3).toISOString());
+  // weather.js kuralı: routeApproximate = geometry !== 'pathFull' || route.routeApproximate === true. routes.json'da
+  // routeApproximate alanı yok; verification.status 'doğrulanmalı' bu modülde routeApproximate'i etkilemez (hazards.js
+  // ise status'a bakar → true). Mevcut davranış sabitlendi; modüller arası tutarlılık açık soru (rapora yazıldı).
+  assert.equal(KEMALIYE.verification.status, 'doğrulanmalı');
+  assert.equal(k.routeApproximate, false);
 });
 
 test('assessRide: coldExpected (≤ 5 °C) ve fogExpected (görüş < 1000 m ya da kod 45/48) — ÖRNEK değerler', () => {
@@ -356,11 +413,11 @@ test('addWindComponents: değişken kesimde (R < 0,7) bileşenler null, bearingV
   assert.equal(p.crosswindSide, null);
 });
 
-test('fetchRouteForecast: wind_direction_10m istenir, her noktada bilgi alanları; yalnız path (Kemaliye) da çalışır (sahte fetch)', async () => {
+test('fetchRouteForecast: wind_direction_10m istenir, her noktada bilgi alanları; ÖRNEK yalnız-path rota ve gerçek Kemaliye pathFull da çalışır (sahte fetch)', async () => {
   assert.ok(HOURLY_VARS.includes('wind_direction_10m'));
   const opt = { startTime: Date.parse('2026-11-02T08:00:00Z'), now: ORNEK_BASLANGIC_SAATI, speedKmh: 40, n: 6 };
   const body = (pts) => ornekOpenMeteoYaniti(pts, { hourValues: () => ({ wind_direction_10m: 90 }) }); // ÖRNEK
-  for (const route of [ROUTE, data.routes.find((r) => !r.pathFull)]) {
+  for (const route of [ROUTE, ORNEK_YALNIZ_PATH, KEMALIYE]) {
     const f = sahteFetch(body);
     const r = await fetchRouteForecast(route, { ...opt, fetchImpl: f });
     assert.ok(new URL(f.calls[0]).searchParams.get('hourly').split(',').includes('wind_direction_10m'));
