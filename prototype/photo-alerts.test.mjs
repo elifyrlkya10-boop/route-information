@@ -560,6 +560,11 @@ test('es-andalucia-01: üç nokta (Boyar, Palomas, Acebuches) rota sırasıyla b
     // Noktaların kendisi rotaya 50 m'den yakın (rota-uzmani'nın OSM listesi; La Garganta Verde 362 m olduğu için seçilmedi).
     assert.ok(projectOnRoute(s.location, coords).offsetM < 50, `${id}: location offset`);
   }
+  // Palomas: otopark (way 575269277) rotanın sağında, manzara noktası solunda (OSM, 2026-11-12); yaya yolu karşıya geçer.
+  const palomas = spot('ps-es-andalucia-01-02');
+  assert.match(palomas.safeStopInfo.es, /lados opuestos de la carretera: crúcela a pie con cuidado/);
+  assert.match(palomas.safeStopInfo.en, /opposite sides of the road: cross on foot with care/);
+  assert.match(palomas.verification.notes, /manzara noktası SOL tarafında/);
 });
 
 test('br-santa-catarina-01: üç nokta (Biker 3, ana mirante, Cascata da Barrinha) rota sırasıyla birer kez, yarıçap içinde; metinler pt + en, Türkçe yok', () => {
