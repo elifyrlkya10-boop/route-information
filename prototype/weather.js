@@ -66,7 +66,8 @@ function haversineKm(a, b) {
 
 /**
  * Kullanılacak çizgiyi seçer: varsayılan `route.pathFull ?? route.path` (rota-uzmani: pathFull tam yol geometrisi,
- * lengthKm ile %0,2 içinde; path sadeleştirilmiş ve %3–17,5 kısa). geometry: 'auto' | 'pathFull' | 'path'.
+ * uzunluğu lengthKm ile %0,2 içinde ya da farkı yalnız lengthKm'nin 1 ondalık yuvarlamasından (|fark| ≤ 0,05 km);
+ * path sadeleştirilmiş, lengthKm'den kısa, fark virajlılığa bağlı). geometry: 'auto' | 'pathFull' | 'path'.
  * @returns {{geometry:'pathFull'|'path', pts:{lat:number, lon:number}[]}}
  */
 function routeLine(route, geometry = 'auto') {

@@ -124,7 +124,7 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
 - Harita prototipi: `prototype/map.html` (Leaflet 1.9.4 + OSM karoları, "© OpenStreetMap contributors" atfı). Veri `scripts/build_map_data.py`
   ile `prototype/map-data.js` olarak üretilir; JSON değişince betik yeniden çalıştırılır. OSM karo politikası yoğun kullanıma izin vermez;
   ürüne geçmeden önce kendi karo sunucusu ya da sağlayıcı gerekir.
-- `lengthKm` yol uzunluğudur (OSRM); `path` sadeleştirilmiş çizgidir ve %3–17,5 daha kısadır. Mesafe, varış saati, rota dışı ve
+- `lengthKm` yol uzunluğudur (OSRM); `path` sadeleştirilmiş çizgidir ve daha kısadır (fark virajlılığa bağlı; 2026-11 ölçümlerinde en çok Pelion, ~%21,5). Mesafe, varış saati, rota dışı ve
   tehlike hesapları `pathFull ?? path` kullanır; yalnızca `path` olan rotada sonuç yaklaşıktır (`routeApproximate: true`). 2026-11-11'den beri katalogda yalnız `path`'i olan rota yok (Kemaliye'nin `pathFull`'u OSM way geometrisinden üretildi); bu davranış testlerde açıkça ÖRNEK diye işaretli sentetik rotalarla sınanıyor. `pathFull` uzunluğu ile `lengthKm` arasındaki fark %0,2 içinde olmalı ya da yalnız `lengthKm`'nin 1 ondalık yuvarlamasından gelmeli (|fark| ≤ 0,05 km). `routeApproximate` şu an modüllerde farklı hesaplanıyor (karar 23).
   Harita sadeleştirilmiş `path`'i çizer. Harita listesi ülke › bölge gruplu; metin önce arayüz dilinde, yoksa İngilizcede gösterilir. `path` yöntemi: `pathFull` üzerinde Douglas-Peucker, 200 m tolerans.
 - `geometryRevision`: karma = `coordinates` dizisinin `json.dumps(separators=(",",":"))` UTF-8 metninin SHA-256'sı (JS `JSON.stringify` ile aynı);

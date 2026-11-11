@@ -53,3 +53,4 @@ tarih,baslangic,bitis,ajan,sure_sn,arac_kullanimi,token,durum,is
 2026-11-11,02:29:39,02:32:00,guvenlik-ve-yakin-cevre,141.0,11,106806,tamamlandi,Tehlike testleri: yalnız-path davranışı ÖRNEK rotaya taşındı (35/35)
 2026-11-11,02:29:16,02:33:00,hava-durumu,223.9,19,118226,tamamlandi,"Yön ve hava testleri Kemaliye pathFull'una göre güncellendi, yuvarlama kuralı"
 2026-11-11,02:28:57,02:35:00,fotograf-noktalari,362.2,19,103281,tamamlandi,Kemaliye fotoğraf noktası yeni pathFull'a bağlandı; yalnız-path testi ÖRNEK rotaya taşındı
+2026-11-12,02:15:54,02:16:30,hava-durumu,35.6,6,70958,tamamlandi,weather.js yorumu yuvarlama kuralına uyduruldu
