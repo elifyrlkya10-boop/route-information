@@ -217,11 +217,12 @@ export function routeLengthMeters(lineCoords) {
 
 /**
  * Mesafe/ileriye bakış için kullanılacak rota çizgisi: route.pathFull ?? route.path.
- * pathFull (OSRM tam çizgisi) varsa o, yoksa sadeleştirilmiş path (ör. Kemaliye) kullanılır.
+ * pathFull (tam yol çizgisi: OSRM ya da OSM way geometrisi) varsa o, yoksa sadeleştirilmiş path kullanılır
+ *   (ör. yalnız path olan bir rota).
  * pathFull varsa ama GeoJSON LineString değilse sessizce path'e düşülmez, hata verilir.
  * scale: çizgi mesafesini yol mesafesine çeviren çarpan (yol mesafesi = çizgi mesafesi × scale).
  *   - pathFull için 1 (pathFull zaten gerçek yol; lengthKm ile %0,5 içinde).
- *   - Yalnız path varsa route.lengthKm × 1000 / çizgi uzunluğu (ör. Kemaliye ~1,03).
+ *   - Yalnız path varsa route.lengthKm × 1000 / çizgi uzunluğu (yalnız path olan bir rotada genelde 1'in biraz üstü).
  *   - Yalnız path var ama lengthKm geçerli pozitif sayı değilse (ya da çizgi uzunluğu 0 ise) 1.
  * Geriye uyum: önceki dönüş alanları (geometry, coordinates) aynen duruyor; scale yeni alan.
  * @returns {{geometry: 'pathFull'|'path', coordinates: number[][], scale: number}}
@@ -259,7 +260,7 @@ export const SKIP_REASONS = Object.freeze(['filter', 'location', 'offset']);
  *   (route.pathFull ?? route.path, GeoJSON LineString, [lon, lat]); hangisinin kullanıldığı sonuçta
  *   geometry alanında, çarpanı scale alanında görünür.
  * - aheadM YOL mesafesidir: (çizgi mesafesi farkı) × scale. pathFull'da scale = 1; yalnız path olan
- *   rotada (Kemaliye) lengthKm / çizgi uzunluğu. lookAheadM ve lookAheadOf da yol mesafesiyle karşılaştırılır.
+ *   bir rotada lengthKm / çizgi uzunluğu. lookAheadM ve lookAheadOf da yol mesafesiyle karşılaştırılır.
  *   distanceAlongM (sürücü ve kayıt) ve offsetM ölçeklenmez: çizgi üzerindeki ham değerlerdir.
  * - Tehlike, rotaya maxOffsetM'den yakınsa ve 0 <= aheadM <= menzil ise döner; geride kalanlar
  *   ve paralel/başka yoldaki (rotaya uzak) tehlikeler dönmez. Sonuç aheadM'e göre yakından uzağa sıralı.
@@ -278,8 +279,9 @@ export const SKIP_REASONS = Object.freeze(['filter', 'location', 'offset']);
  *   uzak; offsetM ile — ör. rota çizgisi değişmiş, kayıt kopmuş). Geride kalan ve menzil dışındaki kayıtlar
  *   normal durumdur, skipped'e GİRMEZ. offRoute=true iken kayıtlar değerlendirilmez, skipped boş döner.
  *   includeSkipped false (varsayılan) ise skipped alanı hiç yoktur (eski dönüş biçimi).
- * - route.verification.status === 'doğrulanmalı' ise routeApproximate=true (ör. Kemaliye: yalnız path var,
- *   çizgi yaklaşık, aheadM/offsetM de yaklaşıktır; tehlike konumları bu çizgiye snap EDİLMEZ).
+ * - route.verification.status === 'doğrulanmalı' ise routeApproximate=true (çizgi yaklaşık sayılır — yalnız path
+ *   olsun ya da doğrulanmamış bir pathFull olsun, ör. Kemaliye: 2026-11-11'den beri OSM way geometrisinden
+ *   pathFull'u var ama hâlâ 'doğrulanmalı'; aheadM/offsetM de yaklaşıktır; tehlike konumları bu çizgiye snap EDİLMEZ).
  * Sonuç kayıtlarında öğe, geriye uyum için her zaman "hazard" anahtarındadır (skipped'de "item").
  * @returns {{routeId: string, geometry: 'pathFull'|'path', scale: number, routeApproximate: boolean, offRoute: boolean,
  *   driver: {distanceAlongM: number, offsetM: number, segmentIndex: number},
@@ -384,7 +386,7 @@ const REVISION_HASH_KEYS = ['pathSha256', 'pathFullSha256'];
 /**
  * İki geometryRevision nesnesi aynı rota çizgisini mi gösteriyor? Tek eskime kuralı (tehlike extent'i ve
  * fotoğraf noktaları için ortak).
- * - Alan alan katı eşitlik: pathSha256 ve pathFullSha256. null === null eşittir (pathFull olmayan rota, ör. Kemaliye).
+ * - Alan alan katı eşitlik: pathSha256 ve pathFullSha256. null === null eşittir (pathFull olmayan, yalnız path olan bir rota).
  * - date karşılaştırılmaz: scripts/geometry_revision.py date'i yalnızca karma değişince günceller; karmalar aynıysa
  *   çizgi aynıdır.
  * - Geriye uyum: pathFullSha256 alanı hiç yoksa null sayılır (önceki extentRevisionStatus davranışı).
