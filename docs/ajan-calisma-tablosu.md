@@ -11,10 +11,10 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 |---|---:|---:|---:|---:|---:|
 | rota-uzmani | 3 | 45.9 | 15.3 | 18.9 | 581.515 |
 | ekipman-asistani | 0 | 0.0 | – | – | 0 |
-| guvenlik-ve-yakin-cevre | 2 | 3.7 | 1.9 | 2.4 | 180.711 |
+| guvenlik-ve-yakin-cevre | 3 | 22.0 | 7.3 | 18.3 | 315.033 |
 | fotograf-noktalari | 4 | 25.6 | 6.4 | 7.6 | 461.798 |
 | hava-durumu | 4 | 13.0 | 3.2 | 4.4 | 463.172 |
-| **Toplam** | **13** | **88.1** | | | **1.687.196** |
+| **Toplam** | **14** | **106.4** | | | **1.821.518** |
 
 ### 45. hafta: 2 Kasım – 8 Kasım 2026
 
@@ -46,15 +46,16 @@ Süreler, her ajanın kendi çalışma süresidir (ajanlar paralel çalıştığ
 |---|---:|---:|---:|---:|---:|
 | rota-uzmani | 16 | 123.3 | 7.7 | 18.9 | 2.357.837 |
 | ekipman-asistani | 6 | 10.8 | 1.8 | 2.8 | 498.971 |
-| guvenlik-ve-yakin-cevre | 10 | 20.7 | 2.1 | 3.8 | 937.220 |
+| guvenlik-ve-yakin-cevre | 11 | 39.0 | 3.5 | 18.3 | 1.071.542 |
 | fotograf-noktalari | 14 | 69.5 | 5.0 | 12.1 | 1.564.844 |
 | hava-durumu | 11 | 35.6 | 3.2 | 5.4 | 1.187.438 |
-| **Toplam** | **57** | **259.8** | | | **6.546.310** |
+| **Toplam** | **58** | **278.1** | | | **6.680.632** |
 
 ## Tüm çalışmalar
 
 | Tarih | Başlangıç | Bitiş | Ajan | Süre (dk) | Durum | İş |
 |---|---|---|---|---:|---|---|
+| 2026-11-13 | 02:14:43 | 02:33:00 | guvenlik-ve-yakin-cevre | 18.3 | tamamlandi | Rota boyunca benzinlik boşluğu: fuelGapsAlongRoute ve OSM araştırma notu |
 | 2026-11-12 | 02:16:06 | 02:17:30 | guvenlik-ve-yakin-cevre | 1.4 | tamamlandi | hazards.js'teki eskimiş Kemaliye yorumları düzeltildi |
 | 2026-11-12 | 02:15:54 | 02:16:30 | hava-durumu | 0.6 | tamamlandi | weather.js yorumu yuvarlama kuralına uyduruldu |
 | 2026-11-12 | 02:15:00 | 02:20:00 | fotograf-noktalari | 5.0 | tamamlandi | Palomas: otopark ve manzara noktası yolun karşı taraflarında, uyarı eklendi |

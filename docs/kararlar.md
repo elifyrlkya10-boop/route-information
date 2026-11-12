@@ -85,6 +85,14 @@ Cevap: sohbete `12A 13A ...` yazın ya da "hepsi önerilen gibi".
 - **A** — Tek kural: rota "doğrulanmalı" ise ya da yalnız sadeleştirilmiş çizgisi varsa üç modülde de "yaklaşık" sayılsın (sürücüye temkinli dil). **(önerilen)**
 - **B** — Tek kural: yalnızca çizgi eksikse (pathFull yoksa) "yaklaşık" sayılsın; "doğrulanmalı" durumu bunu etkilemesin.
 
+**24. Benzinlik listesinde süzme** (13 Kasım gecesi eklendi; guvenlik-ve-yakin-cevre'nin bulgusu). OSM'den gelen benzinlik listesi şu an etiketlere bakmıyor; özel (`access=private`) ve yalnız CNG/LPG satan istasyonlar da sayılıyor (ör. Maçka'da bir CNG istasyonu, Andalucía'da özel bir kooperatif istasyonu).
+- **A** — `Poi` modeline `access` ve yakıt türü eklensin; özel ve benzin satmayan istasyonlar listeden ve boşluk hesabından çıkarılsın. **(önerilen)**
+- **B** — Olduğu gibi kalsın (her `amenity=fuel` sayılsın).
+
+**25. Uzun benzinlik boşluğu uyarısı.** Ölçüme göre (OSM, doğrulanmalı) en uzun boşluk Karadeniz rotasında 52,3 km; Serra do Rio do Rastro ve Kemaliye'de rota üzerinde hiç istasyon görünmüyor.
+- **A** — Rota başlarken boşluk belli bir eşiği (ör. 40 km) aşıyorsa sesli ve kısa bir "sonraki benzinlik X km sonra, depoyu doldurun" hatırlatması verilsin. **(önerilen)**
+- **B** — Yalnızca listede gösterilsin, uyarı olmasın.
+
 ---
 
 ## Karar sırasında sunulan seçenekler

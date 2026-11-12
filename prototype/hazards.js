@@ -541,3 +541,72 @@ export async function fetchNearbyPois({ lat, lon, radiusM, endpoint = DEFAULT_OV
   const json = await res.json();
   return parseOverpassResponse(json, { lat, lon });
 }
+
+// ---------------- Rota boyunca benzinlik boşlukları ----------------
+
+/**
+ * Rota boyunca benzinlik (POI type: 'fuel') boşluklarını hesaplar. Saf fonksiyon: ağ erişimi yok, girdiyi değiştirmez.
+ * - Çizgi routeLine(route) ile alınır (pathFull ?? path); mesafeler YOL mesafesidir: çizgi mesafesi × scale.
+ * - Yalnız type === 'fuel' olan ve geçerli location {lat, lon} taşıyan POI'ler değerlendirilir; diğerleri
+ *   sessizce yok sayılır. Her istasyon projectOnRoute ile çizgiye izdüşürülür; offsetM > maxOffsetM olanlar
+ *   rotada SAYILMAZ (skipped'e 'offset' nedeniyle girer). Aynı id iki kez gelirse ikincisi 'duplicate' ile atlanır.
+ * - Aralıklar: başlangıç → ilk istasyon, istasyonlar arası, son istasyon → bitiş (km). İstasyon yoksa tek
+ *   aralık başlangıç → bitiştir ve noStationOnRoute = true.
+ * - Bu "OSM'de görünmüyor" bilgisidir, "istasyon yok" değil: sonuç sahada doğrulanmalıdır.
+ * - route.verification.status === 'doğrulanmalı' ise routeApproximate = true (mesafeler yaklaşık).
+ * - Mevcut fonksiyonların davranışını değiştirmez.
+ * @param {object} route data/routes.json'daki rota nesnesi
+ * @param {Array<object>} pois Poi listesi (docs/urun-dokumani.md > Poi)
+ * @param {{maxOffsetM?: number}} opts maxOffsetM: istasyonun çizgiye en fazla uzaklığı (metre, varsayılan 500)
+ * @returns {{routeId: string, geometry: 'pathFull'|'path', scale: number, routeApproximate: boolean,
+ *   maxOffsetM: number, routeLengthKm: number, noStationOnRoute: boolean,
+ *   stations: Array<{poi: object, distanceAlongKm: number, offsetM: number}>,
+ *   gaps: Array<{from: string, to: string, fromKm: number, toKm: number, lengthKm: number}>,
+ *   longestGap: {from: string, to: string, fromKm: number, toKm: number, lengthKm: number},
+ *   skipped: Array<{poi: object, reason: 'offset'|'duplicate', offsetM?: number}>}}
+ *   from/to: 'start', 'end' ya da istasyonun POI id'si. Eşit uzunlukta en uzun boşluklarda ilki seçilir.
+ */
+export function fuelGapsAlongRoute(route, pois, { maxOffsetM = 500 } = {}) {
+  const { geometry, coordinates: coords, scale } = routeLine(route);
+  if (!isNum(maxOffsetM) || maxOffsetM < 0) throw new TypeError('maxOffsetM: negatif olmayan sayı olmalı');
+  if (pois != null && !Array.isArray(pois)) throw new TypeError('pois: dizi olmalı');
+  const routeLengthKm = (routeLengthMeters(coords) * scale) / 1000;
+  const stations = [];
+  const skipped = [];
+  const seen = new Set();
+  for (const poi of pois || []) {
+    if (!isObj(poi) || poi.type !== 'fuel') continue;
+    const loc = poi.location;
+    if (!isObj(loc) || !isNum(loc.lat) || !isNum(loc.lon)) continue;
+    if (poi.id != null && seen.has(poi.id)) { skipped.push({ poi, reason: 'duplicate' }); continue; }
+    const p = projectOnRoute(loc, coords);
+    if (p.offsetM > maxOffsetM) { skipped.push({ poi, reason: 'offset', offsetM: p.offsetM }); continue; }
+    if (poi.id != null) seen.add(poi.id);
+    stations.push({ poi, distanceAlongKm: (p.distanceAlongM * scale) / 1000, offsetM: p.offsetM });
+  }
+  stations.sort((a, b) => a.distanceAlongKm - b.distanceAlongKm || String(a.poi.id).localeCompare(String(b.poi.id)));
+  const marks = [
+    { id: 'start', km: 0 },
+    ...stations.map((s) => ({ id: String(s.poi.id), km: Math.min(routeLengthKm, Math.max(0, s.distanceAlongKm)) })),
+    { id: 'end', km: routeLengthKm },
+  ];
+  const gaps = [];
+  for (let i = 0; i < marks.length - 1; i++) {
+    gaps.push({ from: marks[i].id, to: marks[i + 1].id, fromKm: marks[i].km, toKm: marks[i + 1].km, lengthKm: marks[i + 1].km - marks[i].km });
+  }
+  let longestGap = gaps[0];
+  for (const g of gaps) if (g.lengthKm > longestGap.lengthKm) longestGap = g;
+  return {
+    routeId: route.id,
+    geometry,
+    scale,
+    routeApproximate: route.verification?.status === ROUTE_STATUS_APPROXIMATE,
+    maxOffsetM,
+    routeLengthKm,
+    noStationOnRoute: stations.length === 0,
+    stations,
+    gaps,
+    longestGap,
+    skipped,
+  };
+}

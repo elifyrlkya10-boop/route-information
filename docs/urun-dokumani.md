@@ -142,6 +142,7 @@ Kemaliye Taş Yol çizgisi (OSM'de yol parçaları eksik) ve Saklıkent manzara 
   `detourKm` kuş uçuşudur. Nokta çizgiden 50 m'den uzaksa `detached`, `reachableFromRoute: false` ise bildirilmez.
 - Yeni fotoğraf noktası eklerken `compute_photo_approach.py --osrm --only <routeId>`; mevcut noktaların değişmediği `--osrm --check` ile doğrulanır.
   Sesli metin tr/en; başlık istenen dilde yoksa metnin tamamı İngilizce okunur. Hava uyarıları şu an tr/en (el bekliyor).
+- Benzinlik boşluğu: `prototype/hazards.js` > `fuelGapsAlongRoute(route, pois, { maxOffsetM = 500 })` — `type: fuel` POI'leri rota çizgisine izdüşürür, başlangıç/istasyonlar arası/bitiş aralıklarını ve en uzun boşluğu yol km'si olarak verir. Gerçek rotalar için ölçüm: [docs/arastirma/benzinlik-araliklari.md](arastirma/benzinlik-araliklari.md) (OSM, 2026-11-13; doğrulanmalı).
 - Fotoğraf bildirimi: `prototype/photo-alerts.js` (`hazardsAheadOnRoute` üzerine ince sarmalayıcı; çizgiden 100 m'den uzak düşen noktalar `detached` olarak raporlanır; `toPhotoAnnouncement` ile `kind: 'photo'`). `approachPoint` rota çizgisine izdüşürülür; `aheadM` ≤ `notifyRadiusM` olunca nokta başına bir kez
   tetiklenir, `notifyRadiusM` + 500 m uzaklaşınca yeniden kurulur. `detourKm` ≥ 0,5 ise "rotadan yaklaşık X km sapma" söylenir; `safeStop` false olan nokta önerilmez.
   Harita, `reachableFromRoute: false` noktayı soluk işaretçi ve "Bu rotadan erişilmiyor" ibaresiyle gösterir; `detourRoadKm` > 0 ise "yolla ~X km (tek yön)" yazar.

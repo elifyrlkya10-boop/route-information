@@ -10,7 +10,7 @@ import {
   projectOnRoute, routeLengthMeters, hazardsAheadOnRoute, createAlertTracker,
   routeLine, defaultHazardFilter, orderAnnouncements, SKIP_REASONS,
   SOURCE_KINDS, VERIFICATION_STATUSES, HAZARD_STATUS_UNVERIFIED, isHazardUnverified, extentRevisionStatus,
-  sameGeometryRevision,
+  sameGeometryRevision, fuelGapsAlongRoute,
 } from './hazards.js';
 
 let passed = 0;
@@ -773,6 +773,107 @@ test('data/hazards.json: tüm kayıtlar geçerli; gerçek kayıtlar source + ver
       }
     }
   }
+});
+
+// ---- fuelGapsAlongRoute: TÜM veriler ÖRNEKTİR (sentetik rota ve sentetik POI; gerçek konum/istasyon iddiası yok) ----
+// ÖRNEK düz rota: ekvator üzerinde (okyanus) lon 0 → 0,1; ~11,1 km. Gerçek bir yol DEĞİLDİR.
+const ORNEK_DUZ_ROTA = Object.freeze({
+  id: 'xx-ornek-99',
+  isSample: true,
+  name: { tr: 'ÖRNEK düz rota — gerçek değil', en: 'SAMPLE straight route — not real' },
+  lengthKm: 11.1,
+  path: { type: 'LineString', coordinates: [[0, 0], [0.1, 0]] },
+  pathFull: { type: 'LineString', coordinates: [[0, 0], [0.05, 0], [0.1, 0]] },
+  verification: { status: 'doğrulandı' },
+});
+const ORNEK_DUZ_UZUNLUK_KM = routeLengthMeters(ORNEK_DUZ_ROTA.pathFull.coordinates) / 1000;
+const ornekBenzinlik = (id, route, alongM, offsetM = 0, type = 'fuel') => ({
+  id: `ORNEK:${id}`, type, isSample: true, name: 'ÖRNEK istasyon — gerçek değil',
+  location: pointAlong(etkinCizgi(route), alongM, offsetM),
+});
+const yakin = (a, b, tol = 0.01) => Math.abs(a - b) <= tol;
+
+test('fuelGapsAlongRoute (ÖRNEK): istasyon yok -> tek aralık başlangıç→bitiş, noStationOnRoute', () => {
+  const r = fuelGapsAlongRoute(ORNEK_DUZ_ROTA, []);
+  assert.equal(r.routeId, 'xx-ornek-99');
+  assert.equal(r.geometry, 'pathFull');
+  assert.equal(r.maxOffsetM, 500);
+  assert.equal(r.noStationOnRoute, true);
+  assert.equal(r.stations.length, 0);
+  assert.equal(r.gaps.length, 1);
+  assert.deepEqual([r.gaps[0].from, r.gaps[0].to], ['start', 'end']);
+  assert.ok(yakin(r.longestGap.lengthKm, ORNEK_DUZ_UZUNLUK_KM, 1e-9));
+  assert.ok(yakin(r.routeLengthKm, 11.12, 0.01), String(r.routeLengthKm));
+  assert.equal(fuelGapsAlongRoute(ORNEK_DUZ_ROTA, undefined).noStationOnRoute, true);
+});
+
+test('fuelGapsAlongRoute (ÖRNEK): başlangıç–ilk, arası, son–bitiş aralıkları ve en uzun boşluk', () => {
+  const pois = [
+    ornekBenzinlik('b', ORNEK_DUZ_ROTA, 8000, 120),   // ters sırada verildi; sıralanmalı
+    ornekBenzinlik('a', ORNEK_DUZ_ROTA, 2000),
+  ];
+  const r = fuelGapsAlongRoute(ORNEK_DUZ_ROTA, pois);
+  assert.equal(r.noStationOnRoute, false);
+  assert.deepEqual(r.stations.map((s) => s.poi.id), ['ORNEK:a', 'ORNEK:b']);
+  assert.ok(yakin(r.stations[1].offsetM, 120, 2), String(r.stations[1].offsetM));
+  assert.deepEqual(r.gaps.map((g) => [g.from, g.to]), [['start', 'ORNEK:a'], ['ORNEK:a', 'ORNEK:b'], ['ORNEK:b', 'end']]);
+  assert.ok(yakin(r.gaps[0].lengthKm, 2));
+  assert.ok(yakin(r.gaps[1].lengthKm, 6));
+  assert.ok(yakin(r.gaps[2].lengthKm, ORNEK_DUZ_UZUNLUK_KM - 8));
+  assert.deepEqual([r.longestGap.from, r.longestGap.to], ['ORNEK:a', 'ORNEK:b']);
+  const toplam = r.gaps.reduce((s, g) => s + g.lengthKm, 0);
+  assert.ok(yakin(toplam, r.routeLengthKm, 1e-9));
+  assert.deepEqual(pois.map((p) => p.id), ['ORNEK:b', 'ORNEK:a'], 'girdi değiştirilmemeli');
+});
+
+test('fuelGapsAlongRoute (ÖRNEK): maxOffsetM dışı sayılmaz, fuel olmayan ve konumsuz POI yok sayılır, yinelenen atlanır', () => {
+  const pois = [
+    ornekBenzinlik('uzak', ORNEK_DUZ_ROTA, 5000, 800),
+    ornekBenzinlik('market', ORNEK_DUZ_ROTA, 5000, 0, 'market'),
+    { id: 'ORNEK:konumsuz', type: 'fuel', isSample: true },
+    ornekBenzinlik('yakin', ORNEK_DUZ_ROTA, 3000, 300),
+    ornekBenzinlik('yakin', ORNEK_DUZ_ROTA, 3000, 300),
+  ];
+  const r = fuelGapsAlongRoute(ORNEK_DUZ_ROTA, pois);
+  assert.deepEqual(r.stations.map((s) => s.poi.id), ['ORNEK:yakin']);
+  assert.deepEqual(r.skipped.map((s) => [s.poi.id, s.reason]), [['ORNEK:uzak', 'offset'], ['ORNEK:yakin', 'duplicate']]);
+  assert.ok(yakin(r.skipped[0].offsetM, 800, 5));
+  // Yarıçap büyütülünce uzak istasyon sayılır.
+  const genis = fuelGapsAlongRoute(ORNEK_DUZ_ROTA, pois, { maxOffsetM: 1000 });
+  assert.deepEqual(genis.stations.map((s) => s.poi.id), ['ORNEK:yakin', 'ORNEK:uzak']);
+  // Yalnız rota dışı istasyon -> rotada istasyon yok.
+  const yok = fuelGapsAlongRoute(ORNEK_DUZ_ROTA, [ornekBenzinlik('uzak', ORNEK_DUZ_ROTA, 5000, 800)]);
+  assert.equal(yok.noStationOnRoute, true);
+  assert.equal(yok.gaps.length, 1);
+});
+
+test('fuelGapsAlongRoute (ÖRNEK): başlangıç/bitişteki istasyon sıfır uzunluklu aralık verir; uç dışı izdüşüm kırpılır', () => {
+  const bas = { id: 'ORNEK:bas', type: 'fuel', isSample: true, location: { lat: 0.001, lon: -0.002 } }; // çizgi başının gerisinde
+  const son = ornekBenzinlik('son', ORNEK_DUZ_ROTA, ORNEK_DUZ_UZUNLUK_KM * 1000);
+  const r = fuelGapsAlongRoute(ORNEK_DUZ_ROTA, [son, bas]);
+  assert.equal(r.gaps.length, 3);
+  assert.ok(yakin(r.gaps[0].lengthKm, 0, 1e-9));
+  assert.ok(yakin(r.gaps[2].lengthKm, 0, 1e-6));
+  assert.ok(r.gaps.every((g) => g.lengthKm >= 0));
+  assert.deepEqual([r.longestGap.from, r.longestGap.to], ['ORNEK:bas', 'ORNEK:son']);
+});
+
+test('fuelGapsAlongRoute (ÖRNEK): yalnız-path rotada mesafeler scale ile yol mesafesine çevrilir, routeApproximate', () => {
+  const { scale, coordinates } = routeLine(ORNEK_YALNIZ_PATH);
+  assert.ok(scale > 1);
+  const r = fuelGapsAlongRoute(ORNEK_YALNIZ_PATH, [ornekBenzinlik('orta', ORNEK_YALNIZ_PATH, 4000)]);
+  assert.equal(r.geometry, 'path');
+  assert.equal(r.routeApproximate, true);
+  assert.ok(yakin(r.routeLengthKm, ORNEK_YALNIZ_PATH.lengthKm, 1e-6));
+  assert.ok(yakin(r.stations[0].distanceAlongKm, 4 * scale, 0.01));
+  assert.ok(yakin(r.gaps[1].lengthKm, (routeLengthMeters(coordinates) / 1000 - 4) * scale, 0.01));
+});
+
+test('fuelGapsAlongRoute: geçersiz girdiler TypeError', () => {
+  assert.throws(() => fuelGapsAlongRoute(null, []), TypeError);
+  assert.throws(() => fuelGapsAlongRoute(ORNEK_DUZ_ROTA, [], { maxOffsetM: -1 }), /maxOffsetM/);
+  assert.throws(() => fuelGapsAlongRoute(ORNEK_DUZ_ROTA, [], { maxOffsetM: NaN }), /maxOffsetM/);
+  assert.throws(() => fuelGapsAlongRoute(ORNEK_DUZ_ROTA, {}), /pois: dizi/);
 });
 
 for (const { name, fn } of tests) {
